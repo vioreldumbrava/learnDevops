@@ -1,0 +1,23 @@
+# SITE_DOMAIN controls TLS:
+#   ":80"                -> plain HTTP on port 80 (local test, no certificate)
+#   "dojo.example.com"   -> automatic HTTPS via Let's Encrypt (needs public DNS + ports 80/443)
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_DOMAIN} {
+	encode gzip
+
+	# API and health endpoints go to the Go service.
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+	handle /healthz {
+		reverse_proxy api:8080
+	}
+
+	# Everything else is the React SPA served by the frontend's Nginx.
+	handle {
+		reverse_proxy frontend:80
+	}
+}

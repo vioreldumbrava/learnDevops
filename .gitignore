@@ -1,0 +1,32 @@
+# Secrets & local env
+.env
+*.pem
+!devDockerKey.pem.example
+
+# Backups & generated artifacts
+/backups/
+/artifacts/
+
+# Go
+/app/api/bin/
+*.test
+*.out
+
+# Node / frontend
+node_modules/
+/app/frontend/dist/
+/app/frontend/.vite/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

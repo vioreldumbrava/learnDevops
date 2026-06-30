@@ -1,0 +1,14 @@
+route:
+  receiver: default
+  group_by: ["alertname"]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+
+receivers:
+  - name: default
+    # Learning setup: fired alerts are visible in the Alertmanager UI at :9093.
+    # Add a real receiver (email/Slack/webhook) here when you want notifications, e.g.:
+    # slack_configs:
+    #   - api_url: https://hooks.slack.com/services/XXX
+    #     channel: "#alerts"

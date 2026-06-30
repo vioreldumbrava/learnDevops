@@ -1,0 +1,147 @@
+# Base Compose file: the shared definition of every service.
+# Run it with overlays, e.g.:
+#   docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.dev.yaml up --build
+#
+# Host ports for app services bind to 127.0.0.1 only, so they are reachable
+# locally but NOT from the public internet on a server (Caddy is the only
+# public entrypoint in prod). The db and redis publish no host ports at all.
+name: devops-dojo
+
+# Shared environment for the api and worker.
+x-app-env: &app-env
+  DATABASE_URL: ${DATABASE_URL:-postgres://dojo:dojo@db:5432/dojo?sslmode=disable}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-dojo-api}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dojo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dojo}
+      POSTGRES_DB: ${POSTGRES_DB:-dojo}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dojo} -d ${POSTGRES_DB:-dojo}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # One-shot schema migrations (golang-migrate). Runs to completion on `up`,
+  # then the api waits for it via depends_on. Migrations are idempotent.
+  migrate:
+    image: migrate/migrate:v4.18.1
+    volumes:
+      - ../../db/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=${DATABASE_URL:-postgres://dojo:dojo@db:5432/dojo?sslmode=disable}"
+      - "up"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ../../app/api
+    image: devops-dojo/api:dev
+    environment:
+      <<: *app-env
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/api", "-healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  # Same image as api, different entrypoint: consumes the Redis job queue.
+  worker:
+    build:
+      context: ../../app/api
+    image: devops-dojo/api:dev
+    entrypoint: ["/worker"]
+    environment:
+      <<: *app-env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../../app/frontend
+    image: devops-dojo/frontend:dev
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # On-demand backup/restore (profile "backup" keeps them out of `up`):
+  #   docker compose -f deploy/compose/compose.yaml run --rm db-backup
+  #   docker compose -f deploy/compose/compose.yaml run --rm -e BACKUP_FILE=<file>.sql db-restore
+  db-backup:
+    image: postgres:16-alpine
+    profiles: ["backup"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-dojo}
+    volumes:
+      - ../../backups:/backups
+    entrypoint: ["sh", "-c"]
+    command:
+      - 'pg_dump -h db -U ${POSTGRES_USER:-dojo} -d ${POSTGRES_DB:-dojo} -F p -f /backups/dojo_$$(date +%Y%m%d_%H%M%S).sql && echo "backup written to ./backups/"'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  db-restore:
+    image: postgres:16-alpine
+    profiles: ["backup"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-dojo}
+    volumes:
+      - ../../backups:/backups
+    entrypoint: ["sh", "-c"]
+    command:
+      - 'test -n "$$BACKUP_FILE" && psql -h db -U ${POSTGRES_USER:-dojo} -d ${POSTGRES_DB:-dojo} -f /backups/$$BACKUP_FILE || (echo "Set BACKUP_FILE=<name>.sql (a file under ./backups/)" && exit 1)'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  db-data:
+  redis-data:

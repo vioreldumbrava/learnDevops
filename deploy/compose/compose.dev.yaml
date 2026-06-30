@@ -1,0 +1,31 @@
+# Development overlay: hot-reloading frontend + DB/Redis exposed for inspection.
+#   docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.dev.yaml up --build
+#
+# Open http://localhost:5173 (Vite dev server with hot reload).
+services:
+  # Expose Postgres and Redis on localhost so you can inspect them with psql /
+  # redis-cli or a GUI during development. (Base keeps them private.)
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  # Replace the built Nginx image with a Vite dev server bind-mounting the source.
+  # `!reset` clears the values inherited from the base file.
+  frontend:
+    build: !reset null
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      VITE_API_PROXY: http://api:8080
+    volumes:
+      - ../../app/frontend:/app
+      - /app/node_modules
+    ports: !override
+      - "127.0.0.1:5173:5173"
+    healthcheck: !override
+      disable: true

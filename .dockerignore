@@ -1,0 +1,15 @@
+# Root build-context ignore (per-context .dockerignore files also exist under app/*)
+.git
+.github
+.env
+*.pem
+backups/
+labs/
+docs/
+deploy/k8s/
+deploy/terraform/
+deploy/ansible/
+**/node_modules
+**/dist
+**/.terraform
+*.tfstate*

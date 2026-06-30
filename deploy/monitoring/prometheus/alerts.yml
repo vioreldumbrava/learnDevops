@@ -1,0 +1,33 @@
+groups:
+  - name: dojo-availability
+    rules:
+      - alert: ApiDown
+        expr: up{job="dojo-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DevOps Dojo API is down"
+          description: "Prometheus has not been able to scrape the api target for 1 minute."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(dojo_http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(dojo_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate"
+          description: "More than 5% of API requests have failed over the last 5 minutes."
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(dojo_http_request_duration_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency above 500ms"
+          description: "95th percentile request latency has exceeded 500ms for 5 minutes."

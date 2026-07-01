@@ -137,6 +137,7 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 21 | Horizontal scaling | [labs/21](../labs/21-scaling/) | ✅ |
 | 22 | Kubernetes on kind | [labs/22](../labs/22-kubernetes/) | ✅ |
 | 23 | Helm packaging | [labs/23](../labs/23-helm/) | ✅ |
+| 24 | Self-hosted CI/CD with Jenkins (alt. to 15) | [labs/24](../labs/24-jenkins/) | ✅ |
 
 ---
 
@@ -488,6 +489,32 @@ repo, renders `.env`, and runs the prod compose stack — each task idempotent.
 a re-run reports `changed=0` for unchanged tasks.
 
 ➡️ Full lab: [labs/17-ansible](../labs/17-ansible/) · config: [deploy/ansible](../deploy/ansible/)
+
+## Step 24 — Self-hosted CI/CD with Jenkins (alternative to Step 15)
+
+**Concept.** Step 15 used GitHub Actions (**managed** CI/CD). **Jenkins** is the classic
+**self-hosted** alternative — a server you run and extend, with pipeline-as-code in a
+`Jenkinsfile` (Groovy) instead of YAML. Same build→test→scan→publish goal; you own the infra.
+
+**Why.** Managed vs self-hosted CI/CD is a real, recurring decision; a lot of industry
+infrastructure runs on Jenkins, and it teaches agents, credentials, plugins, and
+Docker-outside-of-Docker.
+
+**Do.** (heavy; own overlay, mounts the Docker socket)
+```powershell
+docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.jenkins.yaml up -d --build jenkins
+docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.jenkins.yaml exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+# http://localhost:8088 -> new Pipeline job -> "Pipeline script from SCM" -> this repo, script path Jenkinsfile
+```
+
+**Understand.** [Jenkinsfile](../Jenkinsfile) mirrors [ci.yml](../.github/workflows/ci.yml):
+Test (Go) and Build frontend run in per-stage `docker` agents; Build images + Scan use the
+mounted socket. Compare the two files side by side.
+
+**Checkpoint.** A Pipeline job runs the `Jenkinsfile` green; you can name two things Jenkins
+makes you own that Actions handled for free.
+
+➡️ Full lab: [labs/24-jenkins](../labs/24-jenkins/) · config: [deploy/jenkins](../deploy/jenkins/)
 
 ---
 

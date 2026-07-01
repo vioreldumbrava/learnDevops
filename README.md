@@ -93,6 +93,7 @@ docs/            curriculum + references
 - ✅ **Milestone 1 — runnable foundation:** app, Compose (dev/prod), Postgres + migrations,
   Redis + worker, health checks, backup/restore, full observability stack, labs 00–12.
 - ✅ **Milestone 2 — delivery & infrastructure:** GitHub Actions CI/CD (build/test/scan/push),
-  Terraform (provision EC2), Ansible (configure + deploy), Nexus overlay, labs 13–17.
+  Terraform (provision EC2), Ansible (configure + deploy), Nexus overlay, labs 13–17 —
+  plus Jenkins as the self-hosted CI/CD alternative (lab 24).
 - ✅ **Milestone 3 — cloud, scale, Kubernetes:** EC2 + HTTPS, security hardening, k6 load test,
   horizontal scaling, Kubernetes on kind + Helm chart, labs 18–23. **All 24 labs complete.**

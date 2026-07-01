@@ -36,6 +36,7 @@ legacy DBC-based path each lab corresponds to.
 | [21](../labs/21-scaling/) | Horizontal scaling | §19 | 3 | ✅ |
 | [22](../labs/22-kubernetes/) | Kubernetes on kind | §20 | 3 | ✅ |
 | [23](../labs/23-helm/) | Helm packaging | extra | 3 | ✅ |
+| [24](../labs/24-jenkins/) | Self-hosted CI/CD with Jenkins (alternative to lab 15) | §12 | 2 | ✅ |
 
 ## The three pillars of observability
 

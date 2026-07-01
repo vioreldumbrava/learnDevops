@@ -208,6 +208,15 @@ Highest leverage next steps to become clearly hireable:
 
 ---
 
+### Bonus differentiator — the AI/LLMOps project
+
+The second project ([ai-assistant/](../ai-assistant/)) is a strong talking point as AI infra
+demand grows: *"I built a private RAG assistant over internal docs — local LLM via Ollama
+(LM Studio-compatible), Qdrant vectors, grounding guardrails that refuse out-of-scope questions,
+Prometheus metrics for latency/retrieval quality, an eval harness that gates releases, shipped as
+Docker/Compose/K8s. Swapping the model backend is one env var."* Be ready to explain RAG, why you
+chunk + embed, and how you fight hallucination (grounding gate + prompt + eval).
+
 ### Quick self-test
 
 Can you, without notes: draw the architecture, explain liveness vs readiness, describe your CI

@@ -32,6 +32,13 @@ crash.log
 # Ansible
 deploy/ansible/inventory.ini
 
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
 # OS / editor
 .DS_Store
 Thumbs.db

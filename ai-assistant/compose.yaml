@@ -1,0 +1,80 @@
+# DevOps Dojo — AI Assistant (RAG over the docs/labs).
+# Run from ai-assistant/:
+#   docker compose up -d --build
+#   docker compose exec ollama ollama pull llama3.2:3b
+#   docker compose exec ollama ollama pull nomic-embed-text
+#   docker compose run --rm ingest        # index the docs into Qdrant
+#   open http://localhost:8000
+#
+# LM Studio instead of Ollama: start LM Studio's local server, then set
+#   OPENAI_BASE_URL=http://host.docker.internal:1234/v1  on rag-api (and skip ollama).
+name: dojo-ai
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # For GPU acceleration (NVIDIA), see the lab; CPU works for small models.
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    volumes:
+      - qdrant:/qdrant/storage
+    ports:
+      - "127.0.0.1:6333:6333"
+    restart: unless-stopped
+
+  rag-api:
+    build:
+      context: ./api
+    image: dojo-ai/rag-api:dev
+    environment:
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-http://ollama:11434/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-not-needed-for-local}
+      CHAT_MODEL: ${CHAT_MODEL:-llama3.2:3b}
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      QDRANT_URL: http://qdrant:6333
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - ollama
+      - qdrant
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # One-shot indexer (profile keeps it out of `up`). Mounts the repo read-only so
+  # it can read ../docs and ../labs.
+  ingest:
+    build:
+      context: ./api
+    image: dojo-ai/rag-api:dev
+    profiles: ["tools"]
+    entrypoint: ["python", "-m", "app.ingest"]
+    environment:
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-http://ollama:11434/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-not-needed-for-local}
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      QDRANT_URL: http://qdrant:6333
+      DOCS_PATHS: /repo/docs,/repo/labs,/repo/README.md
+    volumes:
+      - ..:/repo:ro
+    depends_on:
+      - ollama
+      - qdrant
+
+volumes:
+  ollama:
+  qdrant:

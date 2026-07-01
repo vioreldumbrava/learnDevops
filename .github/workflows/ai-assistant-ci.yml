@@ -1,0 +1,40 @@
+name: ai-assistant CI
+
+# Runs only when the AI project changes. Fast checks (unit tests + image build);
+# the LLM eval needs a live model, so it's a local/nightly step, not this gate.
+on:
+  push:
+    paths:
+      - "ai-assistant/**"
+      - ".github/workflows/ai-assistant-ci.yml"
+  pull_request:
+    paths:
+      - "ai-assistant/**"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-assistant/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ai-assistant/api/requirements-dev.txt
+
+      - name: Install deps
+        run: pip install -r requirements-dev.txt
+
+      - name: Compile check
+        run: python -m compileall app
+
+      - name: Unit tests
+        run: python -m pytest
+
+      - name: Build image
+        run: docker build -t dojo-ai/rag-api:ci .

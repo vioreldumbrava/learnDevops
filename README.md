@@ -12,6 +12,11 @@ deploying, and operating a small but real web application — and the applicatio
 
 ![DevOps Dojo architecture and toolchain](docs/architecture.svg)
 
+> 🤖 **Second project — [ai-assistant/](ai-assistant/):** a local, private **RAG assistant**
+> (LLMOps) that answers questions about these docs using a local LLM via **Ollama / LM Studio**,
+> **Qdrant** vectors, grounding guardrails, metrics, an eval harness, and Compose/CI/K8s. It's
+> the AI-infra differentiator on top of this DevOps foundation.
+
 ## What you build
 
 | Tier | Tech | Why it's here |

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dojo-ai-config
+  namespace: dojo-ai
+data:
+  OPENAI_BASE_URL: "http://ollama:11434/v1"
+  OPENAI_API_KEY: "not-needed-for-local"
+  CHAT_MODEL: "llama3.2:3b"
+  EMBED_MODEL: "nomic-embed-text"
+  QDRANT_URL: "http://qdrant:6333"
+  QDRANT_COLLECTION: "dojo_docs"

@@ -1,0 +1,5 @@
+{"question": "How do I autoscale the worker with KEDA?", "expect_source": "31-k8s-keda", "expect_keyword": "keda"}
+{"question": "What is the difference between liveness and readiness probes?", "expect_source": "08-health-checks", "expect_keyword": "readiness"}
+{"question": "How do I back up and restore the database?", "expect_source": "07-backup-restore", "expect_keyword": "restore"}
+{"question": "How do I deploy the app with GitOps using ArgoCD?", "expect_source": "25-capstone", "expect_keyword": "argocd"}
+{"question": "What is the capital of France?", "expect_source": "", "expect_keyword": "don't"}

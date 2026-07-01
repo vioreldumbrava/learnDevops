@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DevOps Dojo · AI Assistant</title>
+    <style>
+      :root { --bg:#0f1419; --surface:#1a212b; --border:#2d3a48; --text:#e6edf3; --muted:#8b98a5; --accent:#4cc9a0; }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,Segoe UI,sans-serif; }
+      .wrap { max-width:760px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+      h1 { font-size:1.5rem; margin:0; }
+      p.sub { color:var(--muted); margin:.25rem 0 1.25rem; }
+      #log { display:flex; flex-direction:column; gap:.75rem; margin-bottom:1rem; }
+      .msg { border:1px solid var(--border); border-radius:10px; padding:.7rem .9rem; background:var(--surface); white-space:pre-wrap; }
+      .msg.you { border-color:var(--accent); }
+      .role { font-size:.75rem; color:var(--muted); margin-bottom:.25rem; }
+      .sources { margin-top:.5rem; display:flex; flex-wrap:wrap; gap:.35rem; }
+      .chip { font-size:.72rem; color:var(--muted); background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:.1rem .45rem; }
+      form { display:flex; gap:.5rem; }
+      textarea { flex:1; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:.6rem; resize:vertical; min-height:52px; }
+      button { background:var(--accent); border:none; border-radius:8px; color:#07120d; font-weight:600; padding:0 1.1rem; cursor:pointer; }
+      button:disabled { opacity:.5; cursor:default; }
+      .muted { color:var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>🥋 DevOps Dojo · AI Assistant</h1>
+      <p class="sub">Retrieval-augmented answers grounded in the Dojo docs &amp; labs. Local LLM via Ollama / LM Studio.</p>
+      <div id="log"></div>
+      <form id="f">
+        <textarea id="q" placeholder="e.g. How do I autoscale the worker with KEDA?"></textarea>
+        <button id="send" type="submit">Ask</button>
+      </form>
+    </div>
+    <script>
+      const log = document.getElementById('log');
+      const form = document.getElementById('f');
+      const q = document.getElementById('q');
+      const send = document.getElementById('send');
+
+      function add(role, text, cls) {
+        const el = document.createElement('div');
+        el.className = 'msg ' + (cls || '');
+        el.innerHTML = '<div class="role">' + role + '</div>';
+        const body = document.createElement('div');
+        body.textContent = text;
+        el.appendChild(body);
+        log.appendChild(el);
+        el.scrollIntoView({ behavior: 'smooth' });
+        return el;
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = q.value.trim();
+        if (!question) return;
+        add('you', question, 'you');
+        q.value = '';
+        send.disabled = true;
+        const pending = add('assistant', 'thinking…');
+        try {
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, stream: false }),
+          });
+          const data = await res.json();
+          pending.querySelector('div:last-child').textContent = data.answer || '(no answer)';
+          if (data.sources && data.sources.length) {
+            const s = document.createElement('div');
+            s.className = 'sources';
+            for (const src of data.sources) {
+              const c = document.createElement('span');
+              c.className = 'chip';
+              c.textContent = '[' + src.n + '] ' + src.source + ' · ' + src.score;
+              s.appendChild(c);
+            }
+            pending.appendChild(s);
+          }
+        } catch (err) {
+          pending.querySelector('div:last-child').textContent = 'Error: ' + err;
+        } finally {
+          send.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

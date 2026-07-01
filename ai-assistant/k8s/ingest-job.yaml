@@ -1,0 +1,37 @@
+# One-shot indexing Job. An initContainer git-clones the repo (so the docs are
+# available in-cluster), then the main container embeds + upserts into Qdrant.
+# Set REPO_URL to your fork. Run after Ollama has the embed model pulled.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ingest
+  namespace: dojo-ai
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: clone
+          image: alpine/git:latest
+          args: ["clone", "--depth", "1", "https://github.com/OWNER/REPO.git", "/repo"]
+          volumeMounts:
+            - name: repo
+              mountPath: /repo
+      containers:
+        - name: ingest
+          image: dojo-ai/rag-api:dev
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.ingest"]
+          env:
+            - name: DOCS_PATHS
+              value: "/repo/docs,/repo/labs,/repo/README.md"
+          envFrom:
+            - configMapRef:
+                name: dojo-ai-config
+          volumeMounts:
+            - name: repo
+              mountPath: /repo
+      volumes:
+        - name: repo
+          emptyDir: {}

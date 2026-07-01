@@ -1,0 +1,24 @@
+# Horizontal-scaling overlay (lab 21). Use WITH the prod overlay (for Caddy):
+#   docker compose --env-file .env \
+#     -f deploy/compose/compose.yaml \
+#     -f deploy/compose/compose.prod.yaml \
+#     -f deploy/compose/compose.scale.yaml \
+#     up -d --build --scale api=3 --scale frontend=2
+#
+# Removes the app tier's fixed host ports (multiple replicas can't share one host
+# port) and swaps Caddy to the dynamic-upstream config so it load-balances across
+# all replicas. Only stateless services are scaled; db/redis are not.
+name: devops-dojo
+
+services:
+  api:
+    ports: !reset null
+
+  frontend:
+    ports: !reset null
+
+  caddy:
+    volumes: !override
+      - ../caddy/Caddyfile.scale:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config

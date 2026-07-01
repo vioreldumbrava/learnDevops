@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dojo-config
+  namespace: devops-dojo
+data:
+  PORT: "8080"
+  POSTGRES_DB: dojo
+  POSTGRES_USER: dojo
+  REDIS_URL: redis://redis:6379/0
+  OTEL_SERVICE_NAME: dojo-api
+  # Tracing off by default; set to "tempo:4318" if you add an OTel collector.
+  OTEL_EXPORTER_OTLP_ENDPOINT: ""

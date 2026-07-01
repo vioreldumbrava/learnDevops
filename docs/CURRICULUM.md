@@ -30,12 +30,12 @@ legacy DBC-based path each lab corresponds to.
 | [15](../labs/15-cicd/) | CI/CD with GitHub Actions | §12 | 2 | ✅ |
 | [16](../labs/16-terraform/) | IaC: Terraform | extra | 2 | ✅ |
 | [17](../labs/17-ansible/) | Config mgmt: Ansible | extra | 2 | ✅ |
-| 18 | Deploy to VPS/EC2 with HTTPS (Caddy) | §15–16 | 3 | ⏳ |
-| 19 | Security hardening | §17 | 3 | ⏳ |
-| 20 | Load testing (k6) | §18 | 3 | ⏳ |
-| 21 | Horizontal scaling | §19 | 3 | ⏳ |
-| 22 | Kubernetes on kind | §20 | 3 | ⏳ |
-| 23 | Helm packaging | extra | 3 | ⏳ |
+| [18](../labs/18-deploy-https/) | Deploy to VPS/EC2 with HTTPS (Caddy) | §15–16 | 3 | ✅ |
+| [19](../labs/19-security/) | Security hardening | §17 | 3 | ✅ |
+| [20](../labs/20-load-testing/) | Load testing (k6) | §18 | 3 | ✅ |
+| [21](../labs/21-scaling/) | Horizontal scaling | §19 | 3 | ✅ |
+| [22](../labs/22-kubernetes/) | Kubernetes on kind | §20 | 3 | ✅ |
+| [23](../labs/23-helm/) | Helm packaging | extra | 3 | ✅ |
 
 ## The three pillars of observability
 

@@ -1,0 +1,33 @@
+# One-shot schema migration, mirroring the Compose `migrate` service.
+# The SQL is supplied via a ConfigMap created from the files at apply time:
+#   kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: devops-dojo
+spec:
+  backoffLimit: 10   # retry until Postgres is ready
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: migrate/migrate:v4.18.1
+          args:
+            - "-path=/migrations"
+            - "-database=$(DATABASE_URL)"
+            - "up"
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dojo-secrets
+                  key: DATABASE_URL
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: dojo-migrations

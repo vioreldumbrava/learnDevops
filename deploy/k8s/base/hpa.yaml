@@ -1,0 +1,22 @@
+# Autoscale the stateless API on CPU. Requires metrics-server in the cluster
+# (see the k8s README). The api Deployment sets resource requests, which the HPA
+# needs to compute utilization.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  namespace: devops-dojo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60

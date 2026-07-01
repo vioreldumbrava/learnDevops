@@ -1,0 +1,38 @@
+# Scaling variant of the Caddyfile (lab 21). Uses DNS "dynamic upstreams" so Caddy
+# re-resolves the service name and load-balances across ALL replicas Docker returns,
+# instead of pinning to one. Mounted by compose.scale.yaml.
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_DOMAIN} {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy {
+			dynamic a {
+				name api
+				port 8080
+				refresh 5s
+			}
+		}
+	}
+	handle /healthz {
+		reverse_proxy {
+			dynamic a {
+				name api
+				port 8080
+				refresh 5s
+			}
+		}
+	}
+	handle {
+		reverse_proxy {
+			dynamic a {
+				name frontend
+				port 80
+				refresh 5s
+			}
+		}
+	}
+}

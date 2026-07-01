@@ -131,12 +131,12 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 15 | CI/CD with GitHub Actions | [labs/15](../labs/15-cicd/) | ✅ |
 | 16 | IaC: Terraform | [labs/16](../labs/16-terraform/) | ✅ |
 | 17 | Config management: Ansible | [labs/17](../labs/17-ansible/) | ✅ |
-| 18 | Deploy to VPS/EC2 + HTTPS | labs/18 | ⏳ |
-| 19 | Security hardening | labs/19 | ⏳ |
-| 20 | Load testing (k6) | labs/20 | ⏳ |
-| 21 | Horizontal scaling | labs/21 | ⏳ |
-| 22 | Kubernetes on kind | labs/22 | ⏳ |
-| 23 | Helm packaging | labs/23 | ⏳ |
+| 18 | Deploy to VPS/EC2 + HTTPS | [labs/18](../labs/18-deploy-https/) | ✅ |
+| 19 | Security hardening | [labs/19](../labs/19-security/) | ✅ |
+| 20 | Load testing (k6) | [labs/20](../labs/20-load-testing/) | ✅ |
+| 21 | Horizontal scaling | [labs/21](../labs/21-scaling/) | ✅ |
+| 22 | Kubernetes on kind | [labs/22](../labs/22-kubernetes/) | ✅ |
+| 23 | Helm packaging | [labs/23](../labs/23-helm/) | ✅ |
 
 ---
 
@@ -491,32 +491,131 @@ a re-run reports `changed=0` for unchanged tasks.
 
 ---
 
-# Milestone 3 — Cloud, scale & Kubernetes ⏳
+# Milestone 3 — Cloud, scale & Kubernetes
 
 ## Step 18 — Deploy to VPS/EC2 with HTTPS
-Put the prod stack on a real server behind Caddy with automatic Let's Encrypt TLS. (Reuses the
-existing `devDockerKey.pem`; only ports 22/80/443 open, with 22 limited to your IP.)
+
+**Concept.** Put the prod stack on a public server with **automatic HTTPS** — Caddy fetches
+and renews Let's Encrypt certs the moment it sees a real domain + ports 80/443.
+
+**Do.** Point a DNS `A` record at the server's Elastic IP, then set the domain and redeploy:
+```bash
+ansible-playbook playbook.yml -e repo_url=... -e postgres_password=... \
+  -e site_domain=dojo.example.com -e acme_email=you@example.com
+```
+
+**Understand.** Only Caddy is public (80/443); app/DB ports stay private (the Terraform
+security group + `127.0.0.1` binding enforce it). Update = `git pull` + `compose up -d`;
+rollback = `git checkout <sha>` + `compose up -d`.
+
+**Checkpoint.** `https://<domain>` loads with a valid certificate; 8080/5432 aren't public.
+
+➡️ Full lab: [labs/18-deploy-https](../labs/18-deploy-https/)
 
 ## Step 19 — Security hardening
-Run non-root, `no-new-privileges`, read-only filesystems, dropped capabilities, real secrets
-management, image scanning (Trivy/Docker Scout), and keep DB ports off the public internet.
+
+**Concept.** Least privilege: non-root shell-less images, `no-new-privileges`, drop all
+capabilities, read-only rootfs + `tmpfs`, private data ports, image scanning, real secrets.
+
+**Do.**
+```powershell
+docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.hardening.yaml up -d --build
+docker inspect devops-dojo-api-1 --format '{{.HostConfig.ReadonlyRootfs}} {{.HostConfig.CapDrop}} {{.HostConfig.SecurityOpt}}'
+docker scout quickview devops-dojo/api:dev
+```
+
+**Understand.** [compose.hardening.yaml](../deploy/compose/compose.hardening.yaml) applies the
+constraints; the distroless/non-root image and `127.0.0.1`-bound ports from earlier labs are
+already part of the story.
+
+**Checkpoint.** `inspect` shows `ReadonlyRootfs=true`, `CapDrop=[ALL]`, `no-new-privileges`,
+and the stack is still healthy; a shell/exec into the API fails.
+
+➡️ Full lab: [labs/19-security](../labs/19-security/)
 
 ## Step 20 — Load testing (k6)
-Drive load and read the thresholds that matter (`http_req_failed`, p95 latency) so you know
-capacity before users find the limit.
+
+**Concept.** Push concurrent load and measure against **thresholds** (error rate, p95
+latency) so capacity is a number, not a guess.
+
+**Do.**
+```powershell
+docker compose -f deploy/compose/compose.yaml up -d api
+docker compose -f deploy/compose/compose.yaml run --rm -e VUS=50 -e DURATION=1m load-test
+```
+
+**Understand.** [load-test.js](../deploy/load-test/load-test.js) fails (non-zero exit) if
+`http_req_failed` or `p(95)` breach thresholds — the same gate you'd wire into CI.
+
+**Checkpoint.** k6 prints latency/error summaries; raising VUs eventually breaches a threshold.
+
+➡️ Full lab: [labs/20-load-testing](../labs/20-load-testing/)
 
 ## Step 21 — Horizontal scaling
-Run multiple **stateless** `api`/`worker` replicas behind Caddy; understand why `db`/`redis`
-can't be scaled the same way.
+
+**Concept.** Add replicas of **stateless** services behind a load balancer; **stateful**
+services (`db`, `redis`) need clustering, not copies. A fixed host port blocks scaling.
+
+**Do.**
+```powershell
+docker compose -f deploy/compose/compose.yaml up -d --scale worker=3
+docker compose --env-file .env -f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml `
+  -f deploy/compose/compose.scale.yaml up -d --scale api=3 --scale frontend=2
+```
+
+**Understand.** [compose.scale.yaml](../deploy/compose/compose.scale.yaml) drops the app host
+ports and swaps Caddy to [Caddyfile.scale](../deploy/caddy/Caddyfile.scale) (dynamic DNS
+upstreams) so it balances across replicas.
+
+**Checkpoint.** Multiple api/worker replicas run and serve through Caddy; `db` stays single.
+
+➡️ Full lab: [labs/21-scaling](../labs/21-scaling/)
 
 ## Step 22 — Kubernetes on kind
-Move the stack to a local Kubernetes cluster: Deployments, Services, Ingress, ConfigMap/Secret,
-a StatefulSet for Postgres, a Job for migrations, and an HPA. Map Compose concepts → K8s
-objects (service → Deployment, volume → PVC, env → ConfigMap/Secret, Caddy → Ingress).
+
+**Concept.** Orchestrate across a cluster with self-healing, rolling updates, and autoscaling.
+Compose maps cleanly: service→Deployment+Service, volume→PVC (StatefulSet), env→ConfigMap+
+Secret, migrate→Job, Caddy→Ingress, `--scale`→replicas+HPA.
+
+**Do.** (full walkthrough in [deploy/k8s/README.md](../deploy/k8s/README.md))
+```powershell
+kind create cluster --config deploy/k8s/kind/kind-cluster.yaml
+kind load docker-image devops-dojo/api:dev devops-dojo/frontend:dev
+kubectl apply -f deploy/k8s/base/namespace.yaml
+kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
+kubectl apply -f deploy/k8s/base/
+```
+
+**Checkpoint.** Pods Running; `http://localhost/api/steps` returns 24; deleting an API pod
+self-heals; `kubectl scale` changes replicas.
+
+➡️ Full lab: [labs/22-kubernetes](../labs/22-kubernetes/) · manifests: [deploy/k8s/base](../deploy/k8s/base/)
 
 ## Step 23 — Helm packaging
-Package the manifests as a reusable, parameterized Helm chart — one `helm install` per
-environment.
+
+**Concept.** Package the manifests as a parameterized **chart** with `values.yaml`; one
+`helm install`/`upgrade`/`rollback` per environment instead of hand-edited YAML.
+
+**Do.**
+```powershell
+helm template dojo deploy/k8s/helm/devops-dojo        # render/verify
+helm install dojo deploy/k8s/helm/devops-dojo -n devops-dojo --create-namespace
+helm upgrade dojo deploy/k8s/helm/devops-dojo -n devops-dojo --set api.replicas=4
+```
+
+**Understand.** The chart in [deploy/k8s/helm/devops-dojo](../deploy/k8s/helm/devops-dojo/)
+templates images/replicas/ingress/HPA from values; migrations run as a Helm hook.
+
+**Checkpoint.** `helm template` renders cleanly; `install` serves the app; `upgrade --set
+api.replicas=4` scales and `helm rollback` reverts.
+
+➡️ Full lab: [labs/23-helm](../labs/23-helm/)
+
+---
+
+🎉 **The full path is complete** — from `docker build` to a Helm-managed Kubernetes
+deployment. Ideas to go further: GitOps (ArgoCD/Flux), a service mesh, multi-environment
+promotion pipelines, and shipping pre-built GHCR images to the cluster instead of `kind load`.
 
 ---
 

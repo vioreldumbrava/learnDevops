@@ -109,6 +109,22 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # k6 load test (profile "loadtest" keeps it out of `up`):
+  #   docker compose -f deploy/compose/compose.yaml up -d api
+  #   docker compose -f deploy/compose/compose.yaml run --rm load-test
+  load-test:
+    image: grafana/k6:latest
+    profiles: ["loadtest"]
+    volumes:
+      - ../load-test:/scripts:ro
+    environment:
+      TARGET_URL: ${TARGET_URL:-http://api:8080}
+      VUS: ${VUS:-10}
+      DURATION: ${DURATION:-30s}
+    command: ["run", "/scripts/load-test.js"]
+    depends_on:
+      - api
+
   # On-demand backup/restore (profile "backup" keeps them out of `up`):
   #   docker compose -f deploy/compose/compose.yaml run --rm db-backup
   #   docker compose -f deploy/compose/compose.yaml run --rm -e BACKUP_FILE=<file>.sql db-restore

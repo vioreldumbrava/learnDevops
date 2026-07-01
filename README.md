@@ -94,4 +94,5 @@ docs/            curriculum + references
   Redis + worker, health checks, backup/restore, full observability stack, labs 00–12.
 - ✅ **Milestone 2 — delivery & infrastructure:** GitHub Actions CI/CD (build/test/scan/push),
   Terraform (provision EC2), Ansible (configure + deploy), Nexus overlay, labs 13–17.
-- ⏳ **Milestone 3 — cloud, scale, Kubernetes:** EC2 + HTTPS, hardening, load test, scaling, kind + Helm, labs 18–23.
+- ✅ **Milestone 3 — cloud, scale, Kubernetes:** EC2 + HTTPS, security hardening, k6 load test,
+  horizontal scaling, Kubernetes on kind + Helm chart, labs 18–23. **All 24 labs complete.**

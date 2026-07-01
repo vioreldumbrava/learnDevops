@@ -1,0 +1,61 @@
+# Values for the DevOps Dojo chart. Override with --set or -f my-values.yaml.
+
+image:
+  api:
+    repository: devops-dojo/api
+    tag: dev
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: devops-dojo/frontend
+    tag: dev
+    pullPolicy: IfNotPresent
+
+api:
+  replicas: 2
+  resources:
+    requests: { cpu: 50m, memory: 32Mi }
+    limits: { cpu: 500m, memory: 128Mi }
+
+frontend:
+  replicas: 2
+
+worker:
+  replicas: 1
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+
+postgres:
+  image: postgres:16-alpine
+  storage: 1Gi
+
+redis:
+  image: redis:7-alpine
+
+# Non-secret app configuration (rendered into a ConfigMap).
+config:
+  postgresDb: dojo
+  postgresUser: dojo
+  redisUrl: redis://redis:6379/0
+  otelServiceName: dojo-api
+  otelEndpoint: ""
+
+# Demo secret. For real installs pass --set secrets.postgresPassword=... or use a
+# secrets manager; never commit real values.
+secrets:
+  postgresPassword: change-me-in-real-life
+
+migrate:
+  image: migrate/migrate:v4.18.1
+  # Create it first: kubectl create configmap dojo-migrations -n <ns> --from-file=db/migrations/
+  migrationsConfigMap: dojo-migrations
+
+ingress:
+  enabled: true
+  className: nginx
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilization: 60

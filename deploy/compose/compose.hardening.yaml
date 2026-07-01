@@ -1,0 +1,40 @@
+# Security-hardening overlay (lab 19). Layer it on top of the app stack:
+#   docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.hardening.yaml up -d --build
+#
+# What it applies and why:
+#   - no-new-privileges: a process can never gain more privileges via setuid binaries.
+#   - cap_drop ALL: the Go services need no Linux capabilities.
+#   - read_only rootfs + tmpfs: the container filesystem is immutable except for
+#     explicit writable scratch mounts — a compromised process can't persist.
+# Postgres/Redis keep a writable data volume, so we only add no-new-privileges there.
+name: devops-dojo
+
+services:
+  api:
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  worker:
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  frontend:
+    security_opt: ["no-new-privileges:true"]
+    # Nginx needs a few writable paths; keep the rootfs read-only and back those with tmpfs.
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+
+  db:
+    security_opt: ["no-new-privileges:true"]
+
+  redis:
+    security_opt: ["no-new-privileges:true"]

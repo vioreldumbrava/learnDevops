@@ -24,6 +24,13 @@ node_modules/
 *.tfvars
 !*.tfvars.example
 crash.log
+*.pub
+# Provider lock is platform-specific here (generated in CI/containers); let each
+# machine regenerate it on `terraform init` to avoid cross-OS hash mismatches.
+.terraform.lock.hcl
+
+# Ansible
+deploy/ansible/inventory.ini
 
 # OS / editor
 .DS_Store

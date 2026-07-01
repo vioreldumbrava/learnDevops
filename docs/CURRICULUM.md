@@ -25,11 +25,11 @@ legacy DBC-based path each lab corresponds to.
 | [10](../labs/10-monitoring/) | Monitoring: Prometheus + Grafana | §10 | 1 | ✅ |
 | [11](../labs/11-logging/) | Logging: Loki + Promtail | §11 | 1 | ✅ |
 | [12](../labs/12-tracing-and-alerting/) | Tracing (OTel + Tempo) + Alerting (Alertmanager) | extra | 1 | ✅ |
-| 13 | Image registry: ghcr.io, tags, SBOM | §13 | 2 | ⏳ |
-| 14 | Artifact repository (Artifactory/Nexus) | §14 | 2 | ⏳ |
-| 15 | CI/CD with GitHub Actions | §12 | 2 | ⏳ |
-| 16 | IaC: Terraform | extra | 2 | ⏳ |
-| 17 | Config mgmt: Ansible | extra | 2 | ⏳ |
+| [13](../labs/13-image-registry/) | Image registry: ghcr.io, tags, SBOM | §13 | 2 | ✅ |
+| [14](../labs/14-artifact-repository/) | Artifact repository (Nexus) | §14 | 2 | ✅ |
+| [15](../labs/15-cicd/) | CI/CD with GitHub Actions | §12 | 2 | ✅ |
+| [16](../labs/16-terraform/) | IaC: Terraform | extra | 2 | ✅ |
+| [17](../labs/17-ansible/) | Config mgmt: Ansible | extra | 2 | ✅ |
 | 18 | Deploy to VPS/EC2 with HTTPS (Caddy) | §15–16 | 3 | ⏳ |
 | 19 | Security hardening | §17 | 3 | ⏳ |
 | 20 | Load testing (k6) | §18 | 3 | ⏳ |

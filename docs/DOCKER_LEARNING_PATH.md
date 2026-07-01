@@ -126,11 +126,11 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 10 | Monitoring: Prometheus + Grafana | [labs/10](../labs/10-monitoring/) | ✅ |
 | 11 | Logging: Loki + Promtail | [labs/11](../labs/11-logging/) | ✅ |
 | 12 | Tracing + Alerting | [labs/12](../labs/12-tracing-and-alerting/) | ✅ |
-| 13 | Image registry: ghcr.io, tags, SBOM | labs/13 | ⏳ |
-| 14 | Artifact repository | labs/14 | ⏳ |
-| 15 | CI/CD with GitHub Actions | labs/15 | ⏳ |
-| 16 | IaC: Terraform | labs/16 | ⏳ |
-| 17 | Config management: Ansible | labs/17 | ⏳ |
+| 13 | Image registry: ghcr.io, tags, SBOM | [labs/13](../labs/13-image-registry/) | ✅ |
+| 14 | Artifact repository | [labs/14](../labs/14-artifact-repository/) | ✅ |
+| 15 | CI/CD with GitHub Actions | [labs/15](../labs/15-cicd/) | ✅ |
+| 16 | IaC: Terraform | [labs/16](../labs/16-terraform/) | ✅ |
+| 17 | Config management: Ansible | [labs/17](../labs/17-ansible/) | ✅ |
 | 18 | Deploy to VPS/EC2 + HTTPS | labs/18 | ⏳ |
 | 19 | Security hardening | labs/19 | ⏳ |
 | 20 | Load testing (k6) | labs/20 | ⏳ |
@@ -384,29 +384,110 @@ all three pillars + alerts in one Grafana.
 
 ---
 
-# Milestone 2 — Delivery & infrastructure ⏳
+# Milestone 2 — Delivery & infrastructure
 
-These steps are designed and on the roadmap; the labs land in Milestone 2.
+## Step 13 — Image registry: tags, push, SBOM
 
-## Step 13 — Image registry (ghcr.io, tags, SBOM)
-Push versioned images to GitHub Container Registry so deployments pull a known artifact rather
-than rebuilding from source. Tag by git SHA + semver; generate an SBOM for provenance.
+**Concept.** A **registry** stores/serves images. You **tag** (`repo:version`), `push`, and
+`pull`. A tag is a movable label; a **digest** (`@sha256:…`) is immutable. An **SBOM** lists
+what's inside an image.
 
-## Step 14 — Artifact repository
-Store build outputs (images, archives) in a repository manager (Artifactory/Nexus) with repo
-types, retention, and permissions — what teams use beyond a plain file server.
+**Why.** Servers should run a known, scanned artifact — not rebuild from source each time.
+
+**Do.**
+```powershell
+docker run -d -p 5000:5000 --name registry registry:2
+docker tag devops-dojo/api localhost:5000/dojo/api:0.1.0
+docker push localhost:5000/dojo/api:0.1.0
+docker scout quickview devops-dojo/api          # vulnerability summary
+```
+
+**Checkpoint.** Image pushed & pulled from a registry; you can explain tag vs digest.
+
+➡️ Full lab: [labs/13-image-registry](../labs/13-image-registry/)
+
+## Step 14 — Artifact repository (Nexus)
+
+**Concept.** A repository manager (Nexus/Artifactory) stores *many* artifact types (images,
+npm/Go packages, raw files) with users, permissions, retention, and upstream proxying — more
+than a plain registry.
+
+**Do.** (heavy; own overlay)
+```powershell
+docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.nexus.yaml up -d nexus
+# then create a hosted Docker repo in the UI (http://localhost:8081) and push to :8085
+```
+
+**Checkpoint.** You pushed an image (or raw artifact) into Nexus and added a retention policy.
+
+➡️ Full lab: [labs/14-artifact-repository](../labs/14-artifact-repository/)
 
 ## Step 15 — CI/CD with GitHub Actions
-On every push: build images, run `go test` + the frontend build, scan with Trivy, push to
-ghcr, and (optionally) deploy. The single most important automation in DevOps.
+
+**Concept.** **CI** runs build/test/scan on every change; **CD** publishes (and can deploy)
+the result. It's the highest-value automation in DevOps.
+
+**Why.** Turns "works on my machine" into "verified & shippable on every commit."
+
+**Do.** Push to GitHub and watch the Actions tab; images land under Packages (GHCR).
+```powershell
+git remote add origin https://github.com/<owner>/<repo>.git
+git push -u origin master
+```
+
+**Understand.** [.github/workflows/ci.yml](../.github/workflows/ci.yml): a **test** job
+(`go vet`/`go test`, frontend build, compose validate, Trivy fs scan) and a **build** job
+(Buildx build, metadata tags, SBOM + provenance, push to GHCR on non-PR, Trivy image scan).
+
+**Checkpoint.** A green CI run; `api`/`frontend` images published; PRs build but don't push.
+
+➡️ Full lab: [labs/15-cicd](../labs/15-cicd/)
 
 ## Step 16 — Infrastructure as Code: Terraform
-Provision the VPS/EC2 (instance, security group, DNS) **from code** so the environment is
-reproducible and reviewable, not hand-clicked.
+
+**Concept.** Describe servers/networks/firewalls in version-controlled files. Terraform
+`plan`s the change, then `apply`s it — reproducible and easy to destroy.
+
+**Do.**
+```powershell
+cd deploy/terraform
+copy terraform.tfvars.example terraform.tfvars   # set key_name, allowed_ssh_cidr
+terraform init; terraform plan; terraform apply
+terraform output                                  # public_ip, ansible_inventory_line
+```
+
+**Understand.** IaC (Terraform) decides *what infrastructure exists*; config management
+(Ansible, Step 17) decides *how it's configured*. State lives in `terraform.tfstate`
+(gitignored, sensitive).
+
+**Checkpoint.** `apply` yields a reachable instance; a second `plan` shows no changes. Run
+`terraform destroy` when done.
+
+➡️ Full lab: [labs/16-terraform](../labs/16-terraform/) ·
+config: [deploy/terraform](../deploy/terraform/)
 
 ## Step 17 — Configuration management: Ansible
-Configure the freshly provisioned server (install Docker, lay down `.env`, pull images, start
-the stack) repeatably — replacing the manual SSH steps.
+
+**Concept.** Install/configure software on the server **idempotently** over SSH — running
+twice is safe and converges to the same state.
+
+**Do.** (from a Linux/macOS/WSL control node)
+```bash
+cd deploy/ansible
+cp inventory.ini.example inventory.ini    # paste Terraform's ansible_inventory_line
+ansible dojo -m ping
+ansible-playbook playbook.yml -e repo_url=https://github.com/<you>/<repo>.git \
+  -e postgres_password=$(openssl rand -hex 16) -e site_domain=":80" -e acme_email=you@example.com
+# open http://<server-ip>
+```
+
+**Understand.** [playbook.yml](../deploy/ansible/playbook.yml) installs Docker, clones the
+repo, renders `.env`, and runs the prod compose stack — each task idempotent.
+
+**Checkpoint.** `ansible-playbook` finishes with `failed=0`; the app serves on the server;
+a re-run reports `changed=0` for unchanged tasks.
+
+➡️ Full lab: [labs/17-ansible](../labs/17-ansible/) · config: [deploy/ansible](../deploy/ansible/)
 
 ---
 

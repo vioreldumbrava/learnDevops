@@ -1,0 +1,75 @@
+---
+- name: Configure server and deploy DevOps Dojo
+  hosts: dojo
+  become: true
+
+  vars:
+    # Point this at your fork/clone (the server pulls compose files from here).
+    repo_url: "https://github.com/OWNER/REPO.git"
+    repo_version: "main"
+    app_dir: /opt/dojo
+    # Deployment secrets/config. Override with --extra-vars or a vars file; do
+    # NOT commit real values.
+    postgres_password: "change-this-strong-password"
+    site_domain: ":80"          # ":80" for HTTP test, or "dojo.example.com" for HTTPS
+    acme_email: "you@example.com"
+    grafana_admin_password: "admin"
+
+  tasks:
+    - name: Install Docker, Compose plugin and git
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+          - git
+        update_cache: true
+        state: present
+
+    - name: Ensure Docker is running and enabled at boot
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Allow the deploy user to run Docker without sudo
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+
+    - name: Create the app directory owned by the deploy user
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    - name: Clone or update the project
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ repo_version }}"
+        force: true
+      become_user: "{{ ansible_user }}"
+
+    - name: Render the .env file
+      ansible.builtin.template:
+        src: env.j2
+        dest: "{{ app_dir }}/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+
+    - name: Deploy the production stack (Caddy + app)
+      # Runs as root, which can always talk to the Docker socket (the deploy
+      # user's new docker group membership only applies on next login).
+      ansible.builtin.command:
+        chdir: "{{ app_dir }}"
+        cmd: >-
+          docker compose --env-file .env
+          -f deploy/compose/compose.yaml
+          -f deploy/compose/compose.prod.yaml
+          up -d --build
+      register: compose_up
+      changed_when: "'Started' in compose_up.stderr or 'Created' in compose_up.stderr"

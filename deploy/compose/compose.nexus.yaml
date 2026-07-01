@@ -1,0 +1,25 @@
+# Optional artifact-repository overlay: Sonatype Nexus 3 (lab 14).
+# Heavy (~1 GB+ RAM, slow first boot) so it lives in its own overlay — start it
+# only when practicing artifact repositories:
+#   docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.nexus.yaml up -d nexus
+#
+# First-boot admin password:
+#   docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.nexus.yaml exec nexus cat /nexus-data/admin.password
+# UI: http://localhost:8081  (create a hosted Docker registry on port 8085 in the UI).
+name: devops-dojo
+
+services:
+  nexus:
+    image: sonatype/nexus3:3.75.1
+    ports:
+      - "127.0.0.1:8081:8081"   # web UI + repository browsing
+      - "127.0.0.1:8085:8085"   # HTTP connector for a hosted Docker registry (configure in UI)
+    environment:
+      # Keep the JVM small for a laptop; the default asks for much more.
+      INSTALL4J_ADD_VM_PARAMS: "-Xms1g -Xmx1g -XX:MaxDirectMemorySize=1g"
+    volumes:
+      - nexus-data:/nexus-data
+    restart: unless-stopped
+
+volumes:
+  nexus-data:

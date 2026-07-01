@@ -1,0 +1,4 @@
+[dojo]
+# Paste Terraform's `ansible_inventory_line` output here. Example:
+#   dojo ansible_host=51.21.251.231 ansible_user=ubuntu
+dojo ansible_host=REPLACE_WITH_PUBLIC_IP ansible_user=ubuntu

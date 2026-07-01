@@ -9,6 +9,11 @@ data:
   REDIS_URL: {{ .Values.config.redisUrl | quote }}
   OTEL_SERVICE_NAME: {{ .Values.config.otelServiceName | quote }}
   OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.config.otelEndpoint | quote }}
+{{- if .Values.secrets.create }}
+# Rendered only when secrets.create=true (local/dev). In production set it to
+# false and manage `dojo-secrets` externally (Sealed Secrets / External Secrets
+# Operator) — see deploy/secrets/ and lab 26. The workloads reference the Secret
+# by name either way, so nothing else changes.
 ---
 apiVersion: v1
 kind: Secret
@@ -18,3 +23,4 @@ type: Opaque
 stringData:
   POSTGRES_PASSWORD: {{ .Values.secrets.postgresPassword | quote }}
   DATABASE_URL: "postgres://{{ .Values.config.postgresUser }}:{{ .Values.secrets.postgresPassword }}@db:5432/{{ .Values.config.postgresDb }}?sslmode=disable"
+{{- end }}

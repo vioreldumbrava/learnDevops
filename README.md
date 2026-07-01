@@ -10,6 +10,8 @@ deploying, and operating a small but real web application — and the applicatio
 > [docs/DOCKER_LEARNING_PATH.md](docs/DOCKER_LEARNING_PATH.md); each concept links to a
 > hands-on lab under [labs/](labs/).
 
+![DevOps Dojo architecture and toolchain](docs/architecture.svg)
+
 ## What you build
 
 | Tier | Tech | Why it's here |
@@ -98,7 +100,9 @@ docs/            curriculum + references
 - ✅ **Milestone 3 — cloud, scale, Kubernetes:** EC2 + HTTPS, security hardening, k6 load test,
   horizontal scaling, Kubernetes on kind + Helm chart, labs 18–23.
 - ✅ **Capstone (lab 25):** DevOps Dojo on **AWS EKS** (Terraform) delivered by **GitOps
-  (ArgoCD)** — the end-to-end, interview-ready deployment. **26 labs (00–25) complete.**
+  (ArgoCD)** — the end-to-end, interview-ready deployment.
+- ✅ **Production secrets (lab 26):** Sealed Secrets / External Secrets Operator — no plaintext
+  in Git. **27 labs (00–26) complete.**
 
 > 🎯 **Aiming for a DevOps job?** The capstone is your interview centerpiece; see
 > [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md) for a full talk track (likely questions +

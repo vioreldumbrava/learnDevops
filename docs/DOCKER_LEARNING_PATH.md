@@ -139,6 +139,7 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 23 | Helm packaging | [labs/23](../labs/23-helm/) | ✅ |
 | 24 | Self-hosted CI/CD with Jenkins (alt. to 15) | [labs/24](../labs/24-jenkins/) | ✅ |
 | 25 | **Capstone:** EKS + GitOps (ArgoCD) | [labs/25](../labs/25-capstone-eks-gitops/) | ✅ |
+| 26 | Production secrets management | [labs/26](../labs/26-secrets-management/) | ✅ |
 
 ---
 
@@ -664,6 +665,31 @@ images to GHCR; ArgoCD ([deploy/gitops](../deploy/gitops/)) syncs the Helm chart
 deployment by hand is auto-reverted; you `terraform destroy` afterward.
 
 ➡️ Full lab: [labs/25-capstone-eks-gitops](../labs/25-capstone-eks-gitops/)
+
+## Step 26 — Production secrets management
+
+**Concept.** Never commit real secrets or bake them into images. The app consumes a Kubernetes
+`Secret` by name; something **external** populates it — **Sealed Secrets** (encrypted, safe to
+commit, GitOps-native) or the **External Secrets Operator** (synced from AWS Secrets
+Manager/Vault).
+
+**Why.** This closes the biggest "not production-grade" gap in the project — plaintext secrets.
+
+**Do.**
+```powershell
+# Chart stops rendering the Secret; you provide dojo-secrets externally:
+helm upgrade --install dojo deploy/k8s/helm/devops-dojo -n devops-dojo --set secrets.create=false
+```
+
+**Understand.** The chart guards its Secret with `{{- if .Values.secrets.create }}`; workloads
+reference `dojo-secrets` by name regardless of who creates it. See
+[deploy/secrets](../deploy/secrets/) for both the Sealed Secrets workflow and the External
+Secrets Operator manifests.
+
+**Checkpoint.** `helm template ... --set secrets.create=false` renders no Secret; the app still
+runs from an externally-managed `dojo-secrets`; no plaintext secret is in Git.
+
+➡️ Full lab: [labs/26-secrets-management](../labs/26-secrets-management/) · config: [deploy/secrets](../deploy/secrets/)
 
 ---
 

@@ -184,8 +184,10 @@ Use a light STAR:
 Interviewers respect honesty over bluffing:
 - "My production experience is from this project, not yet a high-traffic system on-call."
 - "I've run Kubernetes on kind and EKS, but haven't operated a large multi-team cluster."
-- "Secrets here use `.env`/plain values for learning; I know the production path is a secrets
-  manager."
+- "Local/dev uses a demo password for convenience — but the chart supports `secrets.create=false`
+  so real deployments get `dojo-secrets` from **Sealed Secrets** or the **External Secrets
+  Operator** (lab 26), keeping plaintext out of Git." *(A gap I already closed — turn it into a
+  strength.)*
 Then pivot to how you're closing the gap (below).
 
 ---
@@ -197,7 +199,8 @@ Highest leverage next steps to become clearly hireable:
    Solutions Architect Associate** cert (also a résumé filter).
 2. **Kubernetes, deep:** RBAC, secrets, networking, troubleshooting. Target **CKA** or **CKAD**.
 3. **Scripting:** solid **Bash** + **Python** (this project has Go; add glue scripting).
-4. **Secrets management:** Vault or sealed-secrets/external-secrets — wire it into the chart.
+4. **Secrets management:** done in lab 26 (Sealed Secrets / External Secrets Operator) — go
+   further with Vault dynamic secrets and automatic rotation.
 5. **Keep extending this repo** and write short posts on each capstone step; visible learning
    is a hiring signal.
 

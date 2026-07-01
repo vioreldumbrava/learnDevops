@@ -38,6 +38,7 @@ legacy DBC-based path each lab corresponds to.
 | [23](../labs/23-helm/) | Helm packaging | extra | 3 | ✅ |
 | [24](../labs/24-jenkins/) | Self-hosted CI/CD with Jenkins (alternative to lab 15) | §12 | 2 | ✅ |
 | [25](../labs/25-capstone-eks-gitops/) | **Capstone:** DevOps Dojo on EKS via GitOps (ArgoCD) | all | 3 | ✅ |
+| [26](../labs/26-secrets-management/) | Production secrets (Sealed Secrets / External Secrets) | §17+ | 3 | ✅ |
 
 > 🎯 **Landing a job:** the capstone (lab 25) is your interview centerpiece, and
 > [INTERVIEW_PREP.md](INTERVIEW_PREP.md) is the talk track — likely questions with strong,

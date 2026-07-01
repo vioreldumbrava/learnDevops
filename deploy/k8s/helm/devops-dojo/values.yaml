@@ -40,9 +40,15 @@ config:
   otelServiceName: dojo-api
   otelEndpoint: ""
 
-# Demo secret. For real installs pass --set secrets.postgresPassword=... or use a
-# secrets manager; never commit real values.
 secrets:
+  # true  -> the chart renders the `dojo-secrets` Secret from postgresPassword below
+  #          (fine for local/dev/CI).
+  # false -> you manage `dojo-secrets` externally (Sealed Secrets or the External
+  #          Secrets Operator). The workloads reference it by name either way.
+  #          See deploy/secrets/ and lab 26.
+  create: true
+  # Demo value only. For real installs pass --set secrets.postgresPassword=... ,
+  # or set create=false and provide the Secret via a secrets manager.
   postgresPassword: change-me-in-real-life
 
 migrate:

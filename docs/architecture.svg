@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 772" font-family="Segoe UI, system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+    <style>
+      .lane   { fill:#ffffff; stroke:#e2e8f0; stroke-width:1.5; }
+      .title  { font-size:24px; font-weight:700; fill:#0f172a; }
+      .sub    { font-size:12px; fill:#64748b; }
+      .lbl    { font-size:12px; font-weight:700; letter-spacing:.6px; }
+      .bt     { font-size:13.5px; font-weight:600; fill:#0f172a; }
+      .bs     { font-size:10.5px; fill:#475569; }
+      .edge   { stroke:#64748b; stroke-width:1.6; fill:none; }
+      .dash   { stroke:#94a3b8; stroke-width:1.5; fill:none; stroke-dasharray:5 4; }
+      .elbl   { font-size:10px; fill:#64748b; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1160" height="772" fill="#f8fafc"/>
+  <rect x="8" y="8" width="1144" height="756" rx="14" fill="none" stroke="#e2e8f0"/>
+  <text x="28" y="40" class="title">DevOps Dojo — Architecture &amp; DevOps Toolchain</text>
+  <text x="28" y="58" class="sub">One app, taken through the full delivery lifecycle · 26 hands-on labs (00–25)</text>
+
+  <!-- ============ Lane A: Delivery ============ -->
+  <rect class="lane" x="24" y="74" width="1112" height="132" rx="10"/>
+  <text x="40" y="96" class="lbl" fill="#2563eb">CI/CD &amp; GITOPS DELIVERY</text>
+
+  <!-- boxes -->
+  <g>
+    <rect x="44"  y="116" width="120" height="66" rx="8" fill="#ffffff" stroke="#2563eb"/>
+    <text x="104" y="145" text-anchor="middle" class="bt">Developer</text>
+    <text x="104" y="163" text-anchor="middle" class="bs">git push</text>
+
+    <rect x="232" y="116" width="196" height="66" rx="8" fill="#ffffff" stroke="#2563eb"/>
+    <text x="330" y="140" text-anchor="middle" class="bt">CI/CD</text>
+    <text x="330" y="157" text-anchor="middle" class="bs">GitHub Actions · Jenkins</text>
+    <text x="330" y="171" text-anchor="middle" class="bs">build · test · Trivy · SBOM</text>
+
+    <rect x="496" y="116" width="150" height="66" rx="8" fill="#ffffff" stroke="#2563eb"/>
+    <text x="571" y="145" text-anchor="middle" class="bt">Registry</text>
+    <text x="571" y="163" text-anchor="middle" class="bs">GHCR · Nexus</text>
+
+    <rect x="714" y="116" width="180" height="66" rx="8" fill="#ffffff" stroke="#2563eb"/>
+    <text x="804" y="140" text-anchor="middle" class="bt">ArgoCD · GitOps</text>
+    <text x="804" y="157" text-anchor="middle" class="bs">deploys the Helm chart</text>
+    <text x="804" y="171" text-anchor="middle" class="bs">sync · self-heal · rollback</text>
+
+    <rect x="962" y="116" width="150" height="66" rx="8" fill="#ffffff" stroke="#475569"/>
+    <text x="1037" y="145" text-anchor="middle" class="bt">Terraform</text>
+    <text x="1037" y="163" text-anchor="middle" class="bs">VPC · EC2 · EKS</text>
+  </g>
+  <path class="edge" d="M164,149 L230,149" marker-end="url(#arrow)"/>
+  <path class="edge" d="M428,149 L494,149" marker-end="url(#arrow)"/>
+  <path class="edge" d="M646,149 L712,149" marker-end="url(#arrow)"/>
+  <text x="463" y="140" text-anchor="middle" class="elbl">images</text>
+
+  <!-- ============ Lane B: Runtime ============ -->
+  <rect class="lane" x="24" y="222" width="1112" height="212" rx="10"/>
+  <text x="40" y="244" class="lbl" fill="#0d9488">RUNTIME  ·  Docker Compose / Kubernetes</text>
+
+  <!-- ArgoCD deploys into runtime -->
+  <path class="edge" d="M804,182 L804,262" marker-end="url(#arrow)"/>
+  <text x="812" y="212" class="elbl">deploy</text>
+  <!-- Terraform provisions the platform -->
+  <path class="dash" d="M1037,182 L1037,300 L1010,300" marker-end="url(#arrow)"/>
+  <text x="1046" y="230" class="elbl">provisions</text>
+
+  <g>
+    <rect x="44"  y="300" width="96" height="52" rx="8" fill="#ffffff" stroke="#0d9488"/>
+    <text x="92"  y="330" text-anchor="middle" class="bt">Users</text>
+
+    <rect x="172" y="300" width="132" height="52" rx="8" fill="#ffffff" stroke="#0d9488"/>
+    <text x="238" y="323" text-anchor="middle" class="bt">Caddy / Ingress</text>
+    <text x="238" y="339" text-anchor="middle" class="bs">TLS · routing</text>
+
+    <rect x="336" y="262" width="158" height="52" rx="8" fill="#ffffff" stroke="#0d9488"/>
+    <text x="415" y="285" text-anchor="middle" class="bt">Frontend</text>
+    <text x="415" y="301" text-anchor="middle" class="bs">React · Vite · Nginx</text>
+
+    <rect x="336" y="340" width="158" height="52" rx="8" fill="#ffffff" stroke="#0d9488"/>
+    <text x="415" y="361" text-anchor="middle" class="bt">API · Go</text>
+    <text x="415" y="377" text-anchor="middle" class="bs">/healthz /readyz /metrics</text>
+
+    <rect x="536" y="262" width="158" height="52" rx="8" fill="#fffbeb" stroke="#d97706"/>
+    <text x="615" y="285" text-anchor="middle" class="bt">Postgres</text>
+    <text x="615" y="301" text-anchor="middle" class="bs">StatefulSet · PVC</text>
+
+    <rect x="536" y="340" width="158" height="52" rx="8" fill="#fffbeb" stroke="#d97706"/>
+    <text x="615" y="361" text-anchor="middle" class="bt">Redis</text>
+    <text x="615" y="377" text-anchor="middle" class="bs">cache · job queue</text>
+
+    <rect x="736" y="340" width="150" height="52" rx="8" fill="#ffffff" stroke="#0d9488"/>
+    <text x="811" y="361" text-anchor="middle" class="bt">Worker · Go</text>
+    <text x="811" y="377" text-anchor="middle" class="bs">queue consumer</text>
+  </g>
+  <path class="edge" d="M140,326 L170,326" marker-end="url(#arrow)"/>
+  <path class="edge" d="M304,318 L334,290" marker-end="url(#arrow)"/>
+  <path class="edge" d="M304,334 L334,366" marker-end="url(#arrow)"/>
+  <path class="edge" d="M494,366 L534,366" marker-end="url(#arrow)"/>
+  <text x="514" y="358" text-anchor="middle" class="elbl">SQL</text>
+  <path class="edge" d="M494,360 L520,320 L534,300" marker-end="url(#arrow)"/>
+  <path class="edge" d="M694,366 L734,366" marker-end="url(#arrow)"/>
+  <text x="960" y="300" text-anchor="middle" class="bs" fill="#0d9488">stateless: api · worker · frontend</text>
+  <text x="960" y="318" text-anchor="middle" class="bs" fill="#d97706">stateful: postgres · redis</text>
+  <text x="960" y="342" text-anchor="middle" class="bs">scale the stateless tier;</text>
+  <text x="960" y="358" text-anchor="middle" class="bs">cluster the stateful tier</text>
+
+  <!-- ============ Lane C: Observability ============ -->
+  <rect class="lane" x="24" y="450" width="1112" height="150" rx="10"/>
+  <text x="40" y="472" class="lbl" fill="#7c3aed">OBSERVABILITY  ·  metrics · logs · traces · alerts</text>
+
+  <!-- telemetry from API down into this lane -->
+  <path class="dash" d="M415,392 L415,516" marker-end="url(#arrow)"/>
+  <text x="423" y="446" class="elbl">/metrics · logs · traces</text>
+
+  <g>
+    <rect x="120" y="500" width="150" height="54" rx="8" fill="#ffffff" stroke="#7c3aed"/>
+    <text x="195" y="524" text-anchor="middle" class="bt">Prometheus</text>
+    <text x="195" y="540" text-anchor="middle" class="bs">metrics</text>
+
+    <rect x="300" y="500" width="150" height="54" rx="8" fill="#ffffff" stroke="#7c3aed"/>
+    <text x="375" y="524" text-anchor="middle" class="bt">Loki</text>
+    <text x="375" y="540" text-anchor="middle" class="bs">logs · Promtail</text>
+
+    <rect x="480" y="500" width="150" height="54" rx="8" fill="#ffffff" stroke="#7c3aed"/>
+    <text x="555" y="524" text-anchor="middle" class="bt">Tempo</text>
+    <text x="555" y="540" text-anchor="middle" class="bs">traces · OTel</text>
+
+    <rect x="700" y="500" width="160" height="54" rx="8" fill="#faf5ff" stroke="#7c3aed"/>
+    <text x="780" y="524" text-anchor="middle" class="bt">Grafana</text>
+    <text x="780" y="540" text-anchor="middle" class="bs">dashboards</text>
+
+    <rect x="900" y="500" width="160" height="54" rx="8" fill="#ffffff" stroke="#7c3aed"/>
+    <text x="980" y="524" text-anchor="middle" class="bt">Alertmanager</text>
+    <text x="980" y="540" text-anchor="middle" class="bs">alerts</text>
+  </g>
+  <path class="edge" d="M270,527 L298,527" marker-end="url(#arrow)"/>
+  <path class="edge" d="M450,527 L478,527" marker-end="url(#arrow)"/>
+  <path class="edge" d="M630,527 L698,527" marker-end="url(#arrow)"/>
+  <path class="edge" d="M195,500 L195,486 L900,486 L900,522 L898,522" marker-end="url(#arrow)"/>
+  <text x="540" y="482" text-anchor="middle" class="elbl">rules fire → Alertmanager</text>
+
+  <!-- ============ Lane D: Infrastructure as Code ============ -->
+  <rect class="lane" x="24" y="616" width="1112" height="132" rx="10"/>
+  <text x="40" y="638" class="lbl" fill="#475569">INFRASTRUCTURE AS CODE &amp; PACKAGING</text>
+
+  <g>
+    <rect x="120" y="662" width="180" height="60" rx="8" fill="#ffffff" stroke="#475569"/>
+    <text x="210" y="688" text-anchor="middle" class="bt">Terraform</text>
+    <text x="210" y="705" text-anchor="middle" class="bs">VPC · EC2 · EKS (provision)</text>
+
+    <rect x="340" y="662" width="180" height="60" rx="8" fill="#ffffff" stroke="#475569"/>
+    <text x="430" y="688" text-anchor="middle" class="bt">Ansible</text>
+    <text x="430" y="705" text-anchor="middle" class="bs">install Docker · deploy</text>
+
+    <rect x="560" y="662" width="180" height="60" rx="8" fill="#ffffff" stroke="#475569"/>
+    <text x="650" y="688" text-anchor="middle" class="bt">Helm</text>
+    <text x="650" y="705" text-anchor="middle" class="bs">package K8s manifests</text>
+
+    <rect x="780" y="662" width="200" height="60" rx="8" fill="#ffffff" stroke="#475569"/>
+    <text x="880" y="688" text-anchor="middle" class="bt">Secrets mgmt</text>
+    <text x="880" y="705" text-anchor="middle" class="bs">Sealed Secrets · Ext. Secrets</text>
+  </g>
+
+  <text x="1112" y="740" text-anchor="end" class="sub">docs/CURRICULUM.md · docs/INTERVIEW_PREP.md</text>
+</svg>

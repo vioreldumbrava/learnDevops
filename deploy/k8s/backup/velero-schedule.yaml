@@ -1,0 +1,15 @@
+# A daily Velero backup of the devops-dojo namespace (and its volumes), kept 7 days.
+# Requires Velero installed and pointed at an object store (MinIO locally, or S3 on
+# EKS). Velero backs up the Kubernetes objects and can snapshot PersistentVolumes.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: dojo-daily
+  namespace: velero
+spec:
+  schedule: "0 3 * * *"      # 03:00 every day
+  template:
+    includedNamespaces:
+      - devops-dojo
+    snapshotVolumes: true
+    ttl: 168h0m0s            # retain backups for 7 days

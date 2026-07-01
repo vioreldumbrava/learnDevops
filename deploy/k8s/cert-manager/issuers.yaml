@@ -1,0 +1,24 @@
+# cert-manager Issuers. `selfsigned` works offline (local/kind). `letsencrypt-staging`
+# issues real (staging) certs for a public domain via an HTTP-01 challenge through
+# the ingress. Requires cert-manager installed in the cluster.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: you@example.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx

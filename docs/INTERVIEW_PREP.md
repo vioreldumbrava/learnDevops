@@ -197,7 +197,9 @@ Then pivot to how you're closing the gap (below).
 Highest leverage next steps to become clearly hireable:
 1. **One cloud, deep:** AWS — VPC/subnets/IAM, RDS, S3, ELB, autoscaling. Target the **AWS
    Solutions Architect Associate** cert (also a résumé filter).
-2. **Kubernetes, deep:** RBAC, secrets, networking, troubleshooting. Target **CKA** or **CKAD**.
+2. **Kubernetes, deep:** covered in labs 27–34 (RBAC, NetworkPolicies, Kyverno, cert-manager,
+   KEDA, Argo Rollouts, Velero, kube-prometheus-stack). Do them on kind/EKS, then target **CKA**
+   (and **CKS** for the security ones).
 3. **Scripting:** solid **Bash** + **Python** (this project has Go; add glue scripting).
 4. **Secrets management:** done in lab 26 (Sealed Secrets / External Secrets Operator) — go
    further with Vault dynamic secrets and automatic rotation.

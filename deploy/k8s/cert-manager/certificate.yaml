@@ -1,0 +1,14 @@
+# cert-manager watches this Certificate and creates/renews the `dojo-tls` Secret.
+# Reference that Secret from the Ingress (tls.secretName: dojo-tls) to serve HTTPS.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dojo-tls
+  namespace: devops-dojo
+spec:
+  secretName: dojo-tls
+  issuerRef:
+    name: selfsigned        # swap to letsencrypt-staging for a real domain
+    kind: ClusterIssuer
+  dnsNames:
+    - dojo.local            # your hostname (or the public domain for Let's Encrypt)

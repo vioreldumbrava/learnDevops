@@ -140,6 +140,7 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 24 | Self-hosted CI/CD with Jenkins (alt. to 15) | [labs/24](../labs/24-jenkins/) | ✅ |
 | 25 | **Capstone:** EKS + GitOps (ArgoCD) | [labs/25](../labs/25-capstone-eks-gitops/) | ✅ |
 | 26 | Production secrets management | [labs/26](../labs/26-secrets-management/) | ✅ |
+| 27–34 | **Kubernetes deep-dive** (RBAC, NetworkPolicy, Kyverno, cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack) | [labs/27–34](../labs/) | ✅ |
 
 ---
 
@@ -695,6 +696,30 @@ runs from an externally-managed `dojo-secrets`; no plaintext secret is in Git.
 
 🎉 **The full path is complete** — from `docker build` to a self-healing, GitOps-delivered
 Kubernetes deployment on AWS.
+
+## Kubernetes deep-dive track (Platform/SRE · CKA/CKS-aligned)
+
+Optional but high-value if you're targeting Platform/SRE roles. Each builds on the same app and
+runs on kind (or EKS). Full walkthroughs in the labs; one-line each:
+
+- **[27 · RBAC & least privilege](../labs/27-k8s-rbac/)** — dedicated ServiceAccount with no
+  token; scoped Role/RoleBinding; test with `kubectl auth can-i`.
+- **[28 · NetworkPolicies](../labs/28-k8s-network-policies/)** — default-deny + explicit allows
+  (zero-trust), enforced by Calico.
+- **[29 · Kyverno](../labs/29-k8s-kyverno/)** — policy-as-code at admission (no `:latest`,
+  require limits/labels), Audit → Enforce.
+- **[30 · cert-manager](../labs/30-k8s-cert-manager/)** — automatic in-cluster TLS (self-signed
+  or Let's Encrypt).
+- **[31 · KEDA](../labs/31-k8s-keda-autoscaling/)** — event-driven autoscaling of the worker on
+  Redis queue depth (even to zero).
+- **[32 · Argo Rollouts](../labs/32-k8s-argo-rollouts/)** — canary/blue-green progressive
+  delivery with pause/promote/abort.
+- **[33 · Velero](../labs/33-k8s-velero-backup/)** — scheduled namespace backup + restore drill
+  (cluster-state DR).
+- **[34 · kube-prometheus-stack](../labs/34-k8s-kube-prometheus-stack/)** — the Prometheus
+  Operator; scrape the app via a `ServiceMonitor`.
+
+These map directly onto what **CKA/CKS** and Platform/SRE interviews probe.
 
 ## Getting hired
 

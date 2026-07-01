@@ -40,6 +40,19 @@ legacy DBC-based path each lab corresponds to.
 | [25](../labs/25-capstone-eks-gitops/) | **Capstone:** DevOps Dojo on EKS via GitOps (ArgoCD) | all | 3 | ✅ |
 | [26](../labs/26-secrets-management/) | Production secrets (Sealed Secrets / External Secrets) | §17+ | 3 | ✅ |
 
+### Kubernetes deep-dive track (Platform/SRE · CKA/CKS-aligned)
+
+| Lab | Topic | Cert | Status |
+|-----|-------|------|--------|
+| [27](../labs/27-k8s-rbac/) | RBAC & least privilege | CKA/CKS | ✅ |
+| [28](../labs/28-k8s-network-policies/) | NetworkPolicies (zero-trust) + Calico | CKA/CKS | ✅ |
+| [29](../labs/29-k8s-kyverno/) | Policy-as-code (Kyverno) | CKS | ✅ |
+| [30](../labs/30-k8s-cert-manager/) | cert-manager (in-cluster TLS) | — | ✅ |
+| [31](../labs/31-k8s-keda-autoscaling/) | KEDA event-driven autoscaling | — | ✅ |
+| [32](../labs/32-k8s-argo-rollouts/) | Argo Rollouts (canary) | — | ✅ |
+| [33](../labs/33-k8s-velero-backup/) | Velero backup & DR | — | ✅ |
+| [34](../labs/34-k8s-kube-prometheus-stack/) | kube-prometheus-stack (cluster monitoring) | — | ✅ |
+
 > 🎯 **Landing a job:** the capstone (lab 25) is your interview centerpiece, and
 > [INTERVIEW_PREP.md](INTERVIEW_PREP.md) is the talk track — likely questions with strong,
 > project-grounded answers for every concept above.

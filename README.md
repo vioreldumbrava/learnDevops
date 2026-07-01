@@ -102,7 +102,10 @@ docs/            curriculum + references
 - ✅ **Capstone (lab 25):** DevOps Dojo on **AWS EKS** (Terraform) delivered by **GitOps
   (ArgoCD)** — the end-to-end, interview-ready deployment.
 - ✅ **Production secrets (lab 26):** Sealed Secrets / External Secrets Operator — no plaintext
-  in Git. **27 labs (00–26) complete.**
+  in Git.
+- ✅ **Kubernetes deep-dive (labs 27–34):** RBAC, NetworkPolicies (+Calico), Kyverno,
+  cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack — Platform/SRE, CKA/CKS.
+  **35 labs (00–34) complete.**
 
 > 🎯 **Aiming for a DevOps job?** The capstone is your interview centerpiece; see
 > [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md) for a full talk track (likely questions +

@@ -1,0 +1,28 @@
+# A namespaced, read-only role — the canonical RBAC example: a Role (what) bound
+# to a subject (who) by a RoleBinding. Scoped to the devops-dojo namespace only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ops-readonly
+  namespace: devops-dojo
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "configmaps", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ops-viewer-readonly
+  namespace: devops-dojo
+subjects:
+  - kind: ServiceAccount
+    name: ops-viewer
+    namespace: devops-dojo
+roleRef:
+  kind: Role
+  name: ops-readonly
+  apiGroup: rbac.authorization.k8s.io

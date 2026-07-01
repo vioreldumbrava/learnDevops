@@ -1,0 +1,21 @@
+# Event-driven autoscaling: scale the worker on the DEPTH of the Redis job queue,
+# not CPU. When `dojo:jobs` backs up, KEDA adds workers; when it drains, it scales
+# back to (and can even hit) zero. Requires KEDA installed.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker-scaler
+  namespace: devops-dojo
+spec:
+  scaleTargetRef:
+    name: worker            # the worker Deployment
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  cooldownPeriod: 30
+  pollingInterval: 5
+  triggers:
+    - type: redis
+      metadata:
+        address: redis:6379
+        listName: "dojo:jobs"
+        listLength: "5"      # target ~5 queued jobs per worker replica

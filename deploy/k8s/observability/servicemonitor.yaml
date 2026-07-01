@@ -1,0 +1,22 @@
+# Tells the Prometheus Operator (kube-prometheus-stack) to scrape the API's /metrics.
+# Prereqs: the `api` Service must have a NAMED port `http` and a label `app: api`
+#   kubectl -n devops-dojo label service api app=api --overwrite
+#   kubectl -n devops-dojo patch service api --type=json \
+#     -p='[{"op":"replace","path":"/spec/ports/0/name","value":"http"}]'
+# The `release` label must match the operator's serviceMonitorSelector (the Helm
+# release name of kube-prometheus-stack; "kps" below).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dojo-api
+  namespace: devops-dojo
+  labels:
+    release: kps
+spec:
+  selector:
+    matchLabels:
+      app: api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

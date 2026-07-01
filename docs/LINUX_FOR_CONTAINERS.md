@@ -78,26 +78,81 @@ tar -xzf backup.tgz                     # extract it
 
 Before any `rm -rf`, check where you are: `pwd && ls -la`.
 
-## 6. Permissions And Ownership
+## 6. Permissions And Ownership (chmod / chown)
+
+### Read the permissions first
 
 ```bash
-ls -la
+ls -l .env
 # -rw-r--r-- 1 ubuntu ubuntu 1234 ... .env
-# drwxr-xr-x 2 ubuntu ubuntu 4096 ... deploy
 ```
 
-`r`=read `w`=write `x`=execute/enter. Three groups: owner, group, everyone.
-Numeric modes are common:
+That first block is `type` + three permission groups of `rwx`:
+
+```text
+ -   rw-      r--      r--
+type owner    group    others
+     (u)      (g)      (o)
+```
+
+`r`=read, `w`=write, `x`=execute (for a file) or enter/list (for a directory), `-`=off.
+So `-rw-r--r--` = owner can read/write; group and others can only read.
+
+### Change permissions — two ways with `chmod`
+
+**Symbolic** (easiest to reason about): `who`(`u`,`g`,`o`,`a`) + `op`(`+` add, `-` remove,
+`=` set exactly) + `perms`(`r`,`w`,`x`):
 
 ```bash
-chmod 400 devDockerKey.pem    # owner read-only  (required for SSH keys)
-chmod 600 .env                # owner read/write (secrets)
-chmod 644 file                # owner rw, others read
-chmod 755 script.sh           # owner rwx, others rx (executables/dirs)
-sudo chown -R ubuntu:ubuntu /opt/dojo   # fix ownership
+chmod +x script.sh        # make executable (everyone)
+chmod u+x script.sh       # executable for the owner only
+chmod g-w file            # remove write from the group
+chmod o-rwx secret        # remove ALL access for "others"
+chmod a+r file            # readable by all (a = u+g+o)
+chmod u=rw,go= .env       # owner read/write; group & others nothing  (same as 600)
 ```
 
-Use `sudo` only when needed; if *everything* needs it, ownership is probably wrong.
+**Numeric** (compact): add `r=4`, `w=2`, `x=1` per group, in order owner-group-others:
+
+| Digit | Perms | Meaning |
+|-------|-------|---------|
+| 7 | rwx | read + write + execute |
+| 6 | rw- | read + write |
+| 5 | r-x | read + execute |
+| 4 | r-- | read only |
+| 0 | --- | none |
+
+```bash
+chmod 400 devDockerKey.pem   # owner read-only        (required for SSH keys)
+chmod 600 .env               # owner read/write only  (secrets)
+chmod 644 file               # owner rw, others read
+chmod 755 script.sh          # owner rwx, others r-x   (scripts, directories)
+chmod 700 ~/.ssh             # owner-only directory
+```
+
+### Whole directories (recursive)
+
+```bash
+chmod -R 755 somedir                 # apply to everything under somedir
+chmod -R u+rwX /opt/dojo/backups     # capital X = set execute on DIRECTORIES only
+                                     #   (and already-executable files), not plain files
+```
+
+Use capital `X` for mixed trees so you don't accidentally mark every data file executable.
+
+### Change ownership with `chown` / `chgrp`
+
+```bash
+sudo chown ubuntu file                  # change owner
+sudo chown ubuntu:ubuntu file           # change owner AND group (user:group)
+sudo chown -R ubuntu:ubuntu /opt/dojo   # recursively fix a project folder
+sudo chgrp docker /var/run/docker.sock  # change only the group
+```
+
+Use `sudo` only when needed; if *everything* needs it, ownership is probably wrong (fix it
+once with `chown -R`). Common fixes in this project: `chmod 400` your `.pem` key,
+`chmod 600 .env`, `chmod +x` a helper script, and `chown -R ubuntu:ubuntu /opt/dojo` after
+copying files as root.
 
 ## 7. Packages On Ubuntu
 

@@ -721,6 +721,17 @@ runs on kind (or EKS). Full walkthroughs in the labs; one-line each:
 
 These map directly onto what **CKA/CKS** and Platform/SRE interviews probe.
 
+## Companion project: AI Assistant (LLMOps)
+
+Beyond this DevOps path, the repo includes a second, standalone example project —
+[`ai-assistant/`](../ai-assistant/) — a **local/remote RAG assistant** that answers questions
+about *these very docs and labs* using a local LLM via **Ollama** or **LM Studio** (or one
+running on another PC), with Qdrant vectors, grounding guardrails, MMR re-ranking, conversation
+memory, Prometheus metrics + a Grafana dashboard, an evaluation harness, and Compose/CI/K8s. It
+adds **Python** and **LLMOps** to the portfolio — the AI-infra differentiator on top of these
+DevOps foundations. Start at [ai-assistant/README.md](../ai-assistant/README.md) and its
+[labs/](../ai-assistant/labs/).
+
 ## Getting hired
 
 The capstone (Step 25) is your interview centerpiece. Rehearse with

@@ -14,7 +14,7 @@ Start a local model and call it two ways: the native API and the OpenAI-compatib
 
 ```powershell
 cd ai-assistant
-docker compose up -d ollama
+docker compose --profile local-llm up -d ollama    # local model is opt-in via the profile
 docker compose exec ollama ollama pull llama3.2:3b
 docker compose exec ollama ollama pull nomic-embed-text
 
@@ -30,6 +30,13 @@ curl http://localhost:11434/v1/embeddings -H "Content-Type: application/json" -d
 1. Install LM Studio, download a chat model + an embedding model, and start its **local server**
    (Developer tab). It serves the OpenAI API at `http://localhost:1234/v1`.
 2. Point our app at it instead of the container: set `OPENAI_BASE_URL=http://host.docker.internal:1234/v1`.
+
+## Steps — a model server on ANOTHER PC
+
+You don't have to run the model locally at all. Point at Ollama/LM Studio on another machine
+(e.g. a GPU box on your LAN): expose it on the network and set `OPENAI_BASE_URL` to its IP — full
+walkthrough + security notes in the [project README](../../README.md#connect-to-a-model-server-on-another-pc).
+Then start **without** the profile: `docker compose up -d` (only Qdrant + the API run here).
 
 ## How it works
 

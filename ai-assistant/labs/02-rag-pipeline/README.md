@@ -15,8 +15,8 @@ Index the DevOps Dojo docs/labs and ask grounded, cited questions.
 
 ```powershell
 cd ai-assistant
-docker compose up -d --build          # ollama, qdrant, rag-api
-# (models pulled in lab 01)
+docker compose --profile local-llm up -d --build   # ollama, qdrant, rag-api
+# (models pulled in lab 01; for a REMOTE model omit --profile local-llm and set OPENAI_BASE_URL)
 docker compose run --rm ingest        # chunk + embed docs/ + labs/ into Qdrant
 
 # Ask via the API:

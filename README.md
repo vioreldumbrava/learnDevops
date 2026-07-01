@@ -93,6 +93,7 @@ deploy/load-test k6 load test                                   (milestone 3)
 labs/            one folder per concept
 docs/            curriculum + references
 .github/workflows CI/CD                                          (milestone 2)
+ai-assistant/    Second project: local/remote RAG assistant (LLMOps) — see its own README
 ```
 
 ## Build status

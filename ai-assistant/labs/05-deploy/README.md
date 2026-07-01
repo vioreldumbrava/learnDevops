@@ -14,7 +14,7 @@ Run the whole stack via Compose (done in earlier labs), then deploy the same sta
 
 ```powershell
 cd ai-assistant
-docker compose up -d --build
+docker compose --profile local-llm up -d --build   # or omit the profile + set a remote OPENAI_BASE_URL
 docker compose exec ollama ollama pull llama3.2:3b
 docker compose exec ollama ollama pull nomic-embed-text
 docker compose run --rm ingest

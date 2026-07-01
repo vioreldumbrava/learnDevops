@@ -1,18 +1,27 @@
-# DevOps Dojo — AI Assistant (RAG over the docs/labs).
-# Run from ai-assistant/:
-#   docker compose up -d --build
-#   docker compose exec ollama ollama pull llama3.2:3b
-#   docker compose exec ollama ollama pull nomic-embed-text
-#   docker compose run --rm ingest        # index the docs into Qdrant
-#   open http://localhost:8000
+# DevOps Dojo — AI Assistant (RAG over the docs/labs). Run from ai-assistant/.
 #
-# LM Studio instead of Ollama: start LM Studio's local server, then set
-#   OPENAI_BASE_URL=http://host.docker.internal:1234/v1  on rag-api (and skip ollama).
+# Pick a model backend (set OPENAI_BASE_URL in .env), then start:
+#
+#  A) LOCAL model in Compose (runs Ollama here) — opt in with the profile:
+#       docker compose --profile local-llm up -d --build
+#       docker compose exec ollama ollama pull llama3.2:3b
+#       docker compose exec ollama ollama pull nomic-embed-text
+#
+#  B) REMOTE model on ANOTHER PC (Ollama/LM Studio on your LAN) — no local ollama:
+#       # in .env: OPENAI_BASE_URL=http://<other-pc-ip>:11434/v1   (Ollama)
+#       #      or  OPENAI_BASE_URL=http://<other-pc-ip>:1234/v1    (LM Studio)
+#       docker compose up -d --build
+#       # (pull the chat + embed models ON that remote server first)
+#
+#  Then, either way:  docker compose run --rm ingest   &&   open http://localhost:8000
 name: dojo-ai
 
 services:
+  # Local model server — OPT-IN via the "local-llm" profile. Omit the profile and
+  # point OPENAI_BASE_URL at a remote Ollama/LM Studio (another PC) instead.
   ollama:
     image: ollama/ollama:latest
+    profiles: ["local-llm"]
     volumes:
       - ollama:/root/.ollama
     ports:
@@ -45,8 +54,9 @@ services:
       QDRANT_URL: http://qdrant:6333
     ports:
       - "127.0.0.1:8000:8000"
+    # Only depends on qdrant — the LLM (OPENAI_BASE_URL) may be a local profile
+    # service OR a remote server, so it's connected to lazily, not required to start.
     depends_on:
-      - ollama
       - qdrant
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/healthz')"]
@@ -72,7 +82,6 @@ services:
     volumes:
       - ..:/repo:ro
     depends_on:
-      - ollama
       - qdrant
 
 volumes:

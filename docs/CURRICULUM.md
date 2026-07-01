@@ -57,6 +57,13 @@ legacy DBC-based path each lab corresponds to.
 > [INTERVIEW_PREP.md](INTERVIEW_PREP.md) is the talk track — likely questions with strong,
 > project-grounded answers for every concept above.
 
+## Companion project — AI Assistant (LLMOps)
+
+A second, standalone example project lives in [`../ai-assistant/`](../ai-assistant/): a
+local/remote **RAG assistant** over these docs (Ollama / LM Studio, local or on another PC),
+with grounding, MMR re-ranking, memory, metrics + Grafana, an eval harness, and Compose/CI/K8s.
+It adds Python + LLMOps to the portfolio. Its labs: [ai-assistant/labs](../ai-assistant/labs/).
+
 ## The three pillars of observability
 
 Labs 10–12 deliberately build all three: **metrics** (Prometheus), **logs** (Loki), and

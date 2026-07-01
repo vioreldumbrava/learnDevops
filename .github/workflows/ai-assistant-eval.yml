@@ -21,9 +21,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Start the stack
+      - name: Start the stack (with the local model profile)
         working-directory: ai-assistant
-        run: docker compose up -d --build
+        run: docker compose --profile local-llm up -d --build
 
       - name: Pull models (CPU)
         working-directory: ai-assistant

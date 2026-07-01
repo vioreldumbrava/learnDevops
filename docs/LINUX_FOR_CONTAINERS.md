@@ -144,7 +144,7 @@ chmod u=rw,go= .env       # owner read/write; group & others nothing  (same as 6
 | 0 | --- | none |
 
 ```bash
-chmod 400 devDockerKey.pem   # owner read-only        (required for SSH keys)
+chmod 400 dojo-key.pem   # owner read-only        (required for SSH keys)
 chmod 600 .env               # owner read/write only  (secrets)
 chmod 644 file               # owner rw, others read
 chmod 755 script.sh          # owner rwx, others r-x   (scripts, directories)
@@ -284,15 +284,15 @@ sudo ufw allow from <app-host-ip> to any port 11434 proto tcp
 From PowerShell (Windows) to the server:
 
 ```powershell
-ssh -i .\devDockerKey.pem ubuntu@<server-ip>
-scp -i .\devDockerKey.pem .\local.txt ubuntu@<server-ip>:/home/ubuntu/   # push
-scp -i .\devDockerKey.pem ubuntu@<server-ip>:/home/ubuntu/remote.txt .    # pull
+ssh -i .\dojo-key.pem ubuntu@<server-ip>
+scp -i .\dojo-key.pem .\local.txt ubuntu@<server-ip>:/home/ubuntu/   # push
+scp -i .\dojo-key.pem ubuntu@<server-ip>:/home/ubuntu/remote.txt .    # pull
 ```
 
 On a Linux/macOS control node (e.g. for Ansible), the key must be private or SSH refuses it:
 
 ```bash
-chmod 400 devDockerKey.pem
+chmod 400 dojo-key.pem
 ```
 
 No key yet? Generate one and install it on a password-login VPS (then disable password auth):
@@ -308,7 +308,7 @@ Save typing with `~/.ssh/config`:
 Host dojo
     HostName <server-ip>
     User ubuntu
-    IdentityFile ~/.ssh/devDockerKey.pem
+    IdentityFile ~/.ssh/dojo-key.pem
 ```
 
 Then just `ssh dojo`. Never commit `.pem` keys to Git (this repo gitignores `*.pem`).

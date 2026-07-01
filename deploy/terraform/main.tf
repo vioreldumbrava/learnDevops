@@ -13,6 +13,29 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+# --- SSH key pair -----------------------------------------------------------
+# Default: Terraform generates an ed25519 key pair and writes the private key to
+# private_key_path (dojo-key.pem). Set generate_ssh_key = false to upload your own
+# public key instead (public_key_path). Either way an aws_key_pair is created and
+# the instance uses it. NOTE: when generating, the private key is stored in
+# terraform.tfstate too — both the .pem and the state file are gitignored.
+resource "tls_private_key" "dojo" {
+  count     = var.generate_ssh_key ? 1 : 0
+  algorithm = "ED25519"
+}
+
+resource "local_sensitive_file" "private_key" {
+  count           = var.generate_ssh_key ? 1 : 0
+  content         = tls_private_key.dojo[0].private_key_openssh
+  filename        = var.private_key_path
+  file_permission = "0400"
+}
+
+resource "aws_key_pair" "dojo" {
+  key_name   = "${var.project_name}-key"
+  public_key = var.generate_ssh_key ? tls_private_key.dojo[0].public_key_openssh : file(var.public_key_path)
+}
+
 # Public entrypoint firewall: SSH from you only; HTTP/HTTPS from anywhere (Caddy).
 # We deliberately do NOT open app/db ports (8080, 5432, ...) to the internet.
 resource "aws_security_group" "dojo" {
@@ -54,7 +77,7 @@ resource "aws_security_group" "dojo" {
 resource "aws_instance" "dojo" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
-  key_name               = var.key_name
+  key_name               = aws_key_pair.dojo.key_name
   vpc_security_group_ids = [aws_security_group.dojo.id]
 
   root_block_device {

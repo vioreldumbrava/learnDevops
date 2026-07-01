@@ -16,11 +16,6 @@ variable "instance_type" {
   default     = "t3.small"
 }
 
-variable "key_name" {
-  description = "Name of an EXISTING EC2 key pair to attach (import it from devDockerKey first — see README)."
-  type        = string
-}
-
 variable "allowed_ssh_cidr" {
   description = "CIDR allowed to reach SSH (22). Restrict to your own IP, e.g. 203.0.113.4/32."
   type        = string
@@ -30,4 +25,25 @@ variable "root_volume_size" {
   description = "Root EBS volume size in GiB."
   type        = number
   default     = 20
+}
+
+# --- SSH key ---
+# Default (true): Terraform generates the key pair and writes the private key to
+# private_key_path. Set to false to bring your own public key (see public_key_path).
+variable "generate_ssh_key" {
+  description = "Let Terraform generate the SSH key pair (true) or use your own public key (false)."
+  type        = bool
+  default     = true
+}
+
+variable "public_key_path" {
+  description = "Path to YOUR public key, used only when generate_ssh_key = false (e.g. ../../dojo-key.pem.pub)."
+  type        = string
+  default     = ""
+}
+
+variable "private_key_path" {
+  description = "Where to write the generated private key (used only when generate_ssh_key = true)."
+  type        = string
+  default     = "../../dojo-key.pem"
 }

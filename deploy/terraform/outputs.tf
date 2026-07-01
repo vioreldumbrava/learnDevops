@@ -8,9 +8,14 @@ output "public_dns" {
   value       = aws_instance.dojo.public_dns
 }
 
+output "private_key_file" {
+  description = "Where the SSH private key lives (generated) or a reminder (bring-your-own)."
+  value       = var.generate_ssh_key ? var.private_key_path : "your own key (public_key_path was used)"
+}
+
 output "ssh_command" {
-  description = "Connect to the box (adjust the key path if needed)."
-  value       = "ssh -i ../../devDockerKey.pem ubuntu@${aws_eip.dojo.public_ip}"
+  description = "Connect to the box. Run from the repo root, where dojo-key.pem lives."
+  value       = "ssh -i dojo-key.pem ubuntu@${aws_eip.dojo.public_ip}"
 }
 
 output "ansible_inventory_line" {

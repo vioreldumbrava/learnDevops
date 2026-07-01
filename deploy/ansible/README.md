@@ -9,7 +9,7 @@ clones the repo, writes `.env`, and brings up the production stack behind Caddy.
 - A control node with Ansible (Linux/macOS, or **WSL** on Windows — Ansible has no native
   Windows control node). Install: `pipx install ansible` or `pip install ansible`.
 - The server from [../terraform](../terraform) (or any Ubuntu VPS you can SSH into).
-- The SSH key (`devDockerKey.pem`) reachable at the path in `ansible.cfg`.
+- The SSH key (`dojo-key.pem`, created by Terraform in lab 16) reachable at the path in `ansible.cfg`.
 
 ## Use
 

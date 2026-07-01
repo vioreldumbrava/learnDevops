@@ -455,7 +455,7 @@ git push -u origin master
 **Do.**
 ```powershell
 cd deploy/terraform
-copy terraform.tfvars.example terraform.tfvars   # set key_name, allowed_ssh_cidr
+copy terraform.tfvars.example terraform.tfvars   # set allowed_ssh_cidr (SSH key auto-generated)
 terraform init; terraform plan; terraform apply
 terraform output                                  # public_ip, ansible_inventory_line
 ```

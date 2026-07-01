@@ -1,6 +1,13 @@
 # Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
 region           = "eu-north-1"
 instance_type    = "t3.small"
-key_name         = "devDockerKey"   # name of the EC2 key pair in AWS (see README)
 allowed_ssh_cidr = "203.0.113.4/32" # YOUR public IP with /32 (https://checkip.amazonaws.com)
 root_volume_size = 20
+
+# --- SSH key ---
+# Default: Terraform generates the key pair and writes ../../dojo-key.pem — nothing to set.
+# To bring your OWN key instead, create it first:
+#   ssh-keygen -t ed25519 -f dojo-key.pem     # -> dojo-key.pem + dojo-key.pem.pub
+# then uncomment:
+# generate_ssh_key = false
+# public_key_path  = "../../dojo-key.pem.pub"

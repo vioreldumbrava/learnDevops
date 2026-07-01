@@ -46,16 +46,30 @@ answer grounded in the labs, with source citations. Ask *"What's the capital of 
 # API directly (non-streaming and streaming):
 curl -s http://localhost:8000/api/chat -H "Content-Type: application/json" -d '{\"question\":\"How do backups work?\"}'
 curl -N http://localhost:8000/api/chat -H "Content-Type: application/json" -d '{\"question\":\"How do backups work?\",\"stream\":true}'
+# Multi-turn (send prior turns as history):
+curl -s http://localhost:8000/api/chat -H "Content-Type: application/json" -d '{\"question\":\"and how do I restore it?\",\"history\":[{\"role\":\"user\",\"content\":\"how do backups work?\"},{\"role\":\"assistant\",\"content\":\"Use db-backup...\"}]}'
 ```
+
+### Dashboards & nightly eval
+
+```powershell
+# LLMOps dashboard: Grafana at http://localhost:3002 (admin/admin), Prometheus at :9091
+docker compose -f compose.yaml -f compose.observability.yaml up -d
+```
+
+The eval harness also runs on a schedule in CI
+([ai-assistant-eval.yml](../.github/workflows/ai-assistant-eval.yml)) against a small CPU model.
 
 ## LLMOps you can point to
 
 | Concern | How it's done here |
 |---------|--------------------|
 | Retrieval-augmented generation | chunk → embed → Qdrant → retrieve → prompt with context |
+| Retrieval quality | **MMR re-ranking** (over-fetch `FETCH_K`, diversify to `TOP_K`) — relevance without redundancy |
+| Conversation memory | multi-turn `history` in the chat request, folded into the prompt |
 | Grounding / anti-hallucination | `MIN_SCORE` gate + "answer only from context, cite sources, else say you don't know" |
-| Observability | Prometheus `/metrics`: latency, grounded ratio, retrieval score; `/healthz` `/readyz` |
-| Evaluation | `eval/` harness scores retrieval + answer quality (incl. a must-refuse case) |
+| Observability | Prometheus `/metrics` (latency, grounded ratio, retrieval score) + a provisioned **Grafana dashboard** overlay; `/healthz` `/readyz` |
+| Evaluation | `eval/` harness scores retrieval + answer quality (incl. a must-refuse case), plus a **nightly CI** run |
 | Backend portability | one env var swaps Ollama ↔ LM Studio (OpenAI-compatible) |
 | Packaging & delivery | non-root Docker image, Compose stack, CI (unit tests + build), K8s manifests |
 | Cost/latency | fully local (no token cost); metrics expose latency to reason about model size/GPU |
@@ -63,13 +77,14 @@ curl -N http://localhost:8000/api/chat -H "Content-Type: application/json" -d '{
 ## Layout
 
 ```
-api/app/      config, llm (OpenAI-compat), embeddings, vectorstore (Qdrant), chunk, rag, ingest, metrics, main
-api/web/      minimal chat UI
-api/tests/    unit tests (chunking, prompt/grounding)
-eval/         RAG evaluation harness + dataset
-k8s/          Kubernetes manifests (Ollama, Qdrant, rag-api, ingest Job, Ingress)
-compose.yaml  local stack (Ollama + Qdrant + rag-api + ingest)
-labs/         LLMOps labs (01–05)
+api/app/       config, llm (OpenAI-compat), embeddings, vectorstore (Qdrant), chunk, rerank (MMR), rag, ingest, metrics, main
+api/web/       minimal chat UI
+api/tests/     unit tests (chunking, MMR re-rank, prompt/grounding/memory)
+eval/          RAG evaluation harness + dataset
+observability/ Prometheus + Grafana overlay (LLMOps dashboard)
+k8s/           Kubernetes manifests (Ollama, Qdrant, rag-api, ingest Job, Ingress)
+compose.yaml   local stack (Ollama + Qdrant + rag-api + ingest)
+labs/          LLMOps labs (01–05)
 ```
 
 ## Labs

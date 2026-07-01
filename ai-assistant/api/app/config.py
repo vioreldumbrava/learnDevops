@@ -19,6 +19,12 @@ class Config:
     DOCS_PATHS = os.getenv("DOCS_PATHS", "/repo/docs,/repo/labs,/repo/README.md")
 
     TOP_K = int(os.getenv("TOP_K", "4"))
+    # Over-fetch this many candidates, then MMR-rerank down to TOP_K for relevance
+    # + diversity. MMR_LAMBDA: 1.0 = pure relevance, 0.0 = pure diversity.
+    FETCH_K = int(os.getenv("FETCH_K", "12"))
+    MMR_LAMBDA = float(os.getenv("MMR_LAMBDA", "0.6"))
+    # Conversation memory: how many prior turns to include in the prompt.
+    HISTORY_TURNS = int(os.getenv("HISTORY_TURNS", "4"))
     # Retrieval grounding: if the best match is below this cosine score, answer
     # "I don't know" instead of hallucinating.
     MIN_SCORE = float(os.getenv("MIN_SCORE", "0.35"))

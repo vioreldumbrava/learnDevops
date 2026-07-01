@@ -1,0 +1,58 @@
+name: ai-assistant nightly eval
+
+# Runs the RAG evaluation against a REAL model. This needs to run inference, so it
+# uses a tiny CPU model (llama3.2:1b) on the GitHub-hosted runner — slow, and best
+# moved to a self-hosted/GPU runner for a bigger model. Manual + nightly.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    env:
+      CHAT_MODEL: llama3.2:1b
+      EMBED_MODEL: nomic-embed-text
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Start the stack
+        working-directory: ai-assistant
+        run: docker compose up -d --build
+
+      - name: Pull models (CPU)
+        working-directory: ai-assistant
+        run: |
+          docker compose exec -T ollama ollama pull "$CHAT_MODEL"
+          docker compose exec -T ollama ollama pull "$EMBED_MODEL"
+
+      - name: Ingest docs
+        working-directory: ai-assistant
+        run: docker compose run --rm ingest
+
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 40); do
+            curl -sf http://localhost:8000/healthz && break || sleep 3
+          done
+
+      - name: Run evaluation
+        run: python ai-assistant/eval/eval.py
+        env:
+          EVAL_API_URL: http://localhost:8000/api/chat
+          EVAL_THRESHOLD: "0.6"   # lenient: a 1b model is weaker than what you'd run locally
+
+      - name: Dump logs on failure
+        if: failure()
+        working-directory: ai-assistant
+        run: docker compose logs --tail=120
+
+      - name: Teardown
+        if: always()
+        working-directory: ai-assistant
+        run: docker compose down -v

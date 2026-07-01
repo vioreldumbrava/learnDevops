@@ -36,8 +36,10 @@ Open <http://localhost:8000> and try a few questions; note the **source citation
 - [app/ingest.py](../../api/app/ingest.py): reads markdown, [app/chunk.py](../../api/app/chunk.py)
   packs paragraphs into ~900-char chunks with overlap, [app/llm.py](../../api/app/llm.py) embeds
   them, [app/vectorstore.py](../../api/app/vectorstore.py) upserts into Qdrant.
-- [app/rag.py](../../api/app/rag.py): embeds the question, retrieves `TOP_K` nearest chunks,
-  builds a prompt that says *"answer only from this context and cite [n]"*, and calls the model.
+- [app/rag.py](../../api/app/rag.py): embeds the question, retrieves `FETCH_K` candidates,
+  **MMR-reranks** them ([app/rerank.py](../../api/app/rerank.py)) down to `TOP_K` for relevance
+  *and* diversity, builds a prompt that says *"answer only from this context and cite [n]"*, and
+  calls the model. It also folds in recent conversation `history` for multi-turn follow-ups.
 
 ## Exercise
 

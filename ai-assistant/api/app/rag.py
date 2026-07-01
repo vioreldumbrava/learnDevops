@@ -6,6 +6,7 @@ import time
 
 from . import llm, metrics, vectorstore
 from .config import cfg
+from .rerank import mmr
 
 _NO_ANSWER = (
     "I don't have enough information in the DevOps Dojo docs to answer that "
@@ -23,12 +24,15 @@ SYSTEM_PROMPT = _load_system_prompt()
 
 
 def is_grounded(hits: list[dict]) -> bool:
-    """Pure grounding decision (unit-tested): best score must clear MIN_SCORE."""
-    return bool(hits) and hits[0].get("score", 0.0) >= cfg.MIN_SCORE
+    """Pure grounding decision (unit-tested): best score must clear MIN_SCORE.
+
+    Uses the max score across hits (MMR may reorder them), not hits[0].
+    """
+    return bool(hits) and max(h.get("score", 0.0) for h in hits) >= cfg.MIN_SCORE
 
 
-def build_messages(question: str, hits: list[dict]) -> list[dict]:
-    """Pure prompt construction (unit-tested)."""
+def build_messages(question: str, hits: list[dict], history: list[dict] | None = None) -> list[dict]:
+    """Pure prompt construction (unit-tested). Includes recent conversation turns."""
     blocks = []
     for i, h in enumerate(hits, 1):
         blocks.append(f"[{i}] source: {h.get('source', 'unknown')}\n{h.get('text', '')}")
@@ -38,10 +42,11 @@ def build_messages(question: str, hits: list[dict]) -> list[dict]:
         "If the context does not contain the answer, say you don't know.\n\n"
         f"Context:\n{context}\n\nQuestion: {question}"
     )
-    return [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user},
-    ]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if history:
+        messages.extend(history[-cfg.HISTORY_TURNS:])
+    messages.append({"role": "user", "content": user})
+    return messages
 
 
 def _sources(hits: list[dict]) -> list[dict]:
@@ -52,30 +57,41 @@ def _sources(hits: list[dict]) -> list[dict]:
 
 
 def retrieve(question: str) -> list[dict]:
+    """Over-fetch, then MMR-rerank down to TOP_K for relevance + diversity."""
     qvec = llm.embed([question])[0]
-    return vectorstore.search(qvec, cfg.TOP_K)
+    hits = vectorstore.search(qvec, cfg.FETCH_K, with_vectors=True)
+    if len(hits) > cfg.TOP_K:
+        order = mmr(qvec, [h["vector"] for h in hits], cfg.TOP_K, cfg.MMR_LAMBDA)
+        hits = [hits[i] for i in order]
+    for h in hits:
+        h.pop("vector", None)  # don't leak vectors past retrieval
+    return hits
 
 
-def answer(question: str) -> dict:
+def _top_score(hits: list[dict]) -> float:
+    return max((h.get("score", 0.0) for h in hits), default=0.0)
+
+
+def answer(question: str, history: list[dict] | None = None) -> dict:
     start = time.time()
     hits = retrieve(question)
-    metrics.retrieval_top_score.observe(hits[0]["score"] if hits else 0.0)
+    metrics.retrieval_top_score.observe(_top_score(hits))
 
     if not is_grounded(hits):
         metrics.chat_requests.labels(grounded="false").inc()
         metrics.chat_latency.observe(time.time() - start)
         return {"answer": _NO_ANSWER, "sources": [], "grounded": False}
 
-    text = llm.chat(build_messages(question, hits), stream=False)
+    text = llm.chat(build_messages(question, hits, history), stream=False)
     metrics.chat_requests.labels(grounded="true").inc()
     metrics.chat_latency.observe(time.time() - start)
     return {"answer": text, "sources": _sources(hits), "grounded": True}
 
 
-def answer_stream(question: str):
+def answer_stream(question: str, history: list[dict] | None = None):
     """Yields event dicts: {'type':'token','text':..} then {'type':'done',..}."""
     hits = retrieve(question)
-    metrics.retrieval_top_score.observe(hits[0]["score"] if hits else 0.0)
+    metrics.retrieval_top_score.observe(_top_score(hits))
 
     if not is_grounded(hits):
         metrics.chat_requests.labels(grounded="false").inc()
@@ -84,6 +100,6 @@ def answer_stream(question: str):
         return
 
     metrics.chat_requests.labels(grounded="true").inc()
-    for tok in llm.chat(build_messages(question, hits), stream=True):
+    for tok in llm.chat(build_messages(question, hits, history), stream=True):
         yield {"type": "token", "text": tok}
     yield {"type": "done", "sources": _sources(hits), "grounded": True}

@@ -36,8 +36,17 @@ def upsert(vectors: list[list[float]], payloads: list[dict]) -> None:
     client().upsert(collection_name=cfg.QDRANT_COLLECTION, points=points)
 
 
-def search(vector: list[float], top_k: int) -> list[dict]:
+def search(vector: list[float], top_k: int, with_vectors: bool = False) -> list[dict]:
     hits = client().search(
-        collection_name=cfg.QDRANT_COLLECTION, query_vector=vector, limit=top_k
+        collection_name=cfg.QDRANT_COLLECTION,
+        query_vector=vector,
+        limit=top_k,
+        with_vectors=with_vectors,
     )
-    return [{"score": h.score, **(h.payload or {})} for h in hits]
+    out = []
+    for h in hits:
+        item = {"score": h.score, **(h.payload or {})}
+        if with_vectors:
+            item["vector"] = h.vector
+        out.append(item)
+    return out

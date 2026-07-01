@@ -30,8 +30,15 @@ curl http://localhost:8000/metrics | Select-String "dojo_ai_"
 ```
 
 You'll see `dojo_ai_chat_requests_total{grounded="true|false"}`, `dojo_ai_chat_latency_seconds`,
-and `dojo_ai_retrieval_top_score`. Point the main project's Prometheus/Grafana at this `/metrics`
-(add a scrape target) to chart answer latency and the grounded-vs-refused ratio over time.
+and `dojo_ai_retrieval_top_score`. Bring up the bundled dashboard overlay to chart them:
+
+```powershell
+docker compose -f compose.yaml -f compose.observability.yaml up -d
+# Grafana http://localhost:3002 (admin/admin) -> "DevOps Dojo · AI Assistant (LLMOps)"
+```
+
+It provisions Prometheus (scraping `rag-api:8000/metrics`) and a Grafana dashboard showing
+grounded ratio, request rate, latency p50/p95, and retrieval score.
 
 ## How it works
 

@@ -27,8 +27,10 @@ an out-of-scope question that should be declined, guarding against hallucination
 
 [eval/dataset.jsonl](../../eval/dataset.jsonl) holds question → expected-source + expected-keyword
 rows. [eval/eval.py](../../eval/eval.py) calls `/api/chat` for each, scores pass/fail, prints a
-rate, and **exits non-zero** below the threshold — so it can gate a release. (It's not in the fast
-CI because it needs a running model; run it locally or as a nightly job on a GPU runner.)
+rate, and **exits non-zero** below the threshold — so it can gate a release. It's not in the fast
+PR CI (it needs a running model), so it runs on a **schedule** instead:
+[ai-assistant-eval.yml](../../../.github/workflows/ai-assistant-eval.yml) spins up the stack with
+a tiny CPU model (`llama3.2:1b`) nightly — move it to a self-hosted/GPU runner for a real model.
 
 ## Exercise
 

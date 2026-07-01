@@ -15,9 +15,15 @@ from . import llm, rag, vectorstore
 app = FastAPI(title="DevOps Dojo — AI Assistant")
 
 
+class Turn(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+
 class ChatRequest(BaseModel):
     question: str
     stream: bool = False
+    history: list[Turn] = []
 
 
 @app.get("/healthz")
@@ -47,13 +53,14 @@ def metrics():
 
 @app.post("/api/chat")
 def chat(req: ChatRequest):
+    history = [t.model_dump() for t in req.history]
     if req.stream:
         def sse():
-            for event in rag.answer_stream(req.question):
+            for event in rag.answer_stream(req.question, history):
                 yield f"data: {json.dumps(event)}\n\n"
 
         return StreamingResponse(sse(), media_type="text/event-stream")
-    return rag.answer(req.question)
+    return rag.answer(req.question, history)
 
 
 # Serve the minimal chat UI at "/". Registered last so API routes take precedence.

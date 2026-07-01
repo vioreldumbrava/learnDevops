@@ -31,9 +31,16 @@ cd /opt/dojo        # change folder
 cd ..               # up one
 cd ~                # home
 cd -                # back to the previous folder
+
+# Which machine am I on, as whom, since when:
+hostname            # this machine's name
+uname -a            # kernel / OS / architecture
+whoami              # current user
+who                 # who else is logged in
+uptime              # load average + how long it's been up
 ```
 
-## 2. Read Files Safely
+## 2. Read And Find Files
 
 ```bash
 cat .env                                   # print a small file
@@ -41,8 +48,19 @@ less docs/DOCKER_LEARNING_PATH.md          # page a big file (Space/b, /search, 
 head -40 deploy/compose/compose.yaml       # first lines
 tail -40 deploy/compose/compose.yaml       # last lines
 tail -f /var/log/syslog                    # follow a growing file (Ctrl+C to stop)
-grep -R "grafana" deploy/                   # search recursively
+grep -R "grafana" deploy/                   # search inside files (recursive)
+grep -Ri "error" deploy/                    # case-insensitive
 rg "grafana" deploy/                        # ripgrep (nicer, if installed)
+```
+
+Find files by name, type, or age (great for configs and logs):
+
+```bash
+find . -name "*.yaml"                       # by name pattern, from here down
+find /var/log -type f -name "*.log"         # only files, under /var/log
+find . -type f -name "*.tmp" -delete        # find and delete matches
+find . -type f -mtime -1                    # files changed in the last day
+find . -name "*.sql" | xargs grep -l steps  # feed results into another command
 ```
 
 ## 3. Edit Files
@@ -74,6 +92,9 @@ rm -rf old-folder                       # remove a folder + contents (dangerous!
 
 tar -czf backup.tgz backups/            # create a gzip archive
 tar -xzf backup.tgz                     # extract it
+
+rsync -av deploy/ deploy.bak/           # efficient local copy/sync (only changes)
+rsync -avz ./ ubuntu@<server-ip>:/opt/dojo/   # sync a project to a server over SSH
 ```
 
 Before any `rm -rf`, check where you are: `pwd && ls -la`.
@@ -274,6 +295,13 @@ On a Linux/macOS control node (e.g. for Ansible), the key must be private or SSH
 chmod 400 devDockerKey.pem
 ```
 
+No key yet? Generate one and install it on a password-login VPS (then disable password auth):
+
+```bash
+ssh-keygen -t ed25519 -C "you@example.com"   # creates ~/.ssh/id_ed25519 (+ .pub)
+ssh-copy-id ubuntu@<server-ip>               # copies your PUBLIC key -> passwordless login
+```
+
 Save typing with `~/.ssh/config`:
 
 ```text
@@ -383,15 +411,19 @@ Use `--env-file .env` when running the prod overlay (see the `$DC` alias above).
 ## 21. Redirection, Pipes & Text Tools
 
 ```bash
-docker compose ps > status.txt      # write (overwrite)
-date >> deploy-log.txt              # append
-docker ps | grep grafana           # pipe into another command
+docker compose ps > status.txt      # redirect stdout (overwrite)
+date >> deploy-log.txt              # append stdout
+./build.sh > out.log 2> err.log     # stdout -> out.log, errors (stderr) -> err.log
+./build.sh > all.log 2>&1           # both streams into one file
+some-command 2>/dev/null            # discard error output
+docker ps | grep grafana           # pipe stdout into another command
 $DC logs caddy | grep -i error     # filter logs
 
 # Handy text tools:
-sudo ss -tulpn | awk '{print $5}'  # a column
+sudo ss -tulpn | awk '{print $5}'  # print a single column
 cat access.log | cut -d' ' -f1 | sort | uniq -c | sort -rn | head   # top IPs
 wc -l file                          # count lines
+diff .env .env.example              # what differs between two files
 ```
 
 ## 22. Exit Codes

@@ -1,0 +1,42 @@
+# ArgoCD Application: the single source of truth for what runs in the cluster.
+# ArgoCD watches this Git path and continuously reconciles the cluster to match it
+# (prune + self-heal). Edit OWNER/REPO to point at your fork.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-dojo
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/OWNER/REPO.git
+    targetRevision: main
+    path: deploy/k8s/helm/devops-dojo
+    helm:
+      valuesObject:
+        image:
+          api:
+            repository: ghcr.io/OWNER/REPO/api
+            tag: latest
+            pullPolicy: IfNotPresent
+          frontend:
+            repository: ghcr.io/OWNER/REPO/frontend
+            tag: latest
+            pullPolicy: IfNotPresent
+        # Real deployments: inject this from a secrets manager, not plain text.
+        secrets:
+          postgresPassword: change-me-strong-in-real-life
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: devops-dojo
+
+  syncPolicy:
+    automated:
+      prune: true      # delete resources removed from Git
+      selfHeal: true   # revert manual drift back to Git state
+    syncOptions:
+      - CreateNamespace=true

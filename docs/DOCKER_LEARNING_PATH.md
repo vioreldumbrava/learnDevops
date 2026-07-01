@@ -138,6 +138,7 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 22 | Kubernetes on kind | [labs/22](../labs/22-kubernetes/) | ✅ |
 | 23 | Helm packaging | [labs/23](../labs/23-helm/) | ✅ |
 | 24 | Self-hosted CI/CD with Jenkins (alt. to 15) | [labs/24](../labs/24-jenkins/) | ✅ |
+| 25 | **Capstone:** EKS + GitOps (ArgoCD) | [labs/25](../labs/25-capstone-eks-gitops/) | ✅ |
 
 ---
 
@@ -638,11 +639,43 @@ api.replicas=4` scales and `helm rollback` reverts.
 
 ➡️ Full lab: [labs/23-helm](../labs/23-helm/)
 
+## Step 25 — Capstone: DevOps Dojo on EKS via GitOps
+
+**Concept.** Bring it all together the way real teams run software: a managed **EKS** cluster
+(Terraform), images built/scanned/pushed by **CI** to a registry, delivered by **GitOps
+(ArgoCD)** that continuously reconciles the cluster to Git — self-healing and rollback via
+`git revert`.
+
+**Why.** This is the end-to-end story that gets you hired: *commit → tested/scanned/versioned
+image → Kubernetes on AWS through a self-healing GitOps pipeline.*
+
+**Do.** (real cloud cost — destroy when done)
+```powershell
+cd deploy/eks; terraform init; terraform apply       # EKS cluster
+terraform output -raw configure_kubectl | Invoke-Expression
+# install ingress-nginx + ArgoCD, then:
+kubectl apply -f deploy/gitops/argocd/application.yaml
+```
+
+**Understand.** Terraform ([deploy/eks](../deploy/eks/)) builds the cluster; CI publishes
+images to GHCR; ArgoCD ([deploy/gitops](../deploy/gitops/)) syncs the Helm chart from Git.
+
+**Checkpoint.** ArgoCD reports **Synced/Healthy**; the app serves via the ELB; scaling a
+deployment by hand is auto-reverted; you `terraform destroy` afterward.
+
+➡️ Full lab: [labs/25-capstone-eks-gitops](../labs/25-capstone-eks-gitops/)
+
 ---
 
-🎉 **The full path is complete** — from `docker build` to a Helm-managed Kubernetes
-deployment. Ideas to go further: GitOps (ArgoCD/Flux), a service mesh, multi-environment
-promotion pipelines, and shipping pre-built GHCR images to the cluster instead of `kind load`.
+🎉 **The full path is complete** — from `docker build` to a self-healing, GitOps-delivered
+Kubernetes deployment on AWS.
+
+## Getting hired
+
+The capstone (Step 25) is your interview centerpiece. Rehearse with
+[INTERVIEW_PREP.md](INTERVIEW_PREP.md): a portfolio talk track with likely questions and
+strong, project-grounded answers for every concept in this guide, plus troubleshooting
+scenarios and an honest gap-closing study plan (AWS SAA / CKA, secrets management, scripting).
 
 ---
 

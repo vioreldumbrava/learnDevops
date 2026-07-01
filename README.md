@@ -96,4 +96,10 @@ docs/            curriculum + references
   Terraform (provision EC2), Ansible (configure + deploy), Nexus overlay, labs 13–17 —
   plus Jenkins as the self-hosted CI/CD alternative (lab 24).
 - ✅ **Milestone 3 — cloud, scale, Kubernetes:** EC2 + HTTPS, security hardening, k6 load test,
-  horizontal scaling, Kubernetes on kind + Helm chart, labs 18–23. **All 24 labs complete.**
+  horizontal scaling, Kubernetes on kind + Helm chart, labs 18–23.
+- ✅ **Capstone (lab 25):** DevOps Dojo on **AWS EKS** (Terraform) delivered by **GitOps
+  (ArgoCD)** — the end-to-end, interview-ready deployment. **26 labs (00–25) complete.**
+
+> 🎯 **Aiming for a DevOps job?** The capstone is your interview centerpiece; see
+> [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md) for a full talk track (likely questions +
+> project-grounded answers, troubleshooting scenarios, and a gap-closing study plan).

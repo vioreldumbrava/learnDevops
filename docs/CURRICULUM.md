@@ -37,6 +37,11 @@ legacy DBC-based path each lab corresponds to.
 | [22](../labs/22-kubernetes/) | Kubernetes on kind | §20 | 3 | ✅ |
 | [23](../labs/23-helm/) | Helm packaging | extra | 3 | ✅ |
 | [24](../labs/24-jenkins/) | Self-hosted CI/CD with Jenkins (alternative to lab 15) | §12 | 2 | ✅ |
+| [25](../labs/25-capstone-eks-gitops/) | **Capstone:** DevOps Dojo on EKS via GitOps (ArgoCD) | all | 3 | ✅ |
+
+> 🎯 **Landing a job:** the capstone (lab 25) is your interview centerpiece, and
+> [INTERVIEW_PREP.md](INTERVIEW_PREP.md) is the talk track — likely questions with strong,
+> project-grounded answers for every concept above.
 
 ## The three pillars of observability
 

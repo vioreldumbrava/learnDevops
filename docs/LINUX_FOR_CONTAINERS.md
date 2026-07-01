@@ -1,836 +1,423 @@
 # Linux Basics For Working With Containers
 
-This guide is for the Linux commands you need before Docker starts to feel
-comfortable. It is written for this project and for an Ubuntu EC2/VPS server.
-
-You do not need to memorize everything. Learn the flow:
+The Linux commands you need before Docker, Kubernetes, and a VPS feel comfortable.
+Written for **this repo** (DevOps Dojo + the `ai-assistant/` project) and an Ubuntu
+EC2/VPS server. You don't need to memorize everything — learn the flow:
 
 1. Where am I?
 2. What files are here?
 3. What is running?
 4. What do the logs say?
-5. Is the port open?
+5. Is the port open / firewall right?
 6. Is disk or memory full?
-7. How do I safely edit or restart?
+7. How do I safely edit, restart, or roll back?
+
+Project conventions used below:
+
+- On a server the project usually lives at **`/opt/dojo`** (see the Ansible playbook).
+- Compose files live under **`deploy/compose/`**; the prod stack is
+  `-f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml`.
+- App services: `db`, `redis`, `migrate`, `api`, `worker`, `frontend`, `caddy`
+  (observability overlay adds `prometheus`, `grafana`, `loki`, `promtail`, `tempo`,
+  `alertmanager`, `blackbox-exporter`).
 
 ## 1. Know Where You Are
 
-Print the current folder:
-
 ```bash
-pwd
-```
-
-Example output:
-
-```text
-/opt/dbc/current
-```
-
-List files:
-
-```bash
-ls
-```
-
-List files with details:
-
-```bash
-ls -la
-```
-
-Why `-la` is useful:
-
-- `-l` shows permissions, owner, size, and date.
-- `-a` shows hidden files like `.env`.
-
-Change folder:
-
-```bash
-cd /opt/dbc/current
-```
-
-Go up one folder:
-
-```bash
-cd ..
-```
-
-Go to your home folder:
-
-```bash
-cd ~
+pwd                 # print current folder, e.g. /opt/dojo
+ls                  # list files
+ls -la              # long list incl. hidden files like .env (-l details, -a all)
+cd /opt/dojo        # change folder
+cd ..               # up one
+cd ~                # home
+cd -                # back to the previous folder
 ```
 
 ## 2. Read Files Safely
 
-Print a small file:
-
 ```bash
-cat .env
-```
-
-Read a larger file page by page:
-
-```bash
-less docs/DOCKER_LEARNING_PATH.md
-```
-
-Inside `less`:
-
-```text
-Space  next page
-b      previous page
-/text  search
-q      quit
-```
-
-Print the first lines:
-
-```bash
-head -40 docker/compose.yaml
-```
-
-Print the last lines:
-
-```bash
-tail -40 docker/compose.yaml
-```
-
-Follow a changing log file:
-
-```bash
-tail -f /var/log/syslog
-```
-
-Search inside files:
-
-```bash
-grep -R "grafana" docker/
-```
-
-If `rg` is installed, it is nicer:
-
-```bash
-rg "grafana" docker/
+cat .env                                   # print a small file
+less docs/DOCKER_LEARNING_PATH.md          # page a big file (Space/b, /search, q to quit)
+head -40 deploy/compose/compose.yaml       # first lines
+tail -40 deploy/compose/compose.yaml       # last lines
+tail -f /var/log/syslog                    # follow a growing file (Ctrl+C to stop)
+grep -R "grafana" deploy/                   # search recursively
+rg "grafana" deploy/                        # ripgrep (nicer, if installed)
 ```
 
 ## 3. Edit Files
 
-Open a file with Nano:
-
 ```bash
-nano .env
+nano .env           # Ctrl+O save, Enter confirm, Ctrl+X exit
 ```
 
-Inside Nano:
-
-```text
-Ctrl+O  save
-Enter   confirm filename
-Ctrl+X  exit
-```
-
-Edit a specific config on the EC2 server:
-
-```bash
-cd /opt/dbc/current
-nano .env
-```
-
-Be careful with `.env`: it can contain passwords and deployment settings.
+`vim` is everywhere if `nano` isn't: `vim file` → `i` to insert, `Esc` then `:wq` to
+save+quit (`:q!` to quit without saving). Be careful with `.env`: it holds passwords.
 
 ## 4. Understand Paths
 
-Absolute path starts from `/`:
-
 ```bash
-/opt/dbc/current/docker/compose.yaml
+/opt/dojo/deploy/compose/compose.yaml   # absolute path (starts at /)
+deploy/compose/compose.yaml             # relative path (from where you are)
+.    # current folder     ..   # parent     ~    # your home
 ```
 
-Relative path starts from where you are:
+## 5. Create, Copy, Move, Remove, Archive
 
 ```bash
-docker/compose.yaml
+mkdir -p /opt/dojo/backups              # make folder(s)
+cp .env.example .env                    # copy a file
+cp -r deploy deploy.bak                 # copy a folder
+mv old.txt new.txt                      # move / rename
+rm old.txt                              # remove a file
+rm -rf old-folder                       # remove a folder + contents (dangerous!)
+
+tar -czf backup.tgz backups/            # create a gzip archive
+tar -xzf backup.tgz                     # extract it
 ```
 
-Current folder:
-
-```bash
-.
-```
-
-Parent folder:
-
-```bash
-..
-```
-
-Home folder:
-
-```bash
-~
-```
-
-For this project on EC2, the usual folder is:
-
-```bash
-/opt/dbc/current
-```
-
-## 5. Create, Copy, Move, Remove
-
-Create a folder:
-
-```bash
-mkdir -p /opt/dbc/backups
-```
-
-Copy a file:
-
-```bash
-cp docker/deploy/env.example .env
-```
-
-Copy a folder:
-
-```bash
-cp -r output/docker_complete_solution output/docker_complete_solution_copy
-```
-
-Move or rename:
-
-```bash
-mv old-name.txt new-name.txt
-```
-
-Remove a file:
-
-```bash
-rm old-file.txt
-```
-
-Remove a folder and everything inside it:
-
-```bash
-rm -rf old-folder
-```
-
-Be very careful with `rm -rf`. Always check where you are first:
-
-```bash
-pwd
-ls -la
-```
+Before any `rm -rf`, check where you are: `pwd && ls -la`.
 
 ## 6. Permissions And Ownership
 
-Show permissions:
-
 ```bash
 ls -la
+# -rw-r--r-- 1 ubuntu ubuntu 1234 ... .env
+# drwxr-xr-x 2 ubuntu ubuntu 4096 ... deploy
 ```
 
-Example:
-
-```text
--rw-r--r-- 1 ubuntu ubuntu 1234 Jun 29 18:00 .env
-drwxr-xr-x 2 ubuntu ubuntu 4096 Jun 29 18:00 docker
-```
-
-Meaning:
-
-- `r` means read.
-- `w` means write.
-- `x` means execute or enter a folder.
-- First group is owner permissions.
-- Second group is group permissions.
-- Third group is everyone else.
-
-Change owner:
+`r`=read `w`=write `x`=execute/enter. Three groups: owner, group, everyone.
+Numeric modes are common:
 
 ```bash
-sudo chown -R ubuntu:ubuntu /opt/dbc
+chmod 400 devDockerKey.pem    # owner read-only  (required for SSH keys)
+chmod 600 .env                # owner read/write (secrets)
+chmod 644 file                # owner rw, others read
+chmod 755 script.sh           # owner rwx, others rx (executables/dirs)
+sudo chown -R ubuntu:ubuntu /opt/dojo   # fix ownership
 ```
 
-Make a script executable:
-
-```bash
-chmod +x script.sh
-```
-
-Run a command as administrator:
-
-```bash
-sudo systemctl status docker
-```
-
-Use `sudo` only when needed. If every command needs `sudo`, ownership may be
-wrong.
+Use `sudo` only when needed; if *everything* needs it, ownership is probably wrong.
 
 ## 7. Packages On Ubuntu
 
-Update package lists:
-
 ```bash
-sudo apt update
-```
-
-Install packages:
-
-```bash
-sudo apt install -y git curl docker.io docker-compose-v2
-```
-
-Upgrade packages:
-
-```bash
+sudo apt update                                   # refresh package lists
+sudo apt install -y git curl jq docker.io docker-compose-v2
 sudo apt upgrade -y
 ```
 
-Important Ubuntu note:
+Package manager by system: Ubuntu/Debian → `apt`; Amazon Linux/Fedora → `dnf`;
+Alpine containers → `apk`.
 
-```text
-Ubuntu uses apt.
-Amazon Linux and Fedora use dnf.
-Alpine containers use apk.
-Debian and Ubuntu containers use apt.
-```
-
-If you see `dnf: command not found` on Ubuntu, use `apt`.
-
-## 8. Services With systemctl
-
-Check Docker service:
+## 8. Services With systemctl (and their logs)
 
 ```bash
-sudo systemctl status docker
-```
-
-Start Docker:
-
-```bash
+sudo systemctl status docker      # is it running?
 sudo systemctl start docker
-```
-
-Restart Docker:
-
-```bash
 sudo systemctl restart docker
-```
+sudo systemctl enable --now docker # start now + on every boot
 
-Start Docker automatically after reboot:
-
-```bash
-sudo systemctl enable docker
+# systemd logs (the other half of the picture):
+journalctl -u docker --no-pager | tail -50   # docker service logs
+journalctl -u docker -f                        # follow live
+journalctl -p err -b                           # errors since last boot
 ```
 
 ## 9. Users And Groups
 
-Show current user:
-
 ```bash
 whoami
-```
-
-Show your groups:
-
-```bash
 groups
+sudo usermod -aG docker ubuntu    # run docker without sudo
+exit                              # then reconnect (group applies on next login)
 ```
 
-Allow the `ubuntu` user to run Docker without `sudo`:
+## 10. Processes, Signals & Background Jobs
 
 ```bash
-sudo usermod -aG docker ubuntu
-exit
-```
+ps aux                     # all processes
+ps aux | grep docker       # find one
+top                        # live view (q to quit); htop is nicer (sudo apt install -y htop)
 
-Then reconnect with SSH. Group changes apply on the next login.
+# Signals & control:
+# Ctrl+C  stop the foreground command      Ctrl+Z  suspend it
+long-running-command &     # run in the background
+jobs; fg; bg               # list / foreground / background jobs
+nohup ./run.sh &           # keep running after you log out
+kill <pid>                 # ask a process to stop (SIGTERM)
+kill -9 <pid>              # force kill (last resort)
+pkill -f pattern           # kill by command pattern
 
-## 10. Processes And Resource Usage
-
-Show running processes:
-
-```bash
-ps aux
-```
-
-Search for a process:
-
-```bash
-ps aux | grep docker
-```
-
-Live CPU and memory view:
-
-```bash
-top
-```
-
-If available, `htop` is easier:
-
-```bash
-sudo apt install -y htop
-htop
-```
-
-Quit `top` or `htop`:
-
-```text
-q
+watch -n 2 'docker compose ps'   # re-run a command every 2s
 ```
 
 ## 11. Disk And Memory
 
-Check disk space:
-
 ```bash
-df -h
+df -h                              # disk space
+du -sh /opt/dojo                   # size of a folder
+du -h --max-depth=1 /opt/dojo | sort -h   # biggest subfolders
+free -h                            # memory
+docker system df                   # Docker's disk usage (images fill small disks fast)
+docker system prune                # remove stopped containers, unused nets, build cache
+docker system prune -a             # also unused images (re-downloaded next build)
 ```
-
-Check folder size:
-
-```bash
-du -sh /opt/dbc/current
-```
-
-Find large folders:
-
-```bash
-du -h --max-depth=1 /opt/dbc/current | sort -h
-```
-
-Check memory:
-
-```bash
-free -h
-```
-
-Docker images can fill small EC2 disks quickly. Check Docker disk usage:
-
-```bash
-docker system df
-```
-
-Clean unused Docker data:
-
-```bash
-docker system prune
-```
-
-More aggressive cleanup:
-
-```bash
-docker system prune -a
-```
-
-Be careful: `docker system prune -a` removes unused images, so future builds may
-need to download them again.
 
 ## 12. Networking Checks
 
-Show IP addresses:
-
 ```bash
-ip addr
+ip addr                            # this machine's IPs
+sudo ss -tulpn                     # listening ports + owning process
+ping -c 3 example.com              # reachability
+curl -I http://localhost           # headers only (is it up?)
+nslookup example.com               # DNS (sudo apt install -y dnsutils if missing)
+
+# Check THIS project's routes through Caddy on the server:
+curl -I http://localhost           # -> frontend
+curl    http://localhost/healthz   # -> api liveness
+curl -s http://localhost/api/steps # -> api data
+
+# Check a REMOTE model server (the "connect to another PC" feature):
+curl http://<gpu-pc-ip>:11434/api/tags   # Ollama: lists models => reachable
+curl http://<gpu-pc-ip>:1234/v1/models   # LM Studio
 ```
 
-Show listening ports:
+## 13. Firewall With ufw
+
+On a public server, expose only what must be public. Caddy is the entrypoint (80/443);
+databases and app ports stay private.
 
 ```bash
-sudo ss -tulpn
+sudo ufw allow OpenSSH        # keep your SSH access! (port 22)
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+sudo ufw status verbose
 ```
 
-Check if a local service responds:
+Do **not** open `5432` (Postgres), `6379` (Redis), `8080`/`8000` (apps), or `11434`
+(Ollama) to the world. If a machine serves a model to your app host only, scope it:
 
 ```bash
-curl -I http://localhost
+sudo ufw allow from <app-host-ip> to any port 11434 proto tcp
 ```
 
-Check the EC2 app from the server itself:
+## 14. SSH Basics
 
-```bash
-curl -I http://localhost
-curl -I http://localhost/artifacts/
-curl -I http://localhost/grafana/
-```
-
-Check DNS:
-
-```bash
-nslookup example.com
-```
-
-If `nslookup` is missing:
-
-```bash
-sudo apt install -y dnsutils
-```
-
-## 13. SSH Basics
-
-Connect from PowerShell to EC2:
+From PowerShell (Windows) to the server:
 
 ```powershell
-ssh -i .\devDockerKey.pem ubuntu@51.21.251.231
+ssh -i .\devDockerKey.pem ubuntu@<server-ip>
+scp -i .\devDockerKey.pem .\local.txt ubuntu@<server-ip>:/home/ubuntu/   # push
+scp -i .\devDockerKey.pem ubuntu@<server-ip>:/home/ubuntu/remote.txt .    # pull
 ```
 
-Copy a file from Windows to EC2:
-
-```powershell
-scp -i .\devDockerKey.pem .\local-file.txt ubuntu@51.21.251.231:/home/ubuntu/
-```
-
-Copy a file from EC2 to Windows:
-
-```powershell
-scp -i .\devDockerKey.pem ubuntu@51.21.251.231:/home/ubuntu/remote-file.txt .
-```
-
-Exit the server:
+On a Linux/macOS control node (e.g. for Ansible), the key must be private or SSH refuses it:
 
 ```bash
-exit
+chmod 400 devDockerKey.pem
 ```
 
-Never commit `.pem` keys to Git.
+Save typing with `~/.ssh/config`:
 
-## 14. Docker Commands You Will Use Constantly
+```text
+Host dojo
+    HostName <server-ip>
+    User ubuntu
+    IdentityFile ~/.ssh/devDockerKey.pem
+```
 
-Show Docker version:
+Then just `ssh dojo`. Never commit `.pem` keys to Git (this repo gitignores `*.pem`).
+
+## 15. Working With APIs: curl + jq
+
+`jq` formats and filters JSON — invaluable for the app API and the AI assistant.
+
+```bash
+sudo apt install -y jq
+
+# Pretty-print / filter the app API:
+curl -s http://localhost/api/steps | jq '.[0]'
+curl -s http://localhost/api/steps | jq 'length'
+
+# POST JSON to the AI assistant and extract just the answer:
+curl -s http://localhost:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"How do backups work?"}' | jq -r '.answer'
+
+# Stream tokens (server-sent events) — -N disables buffering:
+curl -N http://localhost:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"Explain KEDA","stream":true}'
+```
+
+## 16. Docker Commands You Will Use Constantly
 
 ```bash
 docker version
-```
-
-Show Compose version:
-
-```bash
 docker compose version
-```
-
-List running containers:
-
-```bash
-docker ps
-```
-
-List all containers, including stopped:
-
-```bash
-docker ps -a
-```
-
-List images:
-
-```bash
+docker ps                 # running containers
+docker ps -a              # incl. stopped
 docker images
-```
-
-Show Docker disk usage:
-
-```bash
 docker system df
-```
-
-Remove stopped containers, unused networks, and build cache:
-
-```bash
 docker system prune
 ```
 
-## 15. Docker Compose Commands For This Project
+## 17. Docker Compose Commands For This Project
 
-Go to the project folder first:
-
-```bash
-cd /opt/dbc/current
-```
-
-Show the final combined Compose config:
+From the project folder (`cd /opt/dojo`). The prod stack uses two `-f` files:
 
 ```bash
-docker compose --env-file .env -f docker/compose.yaml -f docker/compose.prod.yaml config
+DC="docker compose --env-file .env -f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml"
+
+$DC config                       # validate + show the merged config
+$DC up -d --build                # start the prod stack (caddy + app + db/redis)
+$DC ps                           # status
+$DC logs -f caddy api frontend   # follow logs
+$DC down                         # stop
 ```
 
-Start the main production app:
-
-```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  up -d --build frontend artifact-server caddy
-```
-
-Start Grafana and monitoring:
+Observability overlay (adds the monitoring stack; ports bind to localhost — tunnel to reach):
 
 ```bash
 docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  -f docker/compose.observability.yaml \
-  up -d prometheus blackbox-exporter loki promtail grafana caddy
+  -f deploy/compose/compose.yaml \
+  -f deploy/compose/compose.prod.yaml \
+  -f deploy/compose/compose.observability.yaml \
+  up -d prometheus grafana loki promtail tempo alertmanager blackbox-exporter
 ```
 
-Show service status:
+## 18. Container Logs
 
 ```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  -f docker/compose.observability.yaml \
-  ps
+$DC logs api                 # one service
+$DC logs -f caddy            # follow live
+$DC logs --tail=100 api      # last 100 lines
 ```
 
-Follow logs:
+Useful log targets: `caddy`, `frontend`, `api`, `worker`, `db`, `redis` (and the
+observability services when that overlay is up).
+
+## 19. Enter A Running Container
 
 ```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  logs -f caddy frontend artifact-server
+$DC exec db psql -U dojo -d dojo         # open a psql shell in Postgres
+$DC exec frontend sh                     # shell into the frontend (Nginx/alpine)
+$DC exec redis redis-cli ping            # talk to Redis
 ```
 
-Stop the main stack:
+Notes:
+
+- Small images ship `sh`, not `bash` — use `sh`.
+- The **`api` image is distroless** (no shell) for security, so `exec api sh` fails —
+  that's expected. Use its healthcheck binary instead: `$DC exec api /api -healthcheck`,
+  or debug from a service that has a shell.
+
+## 20. Environment Variables
 
 ```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  down
+env                       # all variables
+echo "$SITE_DOMAIN"       # one variable
+export SITE_DOMAIN=:80    # set for this shell only
+cat .env                  # Compose reads deploy values from here
 ```
 
-## 16. Container Logs
+Use `--env-file .env` when running the prod overlay (see the `$DC` alias above).
 
-See logs for one service:
+## 21. Redirection, Pipes & Text Tools
 
 ```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  logs caddy
+docker compose ps > status.txt      # write (overwrite)
+date >> deploy-log.txt              # append
+docker ps | grep grafana           # pipe into another command
+$DC logs caddy | grep -i error     # filter logs
+
+# Handy text tools:
+sudo ss -tulpn | awk '{print $5}'  # a column
+cat access.log | cut -d' ' -f1 | sort | uniq -c | sort -rn | head   # top IPs
+wc -l file                          # count lines
 ```
 
-Follow logs live:
-
-```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  logs -f caddy
-```
-
-Show only the last lines:
-
-```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  logs --tail=100 caddy
-```
-
-Useful log targets in this project:
-
-```bash
-caddy
-frontend
-artifact-server
-grafana
-prometheus
-loki
-promtail
-```
-
-## 17. Enter A Running Container
-
-Open a shell inside a container:
-
-```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  exec frontend sh
-```
-
-Inside many small containers, `bash` is not installed. Use `sh`.
-
-Run a one-off command inside a service container:
-
-```bash
-docker compose --env-file .env \
-  -f docker/compose.yaml \
-  -f docker/compose.prod.yaml \
-  exec caddy wget -q -O - http://localhost/health
-```
-
-Exit a container shell:
-
-```bash
-exit
-```
-
-## 18. Environment Variables
-
-Print all environment variables:
-
-```bash
-env
-```
-
-Print one variable:
-
-```bash
-echo "$SITE_DOMAIN"
-```
-
-Set a variable only for the current shell:
-
-```bash
-export SITE_DOMAIN=http://:80
-```
-
-Compose usually reads deployment values from `.env`:
-
-```bash
-cat .env
-```
-
-For this project, use `--env-file .env` when running the production overlay:
-
-```bash
-docker compose --env-file .env -f docker/compose.yaml -f docker/compose.prod.yaml config
-```
-
-## 19. Redirection And Pipes
-
-Send command output into a file:
-
-```bash
-docker compose ps > compose-status.txt
-```
-
-Append output to a file:
-
-```bash
-date >> deploy-log.txt
-```
-
-Pipe output into another command:
-
-```bash
-docker ps | grep grafana
-```
-
-Search logs:
-
-```bash
-docker compose logs caddy | grep error
-```
-
-## 20. Exit Codes
-
-Linux commands return an exit code:
-
-- `0` means success.
-- Anything else usually means failure.
-
-Show the previous command exit code:
-
-```bash
-echo $?
-```
-
-Example:
+## 22. Exit Codes
 
 ```bash
 curl -I http://localhost
-echo $?
+echo $?      # 0 = success, anything else = failure
 ```
 
-## 21. Common Debugging Flow
+## 23. kubectl Quick Reference
 
-When a containerized app does not work, use this order:
-
-1. Go to the project folder:
+For the Kubernetes track (labs 22, 27–34). `-n` selects the namespace.
 
 ```bash
-cd /opt/dbc/current
+kubectl get pods -n devops-dojo
+kubectl get pods,svc,ingress -n devops-dojo
+kubectl get pods -A                        # every namespace
+kubectl describe pod <pod> -n devops-dojo  # events (why it won't start)
+kubectl logs -f deploy/api -n devops-dojo
+kubectl exec -it deploy/frontend -n devops-dojo -- sh
+kubectl apply -f deploy/k8s/base/
+kubectl rollout status deploy/api -n devops-dojo
+kubectl top pods -n devops-dojo            # needs metrics-server
+kubectl config current-context            # which cluster am I pointed at?
 ```
 
-2. Validate Compose:
+## 24. Shell Productivity
 
 ```bash
-docker compose --env-file .env -f docker/compose.yaml -f docker/compose.prod.yaml config
+history            # commands you've run
+!!                 # repeat the last command (e.g. sudo !!)
+!123               # run history item 123
+# Ctrl+R           reverse-search your history (type a few chars)
+# Tab              autocomplete commands, paths, and (often) docker/kubectl args
+# Ctrl+L or clear  clear the screen
+alias dc='docker compose --env-file .env -f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml'
 ```
 
-3. Check containers:
+## 25. Common Debugging Flow
+
+When a containerized app misbehaves, go in order:
 
 ```bash
-docker compose --env-file .env -f docker/compose.yaml -f docker/compose.prod.yaml ps
+cd /opt/dojo
+$DC config                      # 1. does the config parse?
+$DC ps                          # 2. what's running / restarting?
+$DC logs --tail=100 api caddy   # 3. what do the logs say?
+sudo ss -tulpn                  # 4. is the port listening?
+curl -I http://localhost        # 5. does it respond?
+df -h; free -h; docker system df # 6. out of disk/memory?
 ```
 
-4. Check logs:
+On Kubernetes: `kubectl get pods -n <ns>` → `kubectl describe pod <pod>` →
+`kubectl logs <pod>`.
+
+## 26. Commands To Avoid Until You Understand Them
 
 ```bash
-docker compose --env-file .env -f docker/compose.yaml -f docker/compose.prod.yaml logs --tail=100 caddy
+rm -rf /            rm -rf *
+docker volume prune          docker system prune -a --volumes
+sudo chmod -R 777 /          sudo chown -R ubuntu:ubuntu /
 ```
 
-5. Check ports:
+These delete data or break permissions. Use cleanup commands only when you know what
+they remove.
+
+## 27. Mini Practice Path
+
+On your server:
 
 ```bash
-sudo ss -tulpn
-```
-
-6. Check HTTP from the server:
-
-```bash
-curl -I http://localhost
-curl -I http://localhost/artifacts/
-curl -I http://localhost/grafana/
-```
-
-7. Check disk and memory:
-
-```bash
-df -h
-free -h
-docker system df
-```
-
-## 22. Commands To Avoid Until You Understand Them
-
-These commands are powerful and can delete important data:
-
-```bash
-rm -rf /
-rm -rf *
-docker volume prune
-docker system prune -a --volumes
-sudo chmod -R 777 /
-sudo chown -R ubuntu:ubuntu /
-```
-
-Use cleanup commands only when you understand what they remove.
-
-## 23. Mini Practice Path
-
-Run these on your EC2 instance:
-
-```bash
-whoami
-pwd
-ls -la
-cd /opt/dbc/current
-ls -la
+whoami; pwd; ls -la
+cd /opt/dojo && ls -la
 cat .env
 docker ps
-docker compose --env-file .env -f docker/compose.yaml -f docker/compose.prod.yaml ps
+docker compose --env-file .env -f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml ps
 curl -I http://localhost
-df -h
-free -h
+curl -s http://localhost/api/steps | jq 'length'
+sudo ufw status
+df -h; free -h
 ```
 
-If those commands feel comfortable, you already have enough Linux to debug most
-basic container problems.
-
+If those feel comfortable, you have enough Linux to debug most container problems and to
+operate both projects in this repo.

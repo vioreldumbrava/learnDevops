@@ -63,5 +63,9 @@ release **auto-aborts**. That closes the loop between observability (labs 10/12)
 
 - `Rollout` won't apply → a Deployment named `api` still exists (same selector); delete it first.
 - Steps never advance → they're paused by design; `promote` or wait out the `pause` durations.
+- **HPA stops working** → `deploy/k8s/base/hpa.yaml` targets `Deployment/api`, which no longer
+  exists once `api` is a Rollout. Either point the HPA's `scaleTargetRef` at
+  `kind: Rollout` (`apiVersion: argoproj.io/v1alpha1`), or delete the HPA and let the Rollout
+  (and KEDA, lab 31) handle scaling.
 
 ➡️ Next: [Lab 33 — Velero backup & DR](../33-k8s-velero-backup/)

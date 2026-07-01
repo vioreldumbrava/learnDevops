@@ -47,6 +47,9 @@ spec:
               command: ["pg_isready", "-U", {{ .Values.config.postgresUser | quote }}, "-d", {{ .Values.config.postgresDb | quote }}]
             initialDelaySeconds: 5
             periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
   volumeClaimTemplates:
     - metadata:
         name: data

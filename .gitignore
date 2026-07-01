@@ -1,7 +1,6 @@
 # Secrets & local env
 .env
 *.pem
-!devDockerKey.pem.example
 
 # Backups & generated artifacts
 /backups/

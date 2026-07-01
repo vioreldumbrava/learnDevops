@@ -9,6 +9,9 @@ metadata:
 spec:
   backoffLimit: 10   # retry until Postgres is ready
   template:
+    metadata:
+      labels:
+        app: migrate   # so NetworkPolicy + Kyverno (require-app-label) apply to it
     spec:
       restartPolicy: OnFailure
       containers:
@@ -27,6 +30,9 @@ spec:
           volumeMounts:
             - name: migrations
               mountPath: /migrations
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 250m, memory: 128Mi }
       volumes:
         - name: migrations
           configMap:

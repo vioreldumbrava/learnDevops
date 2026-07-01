@@ -11,7 +11,10 @@ GitOps capstone (lab 25).
 
 ## Prerequisites
 
-- AWS account + `aws configure` (or env credentials) with permissions for EKS/EC2/VPC/IAM.
+- AWS account with credentials configured — see
+  [../terraform/README.md](../terraform/README.md) **Step 0** for installing the AWS CLI,
+  creating access keys, `aws configure`, and verifying with `aws sts get-caller-identity`
+  (EKS needs broad EKS/EC2/VPC/IAM permissions).
 - Terraform ≥ 1.6, `kubectl`, and the `aws` CLI.
 
 ## Provision

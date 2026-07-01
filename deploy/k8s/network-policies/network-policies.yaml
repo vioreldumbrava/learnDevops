@@ -84,7 +84,7 @@ spec:
       ports:
         - { protocol: TCP, port: 8080 }
 ---
-# 5) Postgres: accept only from the API.
+# 5) Postgres: accept from the API and the one-shot migrate Job.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -98,6 +98,7 @@ spec:
   ingress:
     - from:
         - podSelector: { matchLabels: { app: api } }
+        - podSelector: { matchLabels: { app: migrate } }
       ports:
         - { protocol: TCP, port: 5432 }
 ---
@@ -116,6 +117,9 @@ spec:
     - from:
         - podSelector: { matchLabels: { app: api } }
         - podSelector: { matchLabels: { app: worker } }
+        # KEDA (lab 31) polls the queue length from the keda namespace. Harmless
+        # if KEDA isn't installed (no pods match).
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: keda } }
       ports:
         - { protocol: TCP, port: 6379 }
 ---
@@ -135,3 +139,21 @@ spec:
         - podSelector: { matchLabels: { app: redis } }
       ports:
         - { protocol: TCP, port: 6379 }
+---
+# 8) Migrate Job: reach Postgres to apply schema migrations (egress only).
+# DNS is already allowed for all pods by the allow-dns policy above.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: migrate
+  namespace: devops-dojo
+spec:
+  podSelector:
+    matchLabels:
+      app: migrate
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - podSelector: { matchLabels: { app: db } }
+      ports:
+        - { protocol: TCP, port: 5432 }

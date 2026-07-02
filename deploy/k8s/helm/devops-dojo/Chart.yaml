@@ -4,3 +4,8 @@ description: DevOps Dojo — the learning app packaged as a Helm chart
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
+# Shared templates live in the vendored library chart (lab 46). It sits unpacked
+# in charts/dojo-lib, so no `helm dependency build` is needed.
+dependencies:
+  - name: dojo-lib
+    version: 0.1.0

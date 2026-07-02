@@ -1,0 +1,7 @@
+apiVersion: v2
+name: dojo-lib
+description: Library chart — the shared Service/Deployment vocabulary for Dojo workloads (lab 46)
+# A library chart renders nothing by itself: it only exports named templates
+# (files under templates/ starting with _) for consuming charts to include.
+type: library
+version: 0.1.0

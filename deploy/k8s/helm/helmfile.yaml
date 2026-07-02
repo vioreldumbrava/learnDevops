@@ -1,0 +1,25 @@
+# Lab 46 — Helmfile: the desired state of *releases* as one declarative file.
+# Helm answers "how do I install this chart"; Helmfile answers "which releases,
+# with which values, in which namespaces, make it so" — the push-based cousin of
+# lab 36's ArgoCD ApplicationSet (same namespaces on purpose: run one OR the
+# other against a cluster, never both).
+#
+#   helmfile -e dev apply       # converge the dev release
+#   helmfile -e prod diff       # preview prod changes without touching it
+environments:
+  dev: {}
+  staging: {}
+  prod: {}
+
+---
+helmDefaults:
+  wait: true
+  createNamespace: true
+
+releases:
+  - name: dojo-{{ .Environment.Name }}
+    namespace: dojo-{{ .Environment.Name }}
+    chart: ./devops-dojo
+    values:
+      # Chart defaults (values.yaml) apply automatically; only the overlay is listed.
+      - ./devops-dojo/values-{{ .Environment.Name }}.yaml

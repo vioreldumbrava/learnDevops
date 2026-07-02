@@ -1,54 +1,14 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: api
-spec:
-  selector:
-    app: api
-  ports:
-    - port: 8080
-      targetPort: 8080
+{{/* api = the shared shapes from dojo-lib (lab 46) + everything api-specific below. */}}
+{{- include "dojo-lib.service" (dict "name" "api" "port" 8080) }}
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: api
-spec:
-  replicas: {{ .Values.api.replicas }}
-  selector:
-    matchLabels:
-      app: api
-  template:
-    metadata:
-      labels:
-        app: api
-    spec:
-      containers:
-        - name: api
-          image: "{{ .Values.image.api.repository }}:{{ .Values.image.api.tag }}"
-          imagePullPolicy: {{ .Values.image.api.pullPolicy }}
-          ports:
-            - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: dojo-config
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: dojo-secrets
-                  key: DATABASE_URL
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          resources:
-            {{- toYaml .Values.api.resources | nindent 12 }}
+{{ include "dojo-lib.deployment" (dict
+      "name"             "api"
+      "replicas"         .Values.api.replicas
+      "image"            (printf "%s:%s" .Values.image.api.repository .Values.image.api.tag)
+      "pullPolicy"       .Values.image.api.pullPolicy
+      "port"             8080
+      "envFromConfigMap" "dojo-config"
+      "env" (list (dict "name" "DATABASE_URL" "valueFrom" (dict "secretKeyRef" (dict "name" "dojo-secrets" "key" "DATABASE_URL"))))
+      "livenessProbe"  (dict "httpGet" (dict "path" "/healthz" "port" 8080) "initialDelaySeconds" 5 "periodSeconds" 10)
+      "readinessProbe" (dict "httpGet" (dict "path" "/readyz" "port" 8080) "initialDelaySeconds" 5 "periodSeconds" 5)
+      "resources"        .Values.api.resources) }}

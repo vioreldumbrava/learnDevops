@@ -74,6 +74,16 @@ Day-2 artifacts that come with this milestone: [runbooks](runbooks/),
 [postmortem template](postmortem-template.md) (+ [worked example](postmortems/)), chaos
 injectors ([scripts/chaos](../scripts/chaos/)), automation scripts ([scripts](../scripts/)).
 
+### Milestone 5 — Ecosystem breadth & portability (TWN-inspired)
+
+The [TWN Bootcamp demo projects](../TWN_Demo_Projects_Overview.01.pdf) compared against this
+path left four genuinely additive patterns, plus the one-lab answer to "could you work in an
+Azure shop?". Breadth — deliberately *after* depth.
+
+| Lab | Topic | Notes | Status |
+|-----|-------|-------|--------|
+| [43](../labs/43-jenkins-shared-library/) | Jenkins Shared Library, webhook triggers, dynamic versioning | deepens lab 24 | ⬜ |
+
 ## Intentionally out of scope (and why)
 
 Being able to say *no* with reasons is stronger interview signal than shallow coverage:

@@ -1,0 +1,60 @@
+// Lab 43 — the lab-24 pipeline rebuilt on the shared library (jenkins-shared-library/),
+// plus dynamic versioning with a [ci skip] guard. Point a Pipeline job at this repo
+// with Script Path: labs/43-jenkins-shared-library/Jenkinsfile.
+// Test stages live in the root Jenkinsfile (lab 24); this one focuses on the JSL flow.
+@Library('dojo-lib') _
+
+pipeline {
+  agent any
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+    stage('Guard: [ci skip]') {
+      steps {
+        script {
+          if (ciSkipRequested()) {
+            currentBuild.result = 'ABORTED'
+            error('Last commit is our own version bump — stopping to avoid a trigger loop.')
+          }
+        }
+      }
+    }
+
+    stage('Bump version') {
+      steps {
+        script { env.APP_VERSION = bumpPatchVersion() }
+        echo "Building version ${env.APP_VERSION}"
+      }
+    }
+
+    stage('Build images') {
+      steps {
+        script {
+          buildImage('devops-dojo/api', './app/api', env.APP_VERSION)
+          buildImage('devops-dojo/frontend', './app/frontend', env.APP_VERSION)
+        }
+      }
+    }
+
+    stage('Scan (Trivy)') {
+      steps {
+        script { scanImage("devops-dojo/api:${env.APP_VERSION}") }
+      }
+    }
+
+    stage('Commit version bump') {
+      steps {
+        script { commitVersionBump(env.APP_VERSION) }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'docker image rm "devops-dojo/api:$APP_VERSION" "devops-dojo/frontend:$APP_VERSION" 2>/dev/null || true'
+    }
+  }
+}

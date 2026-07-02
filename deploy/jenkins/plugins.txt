@@ -2,5 +2,6 @@ workflow-aggregator
 pipeline-stage-view
 docker-workflow
 git
+github
 credentials-binding
 configuration-as-code

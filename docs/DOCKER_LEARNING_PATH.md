@@ -760,6 +760,30 @@ and screening tests hit hardest. One line each; full walkthroughs in the labs:
 - **[42 · GitLab CI](../labs/42-gitlab-ci/)** — the same pipeline translated to
   `.gitlab-ci.yml` (optional, but GitLab is everywhere in EU job postings).
 
+## Milestone 5 — Ecosystem breadth & portability (labs 43–47)
+
+The TWN Bootcamp demo projects, compared against this path, left a handful of genuinely
+additive patterns — plus the one-lab answer to "could you work in an Azure shop?". Breadth,
+deliberately after depth. One line each; full walkthroughs in the labs:
+
+- **[43 · Jenkins deep-dive](../labs/43-jenkins-shared-library/)** — a **Shared Library**
+  ([jenkins-shared-library/](../jenkins-shared-library/)) so fifty Jenkinsfiles don't
+  copy-paste build logic, webhook-triggered builds, and dynamic versioning with the
+  `[ci skip]` guard that stops the pipeline from triggering itself.
+- **[44 · Ansible at scale](../labs/44-ansible-at-scale/)** — tag-driven **dynamic
+  inventory** (no more pasting IPs from Terraform output), the playbook split into roles,
+  and an opt-in Terraform→Ansible handoff — with the "provisioners are a last resort"
+  discussion. 💸
+- **[45 · Boto3 ops automation](../labs/45-boto3-ops-automation/)** — EBS snapshot
+  backup/cleanup/restore by tag, and a self-healing website monitor (email alert + SSH
+  restart) that teaches exactly what Alertmanager gives you at scale. 💸
+- **[46 · Helm library chart + Helmfile](../labs/46-helm-library-chart/)** — the Deployment
+  shape written once in a `type: library` chart (verified render-identical), and Helmfile as
+  the push-based counterpart to lab 36's ApplicationSet.
+- **[47 · Cloud portability: AKS](../labs/47-cloud-portability-aks/)** — the unchanged chart
+  deployed to Azure AKS, plus [CLOUD_PROVIDER_MAP.md](CLOUD_PROVIDER_MAP.md), the
+  AWS↔Azure↔GCP lookup table with the 30-second interview answer. 💸
+
 ## Companion project: AI Assistant (LLMOps)
 
 Beyond this DevOps path, the repo includes a second, standalone example project —

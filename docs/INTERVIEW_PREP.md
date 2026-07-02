@@ -158,6 +158,42 @@ lab 28 closed it with default-deny + explicit allows on Calico — say so, it sh
 > `pg_dump` to a location *outside* the DB container, and I actually test restores — delete a
 > row, restore, confirm it's back — because a backup you've never restored isn't a backup.
 
+### Ecosystem breadth (labs 43–47)
+
+**Q: Fifty Jenkinsfiles all build, scan and push the same way — how do you keep that sane?**
+> A **Jenkins Shared Library**: the common steps live once in a versioned Groovy library
+> (`vars/` = named steps) that every Jenkinsfile loads with `@Library`. Change the scan
+> policy once, every pipeline gets it — the cost is a shared dependency that can break fifty
+> pipelines at once, so it's versioned and pinned like any dependency. I also do dynamic
+> versioning there: the pipeline bumps a VERSION file, tags images with it, and commits back
+> with a `[ci skip]` marker — Jenkins has no built-in skip-ci, so without your own guard the
+> bump commit re-triggers the pipeline forever (lab 43).
+
+**Q: How does Ansible target servers that come and go?**
+> **Dynamic inventory**: instead of IPs in a file, the AWS inventory plugin asks the cloud
+> API at runtime — "give me running instances with this tag" — and groups them by tag. The
+> tags Terraform writes are the contract Ansible selects on (lab 44). And on wiring the two:
+> my `terraform apply` can trigger the playbook via a `local-exec` provisioner, but
+> provisioners are a **last resort** — outside plan/state, no drift detection — so in CI I'd
+> run provision and configure as two pipeline steps.
+
+**Q: Helmfile vs ArgoCD — you have both. Why?**
+> Same question, two delivery models. Helmfile declares releases as data and **pushes** from
+> wherever it runs — simple, no controller in the cluster, ideal for CI-driven shops and
+> local work; but nothing reconciles drift between runs. ArgoCD **pulls** from inside the
+> cluster and continuously reconciles Git → cluster. For production fleets I'd choose GitOps
+> (self-heal, audit, `git revert` = rollback); Helmfile when a controller is overkill
+> (labs 36/46). Under both sits one chart with a **library chart** so thirty services share
+> one Deployment shape instead of thirty copies.
+
+**Q: We're an Azure shop and you learned on AWS — is that a problem?**
+> No — and I tested that claim instead of asserting it: I deployed my exact Helm chart to
+> **AKS** with zero template changes; only cluster creation and auth differed (lab 47).
+> Kubernetes is the portability layer — kubectl, Helm, probes, RBAC, NetworkPolicies all
+> transfer. What I'd map on day one: IAM → Entra + RBAC scopes, S3 → Blob, RDS → Azure
+> Database, IRSA → Workload Identity, and resource groups make teardown *easier*. Deep on
+> one cloud, conversational in the mapping ([CLOUD_PROVIDER_MAP.md](CLOUD_PROVIDER_MAP.md)).
+
 ---
 
 ## 3. Troubleshooting scenarios (think out loud, structured)

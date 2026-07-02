@@ -70,9 +70,10 @@ docker compose -f deploy/compose/compose.yaml down -v
 
 ## How to use the labs
 
-Work through `labs/00..26` in order, then pick up the Kubernetes deep-dive (`27..34`)
-and the operate-and-automate track (`35..42` — labs 37–38 can be done anytime after the
-foundation). Every lab follows the same shape:
+Work through `labs/00..26` in order, then pick up the Kubernetes deep-dive (`27..34`),
+the operate-and-automate track (`35..42` — labs 37–38 can be done anytime after the
+foundation), and the ecosystem-breadth track (`43..47`, TWN-inspired). Every lab follows
+the same shape:
 
 > **Concept (what & why) → What you'll do → Steps → How it works → Exercise → Checkpoint → Common failures → Maps to**
 
@@ -113,7 +114,13 @@ ai-assistant/    Second project: local/remote RAG assistant (LLMOps) — see its
   in Git.
 - ✅ **Kubernetes deep-dive (labs 27–34):** RBAC, NetworkPolicies (+Calico), Kyverno,
   cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack — Platform/SRE, CKA/CKS.
-  **35 labs (00–34) complete.**
+- ✅ **Milestone 4 — operate, automate & prove it (labs 35–42):** incident drills + runbooks,
+  multi-env promotion, Bash/Python automation, Git workflows, Terraform state/modules, AWS
+  core services, supply-chain security, GitLab CI. **43 labs (00–42) complete.**
+- ⬜ **Milestone 5 — ecosystem breadth & portability (labs 43–47):** Jenkins Shared Library +
+  dynamic versioning, Ansible dynamic inventory + Terraform handoff, Boto3 ops automation,
+  Helm library chart + Helmfile, and the same chart on **Azure AKS**
+  (+ [cloud provider map](docs/CLOUD_PROVIDER_MAP.md)) — TWN-bootcamp-inspired additions.
 
 > 🎯 **Aiming for a DevOps job?** The capstone is your interview centerpiece; see
 > [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md) for a full talk track (likely questions +

@@ -1,0 +1,45 @@
+# Pre-commit hooks: catch locally, in seconds, what CI (or an incident) would
+# catch later. Referenced by labs 37 (shellcheck), 38 (merge markers), 39 (fmt),
+# and the devDockerKey.pem scare (secret detection).
+#
+# Setup:  pip install pre-commit && pre-commit install
+# Try it: pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+        # Helm templates are Go templates, not valid YAML before rendering
+        exclude: ^deploy/k8s/helm/devops-dojo/templates/
+
+  # Secrets never reach a commit — gitleaks scans staged changes.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  # Every *.sh in the repo (scripts/, scripts/chaos/) stays shellcheck-clean (lab 37).
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+
+  # Dockerfile lint (runs the official image; needs Docker running).
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+
+  # terraform fmt on any changed .tf — the same check CI gates on (lab 39).
+  # Needs terraform on PATH; only triggers when .tf files are staged.
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.2
+    hooks:
+      - id: terraform_fmt

@@ -59,6 +59,9 @@ migrate:
 ingress:
   enabled: true
   className: nginx
+  # Optional host rule so several releases (dev/staging/prod, lab 36) can share one
+  # ingress controller. Empty = match any host (single-env behavior, unchanged).
+  host: ""
 
 hpa:
   enabled: true

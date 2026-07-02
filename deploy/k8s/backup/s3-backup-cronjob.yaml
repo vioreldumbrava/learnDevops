@@ -1,0 +1,76 @@
+# Nightly logical backup to S3 via IRSA (lab 40).
+#
+# The ServiceAccount's role-arn annotation is the whole trick: EKS injects a
+# projected OIDC token, the AWS SDK/CLI exchanges it for temporary credentials
+# for that role (created in deploy/terraform/rds/iam.tf) — no access keys stored
+# anywhere. Fill in the ACCOUNT_ID (or paste `terraform output backup_role_arn`).
+#
+# Two containers, one shared volume: pg_dump doesn't ship with the AWS CLI and
+# vice versa, so the init container dumps and the main container uploads.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dojo-backup
+  namespace: devops-dojo
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/devops-dojo-backup
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-backup-s3
+  namespace: devops-dojo
+spec:
+  schedule: "0 3 * * *" # nightly, 03:00 UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: db-backup
+        spec:
+          serviceAccountName: dojo-backup
+          restartPolicy: OnFailure
+          initContainers:
+            - name: dump
+              image: postgres:16-alpine
+              command: ["sh", "-c"]
+              # pg_dump accepts the URI directly, so the same manifest works for
+              # in-cluster Postgres AND RDS — the secret decides where it points.
+              args:
+                - pg_dump "$DATABASE_URL" -f /backup/dojo_$(date +%Y%m%d_%H%M%S).sql
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: dojo-secrets
+                      key: DATABASE_URL
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 500m, memory: 256Mi }
+          containers:
+            - name: upload
+              image: amazon/aws-cli:2.22.35
+              command: ["sh", "-c"]
+              # keyed under db/ — the bucket lifecycle rule ages that prefix out
+              args:
+                - aws s3 cp /backup/ "s3://$BACKUP_BUCKET/db/" --recursive && echo "backup uploaded"
+              env:
+                - name: BACKUP_BUCKET
+                  value: CHANGE_ME # terraform output backup_bucket
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 500m, memory: 256Mi }
+          volumes:
+            - name: backup
+              emptyDir: {}

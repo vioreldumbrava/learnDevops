@@ -55,22 +55,82 @@ jobs:
           docker compose -f deploy/compose/compose.yaml config >/dev/null
           docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.observability.yaml config >/dev/null
 
-      - name: Trivy filesystem scan (dependencies & config)
+      # Two-tier scan policy (lab 41): HIGH stays visible in the log (report-only),
+      # CRITICAL fails the build. Exceptions live in .trivyignore, each justified.
+      - name: Trivy filesystem scan (report HIGH+)
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: fs
           scan-ref: .
           severity: CRITICAL,HIGH
           ignore-unfixed: "true"
-          # Report only in this learning setup. To make CI GATE on findings,
-          # set exit-code: "1".
           exit-code: "0"
+
+      - name: Trivy filesystem scan (gate on CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+  # ---------------------------------------------------------------------------
+  # IaC checks (lab 39): fmt is non-negotiable style, validate catches broken
+  # references per ROOT module, tflint catches provider-specific mistakes, and
+  # checkov flags insecure patterns (report-only here, like the Trivy fs scan).
+  # No `terraform plan` in CI yet — that needs AWS credentials (see lab 39's
+  # exercise on GitHub OIDC).
+  terraform:
+    name: Terraform checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff deploy/
+
+      - name: terraform validate (every root module)
+        run: |
+          for dir in deploy/terraform deploy/terraform/state-backend \
+                     deploy/terraform/envs/dev deploy/terraform/envs/prod \
+                     deploy/terraform/rds deploy/eks; do
+            echo "==> $dir"
+            terraform -chdir="$dir" init -backend=false -input=false >/dev/null
+            terraform -chdir="$dir" validate -no-color
+          done
+
+      - uses: terraform-linters/setup-tflint@v4
+
+      - name: tflint
+        run: |
+          tflint --init
+          for dir in deploy/terraform deploy/terraform/modules/ec2-app deploy/eks; do
+            echo "==> $dir"
+            tflint --chdir="$dir"
+          done
+
+      - name: checkov (IaC security scan, report-only)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: deploy
+          framework: terraform
+          soft_fail: true
 
   # ---------------------------------------------------------------------------
   build:
     name: Build, scan & push images
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # OIDC token for keyless image signing (lab 41)
     steps:
       - uses: actions/checkout@v4
 
@@ -138,7 +198,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       # Scan the actually-published API image by its immutable digest.
-      - name: Trivy image scan (api)
+      - name: Trivy image scan (api, report HIGH+)
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@0.28.0
         with:
@@ -146,3 +206,27 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: "true"
           exit-code: "0"
+
+      - name: Trivy image scan (api, gate on CRITICAL)
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/api@${{ steps.build-api.outputs.digest }}
+          severity: CRITICAL
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+      # Keyless signing (lab 41): this workflow run's OIDC identity signs the
+      # DIGESTS; signatures land next to the images in GHCR, the proof in the
+      # public Rekor transparency log. Verified at admission by Kyverno
+      # (deploy/k8s/policies/verify-image-signatures.yaml).
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign images (keyless, by digest)
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign --yes "${REGISTRY}/${IMAGE_PREFIX}/api@${{ steps.build-api.outputs.digest }}"
+          cosign sign --yes "${REGISTRY}/${IMAGE_PREFIX}/frontend@${{ steps.build-fe.outputs.digest }}"

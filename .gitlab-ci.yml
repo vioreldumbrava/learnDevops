@@ -1,0 +1,99 @@
+# GitLab CI translation of .github/workflows/ci.yml (lab 42).
+# Same pipeline, different dialect:
+#   - jobs are grouped by STAGE (test -> build) instead of needs-chains
+#   - each job declares its own container IMAGE instead of installing tools on a runner
+#   - GitLab's built-in registry ($CI_REGISTRY_IMAGE) replaces GHCR, and $CI_JOB_TOKEN
+#     replaces GITHUB_TOKEN — auth to your own registry is free
+#   - merge requests build but don't push; default branch + tags publish (same policy
+#     as the GitHub workflow)
+
+# Avoid duplicate pipelines when a branch has an open MR (the standard incantation).
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS"
+      when: never
+    - if: "$CI_COMMIT_BRANCH"
+    - if: "$CI_COMMIT_TAG"
+
+stages: [test, build]
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs" # required for docker:dind
+
+# --- test stage (mirrors the "Test & validate" job) -------------------------
+
+go-test:
+  stage: test
+  image: golang:1.25
+  script:
+    - cd app/api
+    - go vet ./...
+    - go test ./...
+
+frontend-build:
+  stage: test
+  image: node:24
+  cache:
+    key:
+      files: [app/frontend/package-lock.json]
+    paths: [app/frontend/.npm/]
+  script:
+    - cd app/frontend
+    - npm ci --cache .npm --prefer-offline
+    - npm run build
+
+compose-validate:
+  stage: test
+  image: docker:27
+  services: [docker:27-dind]
+  script:
+    - docker compose -f deploy/compose/compose.yaml config >/dev/null
+    - docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.observability.yaml config >/dev/null
+
+# Same two-tier policy as GitHub CI (lab 41): HIGH visible, CRITICAL gates.
+trivy-fs:
+  stage: test
+  image:
+    name: aquasec/trivy:0.58.1
+    entrypoint: [""]
+  script:
+    - trivy fs --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 .
+    - trivy fs --severity CRITICAL --ignore-unfixed --ignorefile .trivyignore --exit-code 1 .
+
+# --- build stage (mirrors "Build, scan & push images") ----------------------
+
+.build:
+  stage: build
+  image: docker:27
+  services: [docker:27-dind]
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    # tag by git tag when present, otherwise by short SHA (metadata-action equivalent)
+    - TAG="${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}"
+    - docker build -t "$CI_REGISTRY_IMAGE/api:$TAG" app/api
+    - docker build -t "$CI_REGISTRY_IMAGE/frontend:$TAG" app/frontend
+    - |
+      if [ "$PUSH" = "true" ]; then
+        docker push "$CI_REGISTRY_IMAGE/api:$TAG"
+        docker push "$CI_REGISTRY_IMAGE/frontend:$TAG"
+        echo "pushed $CI_REGISTRY_IMAGE/{api,frontend}:$TAG"
+      else
+        echo "merge request: build only, no push"
+      fi
+
+build-mr:
+  extends: .build
+  variables:
+    PUSH: "false"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+build-publish:
+  extends: .build
+  variables:
+    PUSH: "true"
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+    - if: "$CI_COMMIT_TAG"

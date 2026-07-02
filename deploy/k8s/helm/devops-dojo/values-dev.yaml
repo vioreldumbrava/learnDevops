@@ -1,0 +1,25 @@
+# dev environment — tracks the newest CI build, minimal footprint, auto-synced (lab 36).
+# Layered on top of values.yaml: only the differences live here.
+# Edit OWNER/REPO to your fork (CI publishes there — lab 15).
+
+image:
+  api:
+    repository: ghcr.io/OWNER/REPO/api
+    tag: latest        # moving tag: dev always runs the last merge to main
+    pullPolicy: Always # moving tag => always re-pull
+  frontend:
+    repository: ghcr.io/OWNER/REPO/frontend
+    tag: latest
+    pullPolicy: Always
+
+api:
+  replicas: 1
+
+frontend:
+  replicas: 1
+
+hpa:
+  enabled: false # no autoscaling noise while iterating
+
+ingress:
+  host: dev.dojo.localhost

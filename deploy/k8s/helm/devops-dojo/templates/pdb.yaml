@@ -1,0 +1,32 @@
+# PodDisruptionBudgets: during VOLUNTARY disruptions (node drain, cluster upgrade,
+# autoscaler scale-down) never take the last replica — the difference between
+# "upgrade the nodes" and "upgrade the nodes with an outage". Only rendered for
+# workloads with >1 replica: a PDB demanding 1 available from a 1-replica app
+# would block drains forever (the classic PDB gotcha).
+{{- if gt (int .Values.api.replicas) 1 }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+  labels:
+    app: api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api
+{{- end }}
+{{- if gt (int .Values.frontend.replicas) 1 }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: frontend
+{{- end }}

@@ -1,0 +1,28 @@
+# prod environment — pinned release tag, external secrets, MANUAL sync (lab 36).
+# Promotion INTO prod = a reviewed PR bumping the tags to what staging validated,
+# then an explicit `argocd app sync dojo-prod` (no auto-sync on purpose).
+# Edit OWNER/REPO to your fork.
+
+image:
+  api:
+    repository: ghcr.io/OWNER/REPO/api
+    tag: v1.0.0 # release tags only in prod — never a moving tag
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: ghcr.io/OWNER/REPO/frontend
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+
+# Prod never renders passwords from values files. The `dojo-secrets` Secret is
+# provided externally — Sealed Secrets / External Secrets Operator (lab 26), or
+# created out-of-band for the local drill (lab 36 shows the command).
+secrets:
+  create: false
+
+ingress:
+  host: dojo.localhost

@@ -53,9 +53,43 @@ legacy DBC-based path each lab corresponds to.
 | [33](../labs/33-k8s-velero-backup/) | Velero backup & DR | — | ✅ |
 | [34](../labs/34-k8s-kube-prometheus-stack/) | kube-prometheus-stack (cluster monitoring) | — | ✅ |
 
-> 🎯 **Landing a job:** the capstone (lab 25) is your interview centerpiece, and
-> [INTERVIEW_PREP.md](INTERVIEW_PREP.md) is the talk track — likely questions with strong,
-> project-grounded answers for every concept above.
+### Milestone 4 — Operate, Automate & Prove It
+
+The interview-readiness track: troubleshooting under pressure, scripting, IaC maturity,
+promotion flows, supply-chain proof. Labs 37–38 have no dependencies beyond the foundation —
+do them anytime.
+
+| Lab | Topic | Notes | Status |
+|-----|-------|-------|--------|
+| [35](../labs/35-incident-response/) | Incident response: break-fix drills, runbooks, postmortems | interview centerpiece #2 | ✅ |
+| [36](../labs/36-multi-env-promotion/) | Multi-env promotion (Helm values-per-env + ArgoCD ApplicationSet) | — | ✅ |
+| [37](../labs/37-scripting-automation/) | Bash & Python automation (scripts/, jq/awk drills) | do anytime after lab 07 | ✅ |
+| [38](../labs/38-git-workflows/) | Git workflows: rebase, conflicts, bisect, protection | do anytime | ✅ |
+| [39](../labs/39-terraform-state-and-modules/) | Terraform remote state + locking, modules, IaC checks in CI | deepens lab 16 | ✅ |
+| [40](../labs/40-aws-core-services/) | AWS core: RDS, S3 lifecycle, IAM/IRSA, VPC tour | 💸 needs EKS (lab 25) | ✅ |
+| [41](../labs/41-supply-chain-security/) | Supply chain: cosign signing, admission verification, scan gates | deepens 13/15/29 | ✅ |
+| [42](../labs/42-gitlab-ci/) | GitLab CI: translate the pipeline | optional · EU market | ✅ |
+
+Day-2 artifacts that come with this milestone: [runbooks](runbooks/),
+[postmortem template](postmortem-template.md) (+ [worked example](postmortems/)), chaos
+injectors ([scripts/chaos](../scripts/chaos/)), automation scripts ([scripts](../scripts/)).
+
+## Intentionally out of scope (and why)
+
+Being able to say *no* with reasons is stronger interview signal than shallow coverage:
+
+- **Service mesh (Istio/Linkerd):** for this app, NetworkPolicies (28), cert-manager (30) and
+  Argo Rollouts (32) already deliver zero-trust, TLS, and traffic shifting; a mesh adds a
+  control plane to operate that the workload doesn't justify. Know what you'd gain (ambient
+  mTLS, L7 policy, traffic mirroring) and what it costs before reaching for one.
+- **Azure / GCP tracks:** one cloud deep (AWS — labs 16/25/40) beats three shallow. Managed
+  k8s, managed DB, IAM, VPC transfer almost one-to-one; AKS/GKE is mostly a syntax change.
+- **HA everything:** single NAT gateway, single-AZ RDS, one-node Postgres are conscious cost
+  choices for learning — each lab names exactly what flips in production.
+
+> 🎯 **Landing a job:** the capstone (lab 25) is your interview centerpiece, the incident
+> drills (lab 35) are the second one, and [INTERVIEW_PREP.md](INTERVIEW_PREP.md) is the talk
+> track — likely questions with strong, project-grounded answers for every concept above.
 
 ## Companion project — AI Assistant (LLMOps)
 

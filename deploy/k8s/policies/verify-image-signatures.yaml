@@ -1,0 +1,34 @@
+# Supply-chain verification at admission (lab 41): pods using images from OUR
+# registry are rejected unless the image carries a valid cosign KEYLESS signature
+# produced by OUR GitHub Actions workflow. Audit first, Enforce once it passes.
+# Requires Kyverno (lab 29) with egress to GHCR + Rekor. Edit OWNER/REPO (lowercase).
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signatures
+spec:
+  validationFailureAction: Audit
+  webhookTimeoutSeconds: 30
+  background: false
+  rules:
+    - name: require-ci-signature
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+              namespaces: ["devops-dojo", "dojo-dev", "dojo-staging", "dojo-prod"]
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/OWNER/REPO/*"
+          # Resolve tags to digests at admission: tags can be re-pointed after
+          # verification, digests cannot.
+          mutateDigest: true
+          attestors:
+            - entries:
+                - keyless:
+                    # The signing identity is the WORKFLOW, not a person: cosign's
+                    # cert says "issued to this repo's Actions run via GitHub OIDC".
+                    subject: "https://github.com/OWNER/REPO/*"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: https://rekor.sigstore.dev

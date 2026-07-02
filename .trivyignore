@@ -1,0 +1,10 @@
+# Vulnerability exceptions for the CI CRITICAL gate (lab 41).
+#
+# Rules of the road:
+#   - one CVE per line, ALWAYS with a comment saying why it's acceptable and when
+#     it expires / will be revisited
+#   - a naked entry with no justification should not survive code review
+#   - prefer fixing (bump the dependency / base image) over ignoring
+#
+# Example (remove when adding real entries):
+# CVE-2026-12345  # false positive in indirect dep X; upstream fix pending, revisit 2026-08-01

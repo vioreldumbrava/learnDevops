@@ -70,7 +70,9 @@ docker compose -f deploy/compose/compose.yaml down -v
 
 ## How to use the labs
 
-Work through `labs/00..23` in order. Every lab follows the same shape:
+Work through `labs/00..26` in order, then pick up the Kubernetes deep-dive (`27..34`)
+and the operate-and-automate track (`35..42` — labs 37–38 can be done anytime after the
+foundation). Every lab follows the same shape:
 
 > **Concept (what & why) → What you'll do → Steps → How it works → Exercise → Checkpoint → Common failures → Maps to**
 

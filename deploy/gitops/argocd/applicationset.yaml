@@ -1,0 +1,50 @@
+# ApplicationSet: one template stamps out an ArgoCD Application per environment
+# (dev / staging / prod), replacing the single application.yaml for lab 36.
+# Each env = same Helm chart + values.yaml + its values-<env>.yaml overlay, in its
+# own namespace. dev/staging auto-sync; prod deliberately requires a manual sync.
+# Edit OWNER/REPO to point at your fork.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: devops-dojo-envs
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - env: dev
+            autosync: true
+          - env: staging
+            autosync: true
+          - env: prod
+            autosync: false # promotion to prod is a human decision
+  template:
+    metadata:
+      name: "dojo-{{ .env }}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/OWNER/REPO.git
+        targetRevision: main
+        path: deploy/k8s/helm/devops-dojo
+        helm:
+          valueFiles:
+            - values.yaml
+            - "values-{{ .env }}.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "dojo-{{ .env }}"
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+  # syncPolicy.automated only for envs that opted in — prod stays manual.
+  templatePatch: |
+    {{- if .autosync }}
+    spec:
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+    {{- end }}

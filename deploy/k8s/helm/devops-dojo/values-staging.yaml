@@ -1,0 +1,22 @@
+# staging environment — pinned build, prod-shaped sizing, auto-synced (lab 36).
+# Promotion INTO staging = a PR that bumps the two tags below to a build CI published
+# (see the tags on your GHCR packages page, e.g. sha-<shortsha> or v1.2.3).
+# Edit OWNER/REPO to your fork.
+
+image:
+  api:
+    repository: ghcr.io/OWNER/REPO/api
+    tag: sha-abc1234 # pinned: staging runs a known build, not "whatever is latest"
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: ghcr.io/OWNER/REPO/frontend
+    tag: sha-abc1234
+    pullPolicy: IfNotPresent
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+
+ingress:
+  host: staging.dojo.localhost

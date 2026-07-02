@@ -1,0 +1,24 @@
+# PodDisruptionBudgets (labs 21/25): voluntary disruptions (node drain, upgrades)
+# must leave at least one api and one frontend pod serving. The worker and db are
+# deliberately excluded — single-replica workloads with a PDB block drains forever.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+  namespace: devops-dojo
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend
+  namespace: devops-dojo
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: frontend

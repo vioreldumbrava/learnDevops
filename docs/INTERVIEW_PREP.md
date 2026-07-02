@@ -90,8 +90,11 @@ patching, scaling, and securing it.
 > `.env`, run compose). Terraform = what exists; Ansible = how it's configured.
 
 **Follow-up — Q: What's Terraform state and why care?** It's Terraform's record of real
-resources. It can contain secrets, so it's gitignored; teams use a remote backend (S3 +
-DynamoDB lock) so state is shared and locked against concurrent applies.
+resources — it can contain secrets (my generated SSH key does). I run the real setup: state
+in **S3 with locking** (native lockfile; S3 + DynamoDB is the classic answer), one key per
+root module, a reusable module consumed by directory-per-env roots, and
+fmt/validate/tflint/checkov in CI (lab 39). I've watched the lock reject a concurrent plan —
+that's the "why care".
 
 ### GitOps (the senior signal)
 
@@ -101,6 +104,12 @@ DynamoDB lock) so state is shared and locked against concurrent applies.
 > the cluster self-heals drift, every change is an auditable Git commit, rollback is
 > `git revert`, and CI never needs cluster credentials. In my capstone, ArgoCD watches the
 > Helm chart path and syncs with prune + self-heal.
+
+**Follow-up — Q: How does a change reach production?**
+> One chart, three values files, an ArgoCD **ApplicationSet** stamping out dev/staging/prod.
+> Dev tracks the latest build and auto-syncs; promotion is a PR bumping the pinned image tag
+> in `values-staging.yaml`, then `values-prod.yaml`; prod is manual-sync on purpose.
+> `git log values-prod.yaml` *is* the deploy history (lab 36).
 
 ### Observability — the three pillars
 
@@ -120,9 +129,16 @@ DynamoDB lock) so state is shared and locked against concurrent applies.
 > and locally; TLS is automatic via Caddy/Let's Encrypt. I keep `.env` out of Git and know the
 > next step is a real secrets manager (Vault / sealed-secrets / cloud secret store).
 
+**Follow-up — Q: How do you know the image running in the cluster is the one CI built?**
+> It's signed: CI signs the image **digest** with cosign keyless — the signing identity is
+> the workflow's OIDC token, logged in the Rekor transparency log — and Kyverno verifies the
+> signature at admission, so unsigned images from my registry don't run. CI also gates on
+> CRITICAL vulnerabilities, with exceptions only via a justified `.trivyignore` (lab 41).
+
 **Follow-up — Q: What's still not production-grade?** Honest answer: the demo password
-defaults, plain-text secrets in `.env`/values for learning, single NAT gateway (no HA), and no
-network policies yet — I'd address those before real traffic.
+defaults, plain-text secrets in `.env`/values for learning, and the single NAT gateway (no
+HA) — I'd address those before real traffic. Network policies *used* to be on this list;
+lab 28 closed it with default-deny + explicit allows on Calico — say so, it shows progress.
 
 ### Scaling — stateless vs stateful
 
@@ -164,6 +180,11 @@ layer caching order, `.dockerignore`, and build cache in CI (`cache-from/to: gha
 state (or ArgoCD History → Rollback). Without GitOps: redeploy the previous image tag /
 `helm rollback` / `kubectl rollout undo`.
 
+> 🥋 Don't just memorize these — **drill them**. Lab 35 injects each failure into your own
+> cluster (`scripts/chaos/roulette.sh` picks one blind), the [runbooks](runbooks/) capture
+> the diagnosis paths, and a written [postmortem](postmortem-template.md) turns a drill into
+> a STAR story you can tell with real timestamps.
+
 ---
 
 ## 4. Behavioral: "Tell me about a project"
@@ -182,7 +203,9 @@ Use a light STAR:
 ## 5. Weaknesses — name them before they do
 
 Interviewers respect honesty over bluffing:
-- "My production experience is from this project, not yet a high-traffic system on-call."
+- "My production experience is from this project, not yet a high-traffic system on-call —
+  but I've drilled incident response deliberately: eight break-fix scenarios on my own
+  cluster, with runbooks and written postmortems (lab 35)."
 - "I've run Kubernetes on kind and EKS, but haven't operated a large multi-team cluster."
 - "Local/dev uses a demo password for convenience — but the chart supports `secrets.create=false`
   so real deployments get `dojo-secrets` from **Sealed Secrets** or the **External Secrets
@@ -194,13 +217,15 @@ Then pivot to how you're closing the gap (below).
 
 ## 6. Close the gaps (study plan)
 
-Highest leverage next steps to become clearly hireable:
-1. **One cloud, deep:** AWS — VPC/subnets/IAM, RDS, S3, ELB, autoscaling. Target the **AWS
-   Solutions Architect Associate** cert (also a résumé filter).
-2. **Kubernetes, deep:** covered in labs 27–34 (RBAC, NetworkPolicies, Kyverno, cert-manager,
-   KEDA, Argo Rollouts, Velero, kube-prometheus-stack). Do them on kind/EKS, then target **CKA**
-   (and **CKS** for the security ones).
-3. **Scripting:** solid **Bash** + **Python** (this project has Go; add glue scripting).
+Highest leverage next steps to become clearly hireable, in order:
+1. **CKA first.** Labs 22–34 already cover most of the exam surface, so it's the cheapest
+   high-recognition credential from where you stand — and the strongest CV filter-pass for
+   Platform/DevOps roles in Europe. Book the exam date now; a deadline beats an intention.
+   Add **CKS** later if you're targeting security-leaning roles.
+2. **One cloud, deep:** AWS — VPC/subnets/IAM, RDS, S3, ELB, autoscaling. Labs 16/25/**40**
+   are the hands-on base; target the **AWS Solutions Architect Associate** cert after CKA.
+3. **Scripting:** covered in lab **37** (Bash strict mode, Python, boto3, jq/awk) — keep
+   every new piece of glue in `scripts/`, shellcheck-clean, so the habit shows.
 4. **Secrets management:** done in lab 26 (Sealed Secrets / External Secrets Operator) — go
    further with Vault dynamic secrets and automatic rotation.
 5. **Keep extending this repo** and write short posts on each capstone step; visible learning

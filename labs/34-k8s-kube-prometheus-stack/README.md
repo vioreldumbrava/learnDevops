@@ -63,3 +63,6 @@ bundled Alertmanager. Now your alerting is declarative and version-controlled to
 
 🎉 You've now covered the Kubernetes depth that CKA/CKS and Platform/SRE interviews probe. See
 [docs/CURRICULUM.md](../../docs/CURRICULUM.md) and [docs/INTERVIEW_PREP.md](../../docs/INTERVIEW_PREP.md).
+
+➡️ Next: [Lab 35 — Incident response: break-fix drills](../35-incident-response/)
+(Milestone 4 — Operate & Automate)

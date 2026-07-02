@@ -721,6 +721,35 @@ runs on kind (or EKS). Full walkthroughs in the labs; one-line each:
 
 These map directly onto what **CKA/CKS** and Platform/SRE interviews probe.
 
+## Milestone 4 — Operate, Automate & Prove It (labs 35–42)
+
+The last mile between "can build it" and "can run it" — troubleshooting under pressure,
+scripting, IaC maturity, promotion flows, supply-chain proof. These are the topics interviews
+and screening tests hit hardest. One line each; full walkthroughs in the labs:
+
+- **[35 · Incident response](../labs/35-incident-response/)** — eight scripted break-fix
+  drills against your own stack (CrashLoopBackOff, OOMKilled, selector typo, dirty
+  migration…), plus [runbooks](runbooks/) and a [postmortem template](postmortem-template.md).
+  The "production is broken — go" interview round, rehearsed.
+- **[36 · Multi-env promotion](../labs/36-multi-env-promotion/)** — dev/staging/prod from one
+  Helm chart via an ArgoCD **ApplicationSet**; promotion = a PR bumping an image tag; prod
+  deliberately manual-sync.
+- **[37 · Bash & Python automation](../labs/37-scripting-automation/)** — backup rotation,
+  wait-for-healthy, restore verification, an AWS tag audit ([scripts/](../scripts/)), and
+  jq/awk log drills. *Do anytime after lab 07.*
+- **[38 · Git workflows](../labs/38-git-workflows/)** — PR flow, interactive rebase, a
+  manufactured merge conflict, `git bisect` on a planted bug, branch protection. *Do anytime.*
+- **[39 · Terraform state & modules](../labs/39-terraform-state-and-modules/)** — S3 remote
+  state + locking, a reusable module, directory-per-env, and fmt/validate/tflint/checkov in CI.
+- **[40 · AWS core services](../labs/40-aws-core-services/)** — RDS, S3 lifecycle backups,
+  IAM/**IRSA** (AWS access with zero stored keys), and a guided read of your VPC.
+  💸 Needs the lab 25 cluster.
+- **[41 · Supply-chain security](../labs/41-supply-chain-security/)** — cosign **keyless
+  signing** in CI, Kyverno signature verification at admission, and a Trivy CRITICAL gate
+  with a governed `.trivyignore`.
+- **[42 · GitLab CI](../labs/42-gitlab-ci/)** — the same pipeline translated to
+  `.gitlab-ci.yml` (optional, but GitLab is everywhere in EU job postings).
+
 ## Companion project: AI Assistant (LLMOps)
 
 Beyond this DevOps path, the repo includes a second, standalone example project —
@@ -734,10 +763,12 @@ DevOps foundations. Start at [ai-assistant/README.md](../ai-assistant/README.md)
 
 ## Getting hired
 
-The capstone (Step 25) is your interview centerpiece. Rehearse with
+The capstone (Step 25) is your interview centerpiece; the incident drills (lab 35) are your
+second one — rehearsed answers to "tell me about something you debugged". Prepare with
 [INTERVIEW_PREP.md](INTERVIEW_PREP.md): a portfolio talk track with likely questions and
 strong, project-grounded answers for every concept in this guide, plus troubleshooting
-scenarios and an honest gap-closing study plan (AWS SAA / CKA, secrets management, scripting).
+scenarios and an honest gap-closing study plan (**CKA first** — labs 22–34 are most of the
+prep — then AWS SAA).
 
 ---
 

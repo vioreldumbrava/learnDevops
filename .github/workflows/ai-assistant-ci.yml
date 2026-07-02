@@ -38,3 +38,22 @@ jobs:
 
       - name: Build image
         run: docker build -t dojo-ai/rag-api:ci .
+
+      # Same two-tier supply-chain bar as the main CI (lab 41): HIGH visible,
+      # CRITICAL fails the build, exceptions only via the shared .trivyignore.
+      - name: Trivy image scan (report HIGH+)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: dojo-ai/rag-api:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: "true"
+          exit-code: "0"
+
+      - name: Trivy image scan (gate on CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: dojo-ai/rag-api:ci
+          severity: CRITICAL
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore
+          exit-code: "1"

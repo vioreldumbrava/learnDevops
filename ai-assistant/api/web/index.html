@@ -52,6 +52,19 @@
         return el;
       }
 
+      function renderSources(el, sources) {
+        if (!sources || !sources.length) return;
+        const s = document.createElement('div');
+        s.className = 'sources';
+        for (const src of sources) {
+          const c = document.createElement('span');
+          c.className = 'chip';
+          c.textContent = '[' + src.n + '] ' + src.source + ' · ' + src.score;
+          s.appendChild(c);
+        }
+        el.appendChild(s);
+      }
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const question = q.value.trim();
@@ -60,27 +73,41 @@
         q.value = '';
         send.disabled = true;
         const pending = add('assistant', 'thinking…');
+        const body = pending.querySelector('div:last-child');
         try {
+          // Stream tokens as they arrive (SSE over fetch): the answer starts
+          // appearing at time-to-first-token instead of after full generation.
           const res = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question, stream: false }),
+            body: JSON.stringify({ question, stream: true }),
           });
-          const data = await res.json();
-          pending.querySelector('div:last-child').textContent = data.answer || '(no answer)';
-          if (data.sources && data.sources.length) {
-            const s = document.createElement('div');
-            s.className = 'sources';
-            for (const src of data.sources) {
-              const c = document.createElement('span');
-              c.className = 'chip';
-              c.textContent = '[' + src.n + '] ' + src.source + ' · ' + src.score;
-              s.appendChild(c);
+          if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buf = '';
+          let started = false;
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            let idx;
+            while ((idx = buf.indexOf('\n\n')) >= 0) {
+              const frame = buf.slice(0, idx);
+              buf = buf.slice(idx + 2);
+              if (!frame.startsWith('data: ')) continue;
+              const event = JSON.parse(frame.slice(6));
+              if (event.type === 'token') {
+                if (!started) { body.textContent = ''; started = true; }
+                body.textContent += event.text;
+              } else if (event.type === 'done') {
+                renderSources(pending, event.sources);
+              }
             }
-            pending.appendChild(s);
           }
+          if (!started) body.textContent = '(no answer)';
         } catch (err) {
-          pending.querySelector('div:last-child').textContent = 'Error: ' + err;
+          body.textContent = 'Error: ' + err;
         } finally {
           send.disabled = false;
         }

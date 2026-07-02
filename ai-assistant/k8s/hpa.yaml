@@ -1,0 +1,23 @@
+# Autoscale the stateless API tier on CPU (needs metrics-server — see
+# deploy/k8s/README.md from the main project). Note what this does NOT scale:
+# generation throughput is bounded by the model server (ollama), not by rag-api —
+# scaling rag-api helps with concurrent retrieval/caching, not tokens/second.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rag-api
+  namespace: dojo-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rag-api
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

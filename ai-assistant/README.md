@@ -105,29 +105,41 @@ The eval harness also runs on a schedule in CI
 | Retrieval quality | **MMR re-ranking** (over-fetch `FETCH_K`, diversify to `TOP_K`) — relevance without redundancy |
 | Conversation memory | multi-turn `history` in the chat request, folded into the prompt |
 | Grounding / anti-hallucination | `MIN_SCORE` gate + "answer only from context, cite sources, else say you don't know" |
-| Observability | Prometheus `/metrics` (latency, grounded ratio, retrieval score) + a provisioned **Grafana dashboard** overlay; `/healthz` `/readyz` |
-| Evaluation | `eval/` harness scores retrieval + answer quality (incl. a must-refuse case), plus a **nightly CI** run |
+| Streaming | server-sent tokens end to end (the web UI renders at time-to-first-token) |
+| Token & cost accounting | per-request `usage` → `dojo_ai_tokens_total`; a Grafana panel prices it at hosted-API rates (lab 06) |
+| Per-stage tracing & logs | `dojo_ai_stage_latency_seconds{stage}`, TTFT, and JSON logs with request IDs (lab 06) |
+| Semantic caching | near-duplicate questions skip generation via a Qdrant-backed answer cache (lab 06) |
+| Tool calling / agents | a bounded agent loop calls the **main Dojo API** for live progress data (lab 07) |
+| Observability | Prometheus `/metrics` + a provisioned **Grafana dashboard** overlay; `/healthz` `/readyz` |
+| Evaluation | `eval/` harness: categorized dataset, prompt-injection & retrieval hit@k checks, CI reports (labs 04, 08) |
+| Prompt versioning | `PROMPT_VERSION` selects `prompts/v1.txt` or `v2.txt`; A/B'd by the eval before rollout (lab 08) |
 | Backend portability | one env var swaps Ollama ↔ LM Studio (OpenAI-compatible) |
-| Packaging & delivery | non-root Docker image, Compose stack, CI (unit tests + build), K8s manifests |
-| Cost/latency | fully local (no token cost); metrics expose latency to reason about model size/GPU |
+| Packaging & delivery | non-root Docker image + **Trivy CRITICAL gate**, Compose, K8s w/ NetworkPolicy/PDB/HPA/Secret |
 
 ## Layout
 
 ```
-api/app/       config, llm (OpenAI-compat), embeddings, vectorstore (Qdrant), chunk, rerank (MMR), rag, ingest, metrics, main
-api/web/       minimal chat UI
-api/tests/     unit tests (chunking, MMR re-rank, prompt/grounding/memory)
-eval/          RAG evaluation harness + dataset
-observability/ Prometheus + Grafana overlay (LLMOps dashboard)
-k8s/           Kubernetes manifests (Ollama, Qdrant, rag-api, ingest Job, Ingress)
+api/app/       config, llm (OpenAI-compat + token usage), rag (staged + cached), cache, tools, agent,
+               telemetry (JSON logs), vectorstore (Qdrant), chunk, rerank (MMR), metrics, main
+api/web/       minimal streaming chat UI
+api/tests/     unit + route tests (chunking, MMR, grounding, usage, cache, agent, routes)
+eval/          RAG evaluation harness + categorized dataset
+observability/ Prometheus + Grafana overlay (LLMOps dashboard: tokens, cost, stages, cache)
+k8s/           Kubernetes manifests + hardening (NetworkPolicy, PDB, HPA, Secret)
 compose.yaml   local stack (Ollama + Qdrant + rag-api + ingest)
-labs/          LLMOps labs (01–05)
+compose.dojo.yaml  overlay: join the main Dojo network so the agent can call its API (lab 07)
+labs/          LLMOps labs (01–08)
 ```
 
 ## Labs
 
-Work through [labs/](labs/) 01→05: run a local model, build the RAG pipeline, add observability
-& guardrails, evaluate, then containerize & deploy (Compose → Kubernetes).
+Work through [labs/](labs/) in order:
+
+- **01–05 — foundations:** run a local model, build the RAG pipeline, add observability &
+  guardrails, evaluate, then containerize & deploy (Compose → Kubernetes).
+- **06–08 — LLMOps depth:** token/cost telemetry + semantic caching (06), tool calling where
+  the assistant operates the live Dojo API (07), and evaluation v2 with prompt-injection tests
+  and prompt versioning (08).
 
 ## Deploy on Kubernetes
 

@@ -95,8 +95,13 @@ Being able to say *no* with reasons is stronger interview signal than shallow co
 
 A second, standalone example project lives in [`../ai-assistant/`](../ai-assistant/): a
 local/remote **RAG assistant** over these docs (Ollama / LM Studio, local or on another PC),
-with grounding, MMR re-ranking, memory, metrics + Grafana, an eval harness, and Compose/CI/K8s.
-It adds Python + LLMOps to the portfolio. Its labs: [ai-assistant/labs](../ai-assistant/labs/).
+with grounding, MMR re-ranking, memory, streaming, token/cost + per-stage metrics, a semantic
+cache, a **tool-calling agent** that operates the main Dojo API, an eval harness with
+prompt-injection tests, and Compose/CI/K8s. It adds Python + LLMOps to the portfolio.
+Its labs ([ai-assistant/labs](../ai-assistant/labs/)) run 01–08: foundations (01–05: local LLM,
+RAG, guardrails+observability, evaluation, deploy) then LLMOps depth (06 tokens/cost/telemetry,
+07 tool calling, 08 evaluation v2 + prompt versioning). The LLMOps interview Q&A is §7 of
+[INTERVIEW_PREP.md](INTERVIEW_PREP.md).
 
 ## The three pillars of observability
 

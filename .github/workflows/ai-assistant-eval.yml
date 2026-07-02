@@ -7,6 +7,10 @@ on:
   schedule:
     - cron: "0 3 * * *"
   workflow_dispatch:
+    inputs:
+      prompt_version:
+        description: "System prompt to evaluate (A/B: dispatch once with v1, once with v2 — lab 08)"
+        default: "v1"
 
 jobs:
   eval:
@@ -14,6 +18,8 @@ jobs:
     env:
       CHAT_MODEL: llama3.2:1b
       EMBED_MODEL: nomic-embed-text
+      # Compose passes this through to rag-api; nightly runs use v1.
+      PROMPT_VERSION: ${{ github.event.inputs.prompt_version || 'v1' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +52,25 @@ jobs:
         env:
           EVAL_API_URL: http://localhost:8000/api/chat
           EVAL_THRESHOLD: "0.6"   # lenient: a 1b model is weaker than what you'd run locally
+          EVAL_REPORT_MD: report.md
+
+      # The per-category table lands on the run's summary page — an eval nobody
+      # reads is an eval nobody trusts (lab 08).
+      - name: Publish report to job summary
+        if: always()
+        run: |
+          echo "### prompt_version: $PROMPT_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          [ -f report.md ] && cat report.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-${{ env.PROMPT_VERSION }}
+          path: |
+            report.md
+            ai-assistant/eval/report.json
+          if-no-files-found: ignore
 
       - name: Dump logs on failure
         if: failure()

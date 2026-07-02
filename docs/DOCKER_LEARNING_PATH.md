@@ -196,6 +196,13 @@ a **bind mount** (`-v`) maps live host files in — used for dev hot reload in S
 
 **Checkpoint.** The `sh` command fails; rebuilds reuse cached dependency layers.
 
+**Video Tutorial.**
+
+https://www.youtube.com/watch?v=ObhdD49AEYw
+
+https://www.youtube.com/watch?v=RqTEHSBrYFw
+
+
 ➡️ Full lab: [labs/02-containerize-api](../labs/02-containerize-api/)
 
 ## Step 03 — Containerize the frontend
@@ -469,6 +476,9 @@ terraform output                                  # public_ip, ansible_inventory
 
 ➡️ Full lab: [labs/16-terraform](../labs/16-terraform/) ·
 config: [deploy/terraform](../deploy/terraform/)
+
+**Video Tutorial.**
+https://youtu.be/SLB_c_ayRMo?is=ie3hCZOH5wijfv6s
 
 ## Step 17 — Configuration management: Ansible
 

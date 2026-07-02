@@ -35,6 +35,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: dojo-ai-config
+            - secretRef:
+                name: dojo-ai-secrets
           livenessProbe:
             httpGet: { path: /healthz, port: 8000 }
             initialDelaySeconds: 5

@@ -48,6 +48,19 @@ backend is a config choice, not a code change — the portability lesson that ma
 
 - ✅ `ollama list` shows a chat model and `nomic-embed-text`.
 - ✅ The `/v1/chat/completions` call returns text; `/v1/embeddings` returns a vector.
+
 - ✅ You can explain why "OpenAI-compatible" lets you swap Ollama ↔ LM Studio ↔ OpenAI.
+
+## Common failures
+
+- `/v1/chat/completions` 404s or errors → the model isn't pulled yet
+  (`docker compose exec ollama ollama list`) or the model name in the request is typo'd.
+- `connection refused` on :11434 → the `ollama` service isn't up — it's opt-in:
+  `--profile local-llm`.
+- LM Studio answers in your browser but not from the container → inside a container
+  `localhost` is the container; use `host.docker.internal:1234`.
+- A remote server works with curl from your PC but not from the stack → remote Ollama binds
+  127.0.0.1 by default; set `OLLAMA_HOST=0.0.0.0` on that machine (and mind the security notes).
+- First response is very slow → cold start: the model loads into RAM on first use.
 
 ➡️ Next: [AI Lab 02 — Build the RAG pipeline](../02-rag-pipeline/)

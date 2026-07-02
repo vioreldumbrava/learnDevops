@@ -1,0 +1,23 @@
+# Overlay (lab 07): connect the AI assistant to the MAIN DevOps Dojo stack so the
+# agent's tools can call the Go API (http://api:8080). Kept as an overlay — not
+# baked into compose.yaml — so the AI stack still starts standalone, mirroring
+# the main repo's dev/prod/scale overlay pattern.
+#
+#   # main stack first (creates the network):
+#   docker compose -f deploy/compose/compose.yaml up -d          # from the repo root
+#   # then the AI stack, joined to it:
+#   docker compose -f compose.yaml -f compose.dojo.yaml up -d    # from ai-assistant/
+services:
+  rag-api:
+    environment:
+      DOJO_API_URL: http://api:8080
+      # Flip to "true" to let the agent mark steps complete / add notes (lab 07).
+      AGENT_ALLOW_WRITES: "false"
+    networks:
+      - dojo
+
+networks:
+  dojo:
+    external: true
+    # Compose names the main stack's default network <project>_default.
+    name: devops-dojo_default

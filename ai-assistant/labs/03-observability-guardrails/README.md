@@ -49,14 +49,25 @@ the grounded label, and the top retrieval score on every request.
 
 ## Exercise
 
-Add a **token/cost** metric: record the response length (or usage if your backend returns it) as
-a histogram, and reason about how model size affects latency. Then write a Prometheus alert for
-"grounded ratio dropped" — a proxy for "our docs no longer cover what users ask."
+Write a Prometheus **alert rule** for "grounded ratio below 80% for 15 minutes" — a proxy for
+"our docs no longer cover what users ask" — and decide what you'd do when it fires (re-ingest?
+extend the docs? revisit `MIN_SCORE`?). Token and cost telemetry get their full treatment in
+[AI Lab 06](../06-tokens-cost-telemetry/).
 
 ## Checkpoint
 
 - ✅ Out-of-scope questions are refused with no sources.
 - ✅ `/metrics` exposes latency, grounded counter, and retrieval-score histogram.
 - ✅ You can explain two ways this app fights hallucination (grounding gate + prompt instruction).
+
+## Common failures
+
+- *Everything* gets refused → `MIN_SCORE` is above what your embed model actually scores;
+  look at the `dojo_ai_retrieval_top_score` buckets and lower it.
+- *Nothing* gets refused → `MIN_SCORE` too low — the World Cup question must NOT be answered.
+- No `dojo_ai_*` series in `/metrics` → counters appear on first use; ask a question first.
+- Grafana dashboard is empty → the observability overlay isn't up, or Prometheus hasn't
+  scraped yet (15s interval); check Prometheus targets at :9091.
+- Port conflict on 3002 → the main project's Grafana is 3001, this one is 3002; `docker ps`.
 
 ➡️ Next: [AI Lab 04 — Evaluation](../04-evaluation/)

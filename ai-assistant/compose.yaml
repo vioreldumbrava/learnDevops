@@ -52,6 +52,9 @@ services:
       CHAT_MODEL: ${CHAT_MODEL:-llama3.2:3b}
       EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
       QDRANT_URL: http://qdrant:6333
+      PROMPT_VERSION: ${PROMPT_VERSION:-v1} # lab 08: A/B a prompt via the eval
+      CACHE_ENABLED: ${CACHE_ENABLED:-false} # lab 06: semantic answer cache
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "127.0.0.1:8000:8000"
     # Only depends on qdrant — the LLM (OPENAI_BASE_URL) may be a local profile

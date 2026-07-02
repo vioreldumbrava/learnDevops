@@ -233,14 +233,59 @@ Highest leverage next steps to become clearly hireable, in order:
 
 ---
 
-### Bonus differentiator — the AI/LLMOps project
+## 7. LLMOps — the AI/infra differentiator
 
-The second project ([ai-assistant/](../ai-assistant/)) is a strong talking point as AI infra
-demand grows: *"I built a private RAG assistant over internal docs — local LLM via Ollama
-(LM Studio-compatible), Qdrant vectors, grounding guardrails that refuse out-of-scope questions,
-Prometheus metrics for latency/retrieval quality, an eval harness that gates releases, shipped as
-Docker/Compose/K8s. Swapping the model backend is one env var."* Be ready to explain RAG, why you
-chunk + embed, and how you fight hallucination (grounding gate + prompt + eval).
+The second project ([ai-assistant/](../ai-assistant/)) matters as AI-infra demand grows. The
+30-second pitch: *"A private RAG assistant over our own docs — local LLM via Ollama
+(LM Studio-compatible), Qdrant vectors, a FastAPI service with streaming, grounding guardrails,
+token/cost and per-stage metrics, a semantic cache, a tool-calling agent that operates the main
+Dojo app's API, and an eval harness with prompt-injection tests that gates releases. Swapping
+the model backend is one env var."* The job-relevant framing is **operating** inference, not
+training models. Rehearse these:
+
+**Q: How is running an LLM service different from a normal web service?**
+> Outputs are nondeterministic, so "tests" are a threshold-based eval suite, not assertions;
+> cost is per-token, not per-request; latency is dominated by the model, and quality can
+> regress with *no code change* (a prompt or model swap). That's why I built an eval, token
+> metrics, and prompt versioning — the things that make those differences observable.
+
+**Q: How do you monitor it?**
+> The golden signals plus LLM-specific ones, by name: `dojo_ai_chat_latency_seconds` and
+> `dojo_ai_time_to_first_token_seconds` (TTFT is what users feel), `dojo_ai_stage_latency_seconds{stage}`
+> to see whether embed, retrieval, or generation is the bottleneck, `dojo_ai_tokens_total` for
+> cost, and grounded-rate from `dojo_ai_chat_requests_total{grounded}`. Plus JSON logs with a
+> request ID so one slow request is greppable.
+
+**Q: How do you stop it hallucinating?**
+> Retrieval-score gate (`MIN_SCORE`): if the best chunk is too weak the app refuses with no
+> sources instead of guessing; the prompt says "answer only from context and cite [n]"; and the
+> eval has must-refuse and prompt-injection cases so a regression fails CI. I'm honest that a
+> gate reduces, not eliminates, hallucination.
+
+**Q: How do you control cost?**
+> Token accounting from the API's `usage` (with a labeled estimate fallback when a backend
+> omits it), a Grafana panel that prices those tokens at hosted-API rates, a semantic cache so
+> near-duplicate questions skip generation entirely (`dojo_ai_cache_events_total` hit ratio),
+> and prompt-budget levers — `TOP_K`, `HISTORY_TURNS`, chunk size.
+
+**Q: How do you CI/CD an app with nondeterministic output?**
+> Two tiers. Fast deterministic gate on every PR: pytest over the *pure* functions (chunking,
+> MMR, grounding decision, prompt build) + route tests + a Trivy CRITICAL gate + image build.
+> Then a nightly live eval against a real (small) model with a pass threshold, a per-category
+> report published to the run summary, and prompt A/B before a prompt change ships.
+
+**Q: Explain tool calling and its risks.**
+> An agent is a bounded loop: hand the model tool schemas, execute any `tool_calls` it returns,
+> feed results back, repeat up to a turn limit. Risks are unbounded loops, unwanted writes, and
+> slow tools — so mine caps turns, keeps write tools behind a flag (read-only by default), sets
+> per-tool timeouts, and counts every call. My agent calls the main Dojo API, so it reads real
+> progress data. MCP is the same idea with a standardized transport.
+
+**Q: You ran a local model — what changes with GPUs / at scale?**
+> The `OPENAI_BASE_URL` abstraction means swapping Ollama for vLLM or a hosted API is config,
+> not code. On K8s you'd schedule `nvidia.com/gpu` (the manifest has the stub), and you'd reach
+> for vLLM because batching and KV-cache reuse are what make GPU serving efficient. Right-size
+> the model too — I run a 1b model in CI and a 3b locally for exactly that reason.
 
 ### Quick self-test
 

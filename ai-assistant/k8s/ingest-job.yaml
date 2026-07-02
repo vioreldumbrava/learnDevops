@@ -9,6 +9,9 @@ metadata:
 spec:
   backoffLimit: 3
   template:
+    metadata:
+      labels:
+        app: ingest # NetworkPolicies select pods by label (networkpolicy.yaml)
     spec:
       restartPolicy: OnFailure
       initContainers:

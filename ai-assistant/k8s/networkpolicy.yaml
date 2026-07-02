@@ -1,0 +1,128 @@
+# Zero-trust networking for the dojo-ai namespace — the same default-deny +
+# explicit-allows pattern as the main app (lab 28). Enforcement needs a real CNI
+# (Calico); kind's default kindnet accepts but ignores these.
+#
+# Traffic map:
+#   ingress-nginx ──► rag-api:8000 ◄── Prometheus (monitoring ns, lab 34)
+#   rag-api ──► qdrant:6333, ollama:11434, kube-dns
+#   ingest  ──► qdrant:6333, ollama:11434, kube-dns (+ git clone = full egress)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: dojo-ai
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: dojo-ai
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rag-api
+  namespace: dojo-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: rag-api
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring # kube-prometheus-stack scrape
+      ports:
+        - { protocol: TCP, port: 8000 }
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: qdrant
+      ports:
+        - { protocol: TCP, port: 6333 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ollama
+      ports:
+        - { protocol: TCP, port: 11434 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: qdrant
+  namespace: dojo-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: qdrant
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: rag-api
+        - podSelector:
+            matchLabels:
+              app: ingest
+      ports:
+        - { protocol: TCP, port: 6333 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ollama
+  namespace: dojo-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: ollama
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: rag-api
+        - podSelector:
+            matchLabels:
+              app: ingest
+      ports:
+        - { protocol: TCP, port: 11434 }
+  egress:
+    # `ollama pull` fetches models from the public registry — full egress here,
+    # scoped to just this pod. Tighten to specific CIDRs in a real deployment.
+    - {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingest
+  namespace: dojo-ai
+spec:
+  podSelector:
+    matchLabels:
+      app: ingest
+  policyTypes: [Egress]
+  egress:
+    # The initContainer git-clones the repo from the internet; the main container
+    # needs qdrant + ollama. Full egress for a short-lived one-shot job.
+    - {}

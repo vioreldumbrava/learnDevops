@@ -4,9 +4,27 @@
   "tags": ["dojo", "llmops"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "10s",
   "time": { "from": "now-30m", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "prompt_price_per_m",
+        "label": "Prompt $/1M tokens (hosted-API price)",
+        "type": "textbox",
+        "query": "0.15",
+        "current": { "text": "0.15", "value": "0.15" }
+      },
+      {
+        "name": "completion_price_per_m",
+        "label": "Completion $/1M tokens (hosted-API price)",
+        "type": "textbox",
+        "query": "0.60",
+        "current": { "text": "0.60", "value": "0.60" }
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
@@ -73,6 +91,90 @@
           "legendFormat": "p50 top score",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "histogram_quantile(0.50, sum by (le) (rate(dojo_ai_retrieval_top_score_bucket[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Tokens per minute by kind (lab 06)",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{kind}} ({{source}})",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (kind, source) (rate(dojo_ai_tokens_total[5m])) * 60"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Stage latency p95 (s) — where does the time go?",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{stage}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le, stage) (rate(dojo_ai_stage_latency_seconds_bucket[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Time to first token p50 / p95 (s)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "p50",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(dojo_ai_time_to_first_token_seconds_bucket[5m])))"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "p95",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(dojo_ai_time_to_first_token_seconds_bucket[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Answer-cache hit ratio (15m)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(dojo_ai_cache_events_total{result=\"hit\"}[15m])) / clamp_min(sum(rate(dojo_ai_cache_events_total[15m])), 1e-9)"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Estimated cost at hosted-API prices ($/hour)",
+      "description": "Local inference is free — this derives what the SAME token workload would cost on a hosted API (defaults: GPT-4o-mini pricing). Adjust the dashboard variables to price other models.",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4 } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "(sum(rate(dojo_ai_tokens_total{kind=\"prompt\"}[15m])) * 3600 / 1e6) * $prompt_price_per_m + (sum(rate(dojo_ai_tokens_total{kind=\"completion\"}[15m])) * 3600 / 1e6) * $completion_price_per_m"
         }
       ]
     }

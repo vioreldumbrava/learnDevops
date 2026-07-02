@@ -53,4 +53,17 @@ the heart of RAG tuning.
 - ✅ Qdrant's `dojo_docs` collection has points.
 - ✅ Answers include citations pointing at real `docs/`/`labs/` files.
 
+## Common failures
+
+- Every answer is "I don't know" → the collection is empty: run
+  `docker compose run --rm ingest` and confirm it printed indexed chunk counts.
+- `ingest` fails immediately → the embed model isn't pulled (lab 01), or
+  `OPENAI_BASE_URL` points at nothing.
+- Qdrant 404 on the collection URL → ingest never ran, or it wrote to a different
+  Qdrant (check `QDRANT_URL`).
+- Re-ingesting doubles the point count → upserts use random IDs, so re-runs append;
+  `docker compose down -v` wipes for a clean index.
+- Citations look irrelevant → tune `CHUNK_SIZE`/`TOP_K` — and use lab 08's eval to
+  measure the change instead of eyeballing it.
+
 ➡️ Next: [AI Lab 03 — Observability & guardrails](../03-observability-guardrails/)

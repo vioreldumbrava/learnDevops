@@ -7,7 +7,7 @@ from __future__ import annotations
 import glob
 import os
 
-from . import llm, vectorstore
+from . import cache, llm, vectorstore
 from .chunk import chunk_text
 from .config import cfg
 
@@ -34,6 +34,11 @@ def run() -> None:
     dim = len(llm.embed(["dimension probe"])[0])
     vectorstore.ensure_collection(dim)
     print(f"embedding dim={dim}, collection='{cfg.QDRANT_COLLECTION}'")
+
+    # Cached answers were generated from the OLD documents — without this they
+    # silently outlive the re-ingest (lab 06's stale-cache failure mode).
+    cache.clear()
+    print(f"answer cache '{cfg.CACHE_COLLECTION}' cleared")
 
     total = 0
     for f in files:

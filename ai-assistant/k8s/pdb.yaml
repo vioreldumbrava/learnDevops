@@ -1,0 +1,13 @@
+# Voluntary disruptions (node drain, upgrades) must leave one rag-api serving —
+# same reasoning as the main app's PDBs. qdrant/ollama run 1 replica by design
+# (stateful/heavy), so a PDB there would block drains forever.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rag-api
+  namespace: dojo-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: rag-api

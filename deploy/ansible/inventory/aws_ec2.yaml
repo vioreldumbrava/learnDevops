@@ -1,0 +1,34 @@
+# Lab 44 — dynamic inventory: ask AWS "which instances are mine?" instead of
+# pasting IPs into inventory.ini after every terraform apply.
+# Prereqs on the control node:
+#   ansible-galaxy collection install amazon.aws
+#   pip install boto3 botocore
+# Uses the same AWS credentials as Terraform (env vars / ~/.aws).
+plugin: amazon.aws.aws_ec2
+
+regions:
+  - eu-north-1            # keep in sync with deploy/terraform var.region
+
+# Only the Dojo's running instances (the Project tag comes from Terraform).
+filters:
+  tag:Project: devops-dojo
+  instance-state-name: running
+
+# Name hosts by their public IP — the same address you'd ssh to.
+hostnames:
+  - ip-address
+
+# Every matched instance joins `dojo`, so playbook.yml (hosts: dojo) works
+# unchanged — swapping static for dynamic inventory is invisible to plays.
+groups:
+  dojo: true
+
+# The tag-based pattern for real accounts with many projects/roles: one group
+# per tag value (this yields e.g. project_devops_dojo).
+keyed_groups:
+  - key: tags.Project
+    prefix: project
+
+compose:
+  ansible_host: public_ip_address
+  ansible_user: "'ubuntu'"

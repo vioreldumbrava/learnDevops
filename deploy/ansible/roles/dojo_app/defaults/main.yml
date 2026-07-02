@@ -1,0 +1,11 @@
+---
+# Role defaults — lowest-precedence variables, meant to be overridden with
+# --extra-vars (or group_vars). Same knobs as playbook.yml; do NOT commit
+# real secrets.
+repo_url: "https://github.com/OWNER/REPO.git"
+repo_version: "main"
+app_dir: /opt/dojo
+postgres_password: "change-this-strong-password"
+site_domain: ":80" # ":80" for HTTP test, or "dojo.example.com" for HTTPS
+acme_email: "you@example.com"
+grafana_admin_password: "admin"

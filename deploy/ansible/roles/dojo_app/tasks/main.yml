@@ -1,0 +1,42 @@
+---
+# App deployment: clone, render config, compose up. Depends on the `docker`
+# role having prepared the host.
+- name: Create the app directory owned by the deploy user
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Clone or update the project
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ repo_version }}"
+    force: true
+  become_user: "{{ ansible_user }}"
+
+- name: Render the .env file
+  # A fully self-contained role would carry its own copy under
+  # roles/dojo_app/templates/; we reference the shared one to keep a single
+  # source of truth with playbook.yml (lab 17).
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/env.j2"
+    dest: "{{ app_dir }}/.env"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+
+- name: Deploy the production stack (Caddy + app)
+  # Runs as root, which can always talk to the Docker socket (the deploy
+  # user's new docker group membership only applies on next login).
+  ansible.builtin.command:
+    chdir: "{{ app_dir }}"
+    cmd: >-
+      docker compose --env-file .env
+      -f deploy/compose/compose.yaml
+      -f deploy/compose/compose.prod.yaml
+      up -d --build
+  register: compose_up
+  changed_when: "'Started' in compose_up.stderr or 'Created' in compose_up.stderr"

@@ -1,0 +1,23 @@
+---
+# Host preparation: container runtime + git. Nothing Dojo-specific in here —
+# that's what makes the role reusable across projects.
+- name: Install Docker, Compose plugin and git
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+      - git
+    update_cache: true
+    state: present
+
+- name: Ensure Docker is running and enabled at boot
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Allow the deploy user to run Docker without sudo
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true

@@ -83,6 +83,7 @@ Azure shop?". Breadth — deliberately *after* depth.
 | Lab | Topic | Notes | Status |
 |-----|-------|-------|--------|
 | [43](../labs/43-jenkins-shared-library/) | Jenkins Shared Library, webhook triggers, dynamic versioning | deepens lab 24 | ⬜ |
+| [44](../labs/44-ansible-at-scale/) | Ansible at scale: dynamic inventory, roles, Terraform handoff | 💸 deepens 16/17 | ⬜ |
 
 ## Intentionally out of scope (and why)
 

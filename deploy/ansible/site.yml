@@ -1,0 +1,12 @@
+---
+# Lab 44 — the same deployment as playbook.yml, restructured into roles:
+# `docker` prepares the host, `dojo_app` deploys the stack. Same tasks, same
+# idempotency; the win is reuse (another project reuses `docker` untouched)
+# and diff-ability (a change to app deployment can't touch host setup).
+- name: Configure server and deploy DevOps Dojo (roles layout)
+  hosts: dojo
+  become: true
+
+  roles:
+    - docker
+    - dojo_app

@@ -53,6 +53,9 @@ Run the playbook a **second time** with no changes and read the `PLAY RECAP`: `c
 for the idempotent tasks. Then push a change to your repo and re-run — only the git + compose
 tasks report `changed`, and the new version is live. That's config management vs. a one-off script.
 
+When pasting the IP into `inventory.ini` gets old: lab 44 replaces it with a tag-driven
+**dynamic inventory** and splits this playbook into roles.
+
 ## Checkpoint
 
 - ✅ `ansible dojo -m ping` returns `pong`.

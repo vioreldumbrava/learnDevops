@@ -86,6 +86,7 @@ Azure shop?". Breadth — deliberately *after* depth.
 | [44](../labs/44-ansible-at-scale/) | Ansible at scale: dynamic inventory, roles, Terraform handoff | 💸 deepens 16/17 | ⬜ |
 | [45](../labs/45-boto3-ops-automation/) | Python + Boto3: snapshot lifecycle, self-healing monitor | 💸 deepens 37/40 | ⬜ |
 | [46](../labs/46-helm-library-chart/) | Helm library chart + Helmfile (push-based multi-env) | deepens 23/36 | ⬜ |
+| [47](../labs/47-cloud-portability-aks/) | Cloud portability: the same chart on Azure AKS (+ [provider map](CLOUD_PROVIDER_MAP.md)) | 💸 needs 22/23 | ⬜ |
 
 ## Intentionally out of scope (and why)
 
@@ -97,6 +98,9 @@ Being able to say *no* with reasons is stronger interview signal than shallow co
   mTLS, L7 policy, traffic mirroring) and what it costs before reaching for one.
 - **Azure / GCP tracks:** one cloud deep (AWS — labs 16/25/40) beats three shallow. Managed
   k8s, managed DB, IAM, VPC transfer almost one-to-one; AKS/GKE is mostly a syntax change.
+  Lab 47 is the deliberate, scoped exception: one AKS deploy of the unchanged chart to
+  *prove* the transfer, plus [CLOUD_PROVIDER_MAP.md](CLOUD_PROVIDER_MAP.md) as the interview
+  lookup table. Full Azure/GCP tracks stay out.
 - **HA everything:** single NAT gateway, single-AZ RDS, one-node Postgres are conscious cost
   choices for learning — each lab names exactly what flips in production.
 

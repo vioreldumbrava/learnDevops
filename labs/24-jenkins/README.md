@@ -4,6 +4,11 @@
 
 **Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
 
+> ℹ️ **Order note:** the folder number is out of sequence on purpose. This is a **Milestone 2**
+> lab (it pairs with [lab 15](../15-cicd/), CI/CD) but was added later, so it sorts after the
+> Milestone 3 labs. Do it right after lab 15 — or any time you want the self-hosted
+> counterpart. [CURRICULUM.md](../../docs/CURRICULUM.md) shows the intended order.
+
 ## Concept
 
 Lab 15 used **GitHub Actions** — CI/CD **managed** by GitHub. **Jenkins** is the classic

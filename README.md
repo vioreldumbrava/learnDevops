@@ -79,6 +79,19 @@ Every lab follows the same shape:
 
 > **Concept (what & why) → What you'll do → Steps → How it works → Exercise → Checkpoint → Common failures → Maps to**
 
+**How the labs work (read this once):** the app and all its infrastructure are *already
+written* in this repo. You don't build each file from a blank page — you **read** the
+pre-written file, **run** it, **prove** the property it demonstrates, then **extend** it in
+the lab's **Exercise** (that's the type-it-yourself part: add a migration, tighten a policy,
+write a script). This is deliberate: you always have a working reference, so a typo can't
+strand you for hours. Labs build on each other's artifacts — lab 02 reuses lab 01's image,
+lab 18 deploys the server from labs 16–17, lab 35 breaks the cluster from lab 22.
+
+A couple of labs sort out of numeric order on purpose (they were added later): **lab 24**
+(Jenkins) is a Milestone 2 lab, and **lab 48** (CKA drills) belongs in the Kubernetes
+deep-dive. Each says so at the top; [docs/CURRICULUM.md](docs/CURRICULUM.md) is the source of
+truth for sequence.
+
 Each lab states **where to run its commands** in the *Run from* line under the title — for
 most labs that's the **repo root** (`learnDevops/`), not the lab's own folder; labs that need
 a different directory (`deploy/terraform`, `ai-assistant/`, …) say so explicitly.

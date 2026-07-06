@@ -109,6 +109,11 @@ Stop and wipe data for a clean slate:
 
 ## The learning path
 
+> **How each step works:** the code is already in the repo. You **read** the pre-written file,
+> **run** it, **prove** what it demonstrates, then **extend** it in the lab's *Exercise* — the
+> hands-on, type-it-yourself part. You're not building from a blank page; you're learning to
+> operate, break, fix and change a working system, always against a reference that runs.
+
 Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Milestone 2/3.
 
 | # | Step | Lab | Status |

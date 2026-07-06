@@ -118,3 +118,7 @@ See [docs/INTERVIEW_PREP.md](../../docs/INTERVIEW_PREP.md) for the full talk tra
 - Ingress has no address → the AWS ingress-nginx manifest wasn't applied, or the ELB is still
   provisioning (wait a minute).
 - `terraform destroy` hangs on the VPC → leftover ELBs; delete the ingress/services first.
+
+➡️ Next: [Lab 26 — Production secrets management](../26-secrets-management/) — the one thing
+this capstone still fakes (plaintext secrets) — then back to the map:
+[docs/CURRICULUM.md](../../docs/CURRICULUM.md).

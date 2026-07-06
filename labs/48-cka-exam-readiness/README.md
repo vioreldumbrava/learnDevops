@@ -4,6 +4,11 @@
 
 **Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
 
+> ℹ️ **Order note:** the folder number is out of sequence on purpose. This belongs to the
+> **Kubernetes deep-dive** and is best done right after [lab 34](../34-k8s-kube-prometheus-stack/)
+> — it was added later, so it sorts last. [CURRICULUM.md](../../docs/CURRICULUM.md) shows the
+> intended order.
+
 ## Concept
 
 Labs 22–34 cover the *workloads-and-policy* half of the CKA: Deployments, Services, Ingress,

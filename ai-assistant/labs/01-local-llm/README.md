@@ -1,5 +1,7 @@
 # AI Lab 01 — Run a local LLM (Ollama / LM Studio)
 
+**Run from:** the [`ai-assistant/`](../../) folder — `cd ai-assistant` from the repo root first; every command and path in this lab is relative to it.
+
 ## Concept
 
 You don't need a cloud API to build LLM apps. **Ollama** and **LM Studio** both run models

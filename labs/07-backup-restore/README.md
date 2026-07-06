@@ -2,6 +2,8 @@
 
 **Maps to:** original §8 · **Milestone:** 1
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Containers are disposable; **data is not**. Database state lives in a named volume, and a

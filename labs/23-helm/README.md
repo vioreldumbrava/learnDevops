@@ -2,6 +2,8 @@
 
 **Maps to:** extra (completes the K8s story) · **Milestone:** 3
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Applying a folder of raw manifests doesn't scale across environments — you'd copy-paste and

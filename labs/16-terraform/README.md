@@ -2,6 +2,8 @@
 
 **Maps to:** extra (fills a gap in the original path) · **Milestone:** 2
 
+**Run from:** the **repo root** — the Terraform steps `cd deploy/terraform` first and stay there; paths in the text are relative to the repo root.
+
 ## Concept
 
 **Infrastructure as Code** describes servers, networks, and firewalls in version-controlled

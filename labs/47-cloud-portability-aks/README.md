@@ -2,6 +2,8 @@
 
 **Maps to:** proves labs 22/23/25 transfer · **Milestone:** 5 — Ecosystem breadth · 💸 ~€0.10/h, teardown same session
 
+**Run from:** the **repo root** — the AKS Terraform steps `cd deploy/aks` first (and come back with `cd ../..`).
+
 ## Concept
 
 The curriculum goes **one cloud deep** on purpose ([why](../../docs/CURRICULUM.md#intentionally-out-of-scope-and-why)).

@@ -2,6 +2,8 @@
 
 **Maps to:** deepens labs 37/40 · **Milestone:** 5 — Ecosystem breadth · *TWN Bootcamp Module 14* · 💸 runs a `t3.small` briefly
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Lab 37 scripted against *your own* systems (backups, health waits, chaos). This lab scripts

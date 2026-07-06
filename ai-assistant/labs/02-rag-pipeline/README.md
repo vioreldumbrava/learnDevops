@@ -1,5 +1,7 @@
 # AI Lab 02 — Build the RAG pipeline
 
+**Run from:** the [`ai-assistant/`](../../) folder — `cd ai-assistant` from the repo root first; every command and path in this lab is relative to it.
+
 ## Concept
 
 An LLM only knows its training data. **Retrieval-Augmented Generation (RAG)** gives it *your*

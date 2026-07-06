@@ -2,6 +2,8 @@
 
 **Maps to:** deepens §12/§15 · **Milestone:** K8s deep-dive · **SRE**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 A plain Deployment rolls out all-at-once (or a simple rolling update). **Argo Rollouts**

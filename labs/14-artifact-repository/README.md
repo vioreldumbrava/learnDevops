@@ -2,6 +2,8 @@
 
 **Maps to:** original §14 · **Milestone:** 2 · *optional, heavy*
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 A plain registry stores images. An **artifact repository manager** (Nexus, Artifactory)

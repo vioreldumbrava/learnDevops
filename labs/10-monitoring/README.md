@@ -2,6 +2,8 @@
 
 **Maps to:** original §10 · **Milestone:** 1
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 **Metrics** are cheap numeric time-series (request counts, latencies, gauges). **Prometheus**

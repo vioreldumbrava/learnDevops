@@ -2,6 +2,8 @@
 
 **Maps to:** extra (fills a gap in the original path) · **Milestone:** 2
 
+**Run from:** the **repo root** — the Ansible steps `cd deploy/ansible` first and stay there.
+
 ## Concept
 
 Terraform gave you a bare server. **Configuration management** installs and configures the

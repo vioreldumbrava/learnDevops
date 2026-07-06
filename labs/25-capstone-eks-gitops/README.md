@@ -2,6 +2,8 @@
 
 **Maps to:** the whole path · **Milestone:** 3 (capstone) · *the interview centerpiece*
 
+**Run from:** the **repo root** — the Terraform steps `cd deploy/eks` first (and come back with `cd ../..`); all `kubectl`/`helm` commands run from the repo root.
+
 This is the lab you talk about in interviews. It takes everything from labs 00–24 and lands
 it the way real teams run software: a managed **Kubernetes cluster on AWS (EKS)**, images
 built and published by **CI** to a registry, and delivery through **GitOps (ArgoCD)** — no

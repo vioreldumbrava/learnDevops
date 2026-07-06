@@ -2,6 +2,8 @@
 
 **Maps to:** extra · **Milestone:** 4 — Operate & Automate · **do anytime after lab 07**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 The most common DevOps screening exercise is not Kubernetes trivia — it's *"write a script

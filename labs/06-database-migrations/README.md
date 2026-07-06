@@ -2,6 +2,8 @@
 
 **Maps to:** original §7 · **Milestone:** 1
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Your schema must evolve in a **versioned, repeatable** way — not by hand-editing tables on a

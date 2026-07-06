@@ -1,5 +1,7 @@
 # AI Lab 08 — Evaluation v2 & prompt versioning
 
+**Run from:** the [`ai-assistant/`](../../) folder — `cd ai-assistant` from the repo root first; every command and path in this lab is relative to it.
+
 ## Concept
 
 Five test cases is a smoke test, not an eval. A real eval is a **categorized dataset** with

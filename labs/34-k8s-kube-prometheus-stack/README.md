@@ -2,6 +2,8 @@
 
 **Maps to:** deepens §10 · **Milestone:** K8s deep-dive
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 In Compose you ran Prometheus + Grafana yourself (lab 10). On Kubernetes the standard is the

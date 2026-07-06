@@ -1,5 +1,7 @@
 # AI Lab 06 — Tokens, cost & telemetry
 
+**Run from:** the [`ai-assistant/`](../../) folder — `cd ai-assistant` from the repo root first; every command and path in this lab is relative to it.
+
 ## Concept
 
 You can't operate an LLM service you can't see into. Lab 03 gave you latency, grounding, and

@@ -2,6 +2,8 @@
 
 **Maps to:** extra · **Milestone:** 4 — Operate & Automate · **SRE**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Every DevOps interview has a round of *"production is broken — what do you do?"*, and every

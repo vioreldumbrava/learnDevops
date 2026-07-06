@@ -2,6 +2,8 @@
 
 **Maps to:** deepens labs 13/15/29 · **Milestone:** 4 — Operate & Automate · **Security**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Since lab 15 your CI has produced **SBOMs** and **provenance** — but nothing *consumes* them,

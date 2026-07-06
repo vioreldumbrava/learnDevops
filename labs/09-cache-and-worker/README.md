@@ -2,6 +2,8 @@
 
 **Maps to:** extra (rounds out the original path) · **Milestone:** 1
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Two classic uses of Redis:

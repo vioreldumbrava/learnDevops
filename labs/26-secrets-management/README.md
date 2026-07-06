@@ -2,6 +2,8 @@
 
 **Maps to:** deepens §17 (security) · **Milestone:** 3 · *closes the biggest "not production-grade" gap*
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Up to now the database password lived in `.env` / Helm `values.yaml` — fine for learning, but

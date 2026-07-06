@@ -2,6 +2,8 @@
 
 **Maps to:** original §12 · **Milestone:** 2
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 **CI** (Continuous Integration) runs your build, tests, and scans automatically on every

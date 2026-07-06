@@ -2,6 +2,8 @@
 
 **Maps to:** deepens §17 · **Milestone:** K8s deep-dive · **Cert:** CKA/CKS
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 **RBAC** controls *who* can do *what* in the cluster. The building blocks: a **ServiceAccount**

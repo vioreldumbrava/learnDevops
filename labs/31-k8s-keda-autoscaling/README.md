@@ -2,6 +2,8 @@
 
 **Maps to:** deepens §19 · **Milestone:** K8s deep-dive · *the standout skill*
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 The HPA scales on CPU/memory — but many workloads should scale on **work waiting**, not CPU.

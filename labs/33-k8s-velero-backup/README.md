@@ -2,6 +2,8 @@
 
 **Maps to:** deepens §8 · **Milestone:** K8s deep-dive · **SRE**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Lab 07 backed up the *database*. In Kubernetes you also need to back up **cluster state** — the

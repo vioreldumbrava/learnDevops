@@ -2,6 +2,8 @@
 
 **Maps to:** original §18 · **Milestone:** 3
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 You don't know your system's limits until you push it. **k6** drives concurrent virtual

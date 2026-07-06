@@ -2,6 +2,8 @@
 
 **Maps to:** deepens lab 16 · **Milestone:** 4 — Operate & Automate · **Platform**
 
+**Run from:** the **repo root** — each Terraform step `cd`s into its own directory (`deploy/terraform/state-backend`, `deploy/terraform`, `deploy/terraform/envs/dev`) exactly where shown.
+
 ## Concept
 
 Lab 16 left two things a reviewer would flag immediately: **local state** and **no reuse**.

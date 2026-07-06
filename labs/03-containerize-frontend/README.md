@@ -2,6 +2,8 @@
 
 **Maps to:** original §5 · **Milestone:** 1
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 A single-page app has two phases: a **build** (Node + Vite compiles React/TypeScript into

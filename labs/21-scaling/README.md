@@ -2,6 +2,8 @@
 
 **Maps to:** original §19 · **Milestone:** 3
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Scale **out** by running more replicas of **stateless** services (`api`, `worker`,

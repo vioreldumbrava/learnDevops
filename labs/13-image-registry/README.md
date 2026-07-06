@@ -2,6 +2,8 @@
 
 **Maps to:** original §13 · **Milestone:** 2
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 A **registry** stores and serves container images. You **tag** an image with a

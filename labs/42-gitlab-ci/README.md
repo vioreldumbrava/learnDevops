@@ -2,6 +2,8 @@
 
 **Maps to:** deepens lab 15 · **Milestone:** 4 — Operate & Automate · **optional, EU-market recommended**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 A huge share of European companies run **GitLab**, and "we use GitLab CI" filters out

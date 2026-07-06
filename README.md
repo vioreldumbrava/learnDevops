@@ -79,6 +79,10 @@ Every lab follows the same shape:
 
 > **Concept (what & why) → What you'll do → Steps → How it works → Exercise → Checkpoint → Common failures → Maps to**
 
+Each lab states **where to run its commands** in the *Run from* line under the title — for
+most labs that's the **repo root** (`learnDevops/`), not the lab's own folder; labs that need
+a different directory (`deploy/terraform`, `ai-assistant/`, …) say so explicitly.
+
 The **Checkpoint** is your pass/fail test for that concept. The full roadmap with status
 lives in [docs/CURRICULUM.md](docs/CURRICULUM.md) and inside the running dashboard.
 

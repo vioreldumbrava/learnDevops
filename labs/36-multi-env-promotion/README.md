@@ -2,6 +2,8 @@
 
 **Maps to:** extra · **Milestone:** 4 — Operate & Automate · **Platform**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Real teams don't run one copy of an app — they run **dev** (latest build, cheap), **staging**

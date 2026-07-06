@@ -2,6 +2,8 @@
 
 **Maps to:** original §2–3 · **Milestone:** 1
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 A good production image is **small**, **secure**, and **reproducible**:

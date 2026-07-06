@@ -2,6 +2,8 @@
 
 **Maps to:** deepens §16 · **Milestone:** K8s deep-dive
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 **cert-manager** automates X.509 certificates in Kubernetes. You declare a `Certificate`; it

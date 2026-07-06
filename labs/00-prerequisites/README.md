@@ -2,6 +2,8 @@
 
 **Maps to:** — · **Milestone:** 1
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 > All commands run from the **repo root** (`learnDevops/`) in PowerShell.
 
 ## Concept

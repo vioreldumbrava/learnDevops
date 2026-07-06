@@ -1,5 +1,7 @@
 # AI Lab 05 — Containerize & deploy
 
+**Run from:** the [`ai-assistant/`](../../) folder — `cd ai-assistant` from the repo root first; every command and path in this lab is relative to it.
+
 ## Concept
 
 An LLM app is still a normal service to operate — plus some LLM-specific wrinkles (large model

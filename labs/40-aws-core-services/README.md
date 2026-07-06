@@ -2,6 +2,8 @@
 
 **Maps to:** deepens labs 16/25 · **Milestone:** 4 — Operate & Automate · **Cloud**
 
+**Run from:** the **repo root** — the RDS Terraform steps `cd deploy/terraform/rds` first; everything else (aws/kubectl) runs from the repo root.
+
 > 💸 **Cost:** this lab assumes the lab 25 EKS cluster is up (~$5–10/day) and adds RDS
 > `db.t4g.micro` (~$0.40/day) + pennies of S3. Do it in one or two sittings and
 > **`terraform destroy` everything after** — the checkpoint includes proving you did.

@@ -2,6 +2,8 @@
 
 **Maps to:** deepens labs 16/17/39 · **Milestone:** 5 — Ecosystem breadth · *TWN Bootcamp Module 15* · 💸 runs a `t3.small`
 
+**Run from:** the **repo root** — steps `cd` into `deploy/ansible` and `deploy/terraform` exactly where shown.
+
 ## Concept
 
 Lab 17's Ansible works, but it has three "demo smells" that real teams engineer away:

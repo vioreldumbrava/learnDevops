@@ -2,6 +2,8 @@
 
 **Maps to:** deepens labs 22–34 · **Milestone:** K8s deep-dive · **CKA**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Labs 22–34 cover the *workloads-and-policy* half of the CKA: Deployments, Services, Ingress,

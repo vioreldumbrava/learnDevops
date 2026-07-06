@@ -1,5 +1,7 @@
 # AI Lab 07 — Tool calling: the assistant operates the Dojo
 
+**Run from:** the [`ai-assistant/`](../../) folder — except where a step says "from the repo root" (step 1 starts the main Dojo stack there).
+
 ## Concept
 
 RAG lets the assistant *answer questions about* your docs. **Tool calling** lets it *act on

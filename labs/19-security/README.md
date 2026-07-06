@@ -2,6 +2,8 @@
 
 **Maps to:** original §17 · **Milestone:** 3
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Reduce what a compromised container can do — **least privilege** at every layer:

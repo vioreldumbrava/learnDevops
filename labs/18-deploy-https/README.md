@@ -2,6 +2,8 @@
 
 **Maps to:** original §15–16 · **Milestone:** 3
 
+**Run from:** the **repo root** — except `ansible-playbook` (run it from `deploy/ansible`, exactly as in lab 17) and the "on the box" blocks, which run inside your SSH session on the server.
+
 ## Concept
 
 Put the app on a real server reachable from the internet, with **automatic HTTPS**. Caddy

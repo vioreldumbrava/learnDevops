@@ -2,6 +2,8 @@
 
 **Maps to:** original §12 (alternative to lab 15) · **Milestone:** 2 · *complement to GitHub Actions*
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Lab 15 used **GitHub Actions** — CI/CD **managed** by GitHub. **Jenkins** is the classic

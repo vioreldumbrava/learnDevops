@@ -1,5 +1,7 @@
 # AI Lab 03 — Observability & guardrails
 
+**Run from:** the [`ai-assistant/`](../../) folder — `cd ai-assistant` from the repo root first; every command and path in this lab is relative to it.
+
 ## Concept
 
 LLM apps fail in fuzzy ways — hallucinations, slow responses, bad retrieval. You manage that

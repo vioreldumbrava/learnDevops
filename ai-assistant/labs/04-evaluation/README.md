@@ -1,5 +1,7 @@
 # AI Lab 04 — Evaluation
 
+**Run from:** the [`ai-assistant/`](../../) folder — `cd ai-assistant` from the repo root first; every command and path in this lab is relative to it.
+
 ## Concept
 
 "It looked good when I tried it" doesn't scale. **Evaluation** turns LLM quality into a

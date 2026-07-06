@@ -2,6 +2,8 @@
 
 **Maps to:** original §20 · **Milestone:** 3
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Compose runs containers on one host; **Kubernetes** orchestrates them across a cluster with

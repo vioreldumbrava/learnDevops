@@ -2,6 +2,8 @@
 
 **Maps to:** extra · **Milestone:** 4 — Operate & Automate · **do anytime**
 
+**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+
 ## Concept
 
 Every interview assumes Git fluency beyond `add/commit/push`: feature-branch + PR flow,

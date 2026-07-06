@@ -2,6 +2,8 @@
 
 **Maps to:** deepens labs 23/36 · **Milestone:** 5 — Ecosystem breadth · *TWN Bootcamp Module 10*
 
+**Run from:** the **repo root** — the chart-packaging steps `cd deploy/k8s/helm` first; `helm`/`kubectl` against the cluster run from the repo root.
+
 ## Concept
 
 Two patterns from Helm-heavy shops:

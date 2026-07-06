@@ -141,6 +141,24 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 25 | **Capstone:** EKS + GitOps (ArgoCD) | [labs/25](../labs/25-capstone-eks-gitops/) | ✅ |
 | 26 | Production secrets management | [labs/26](../labs/26-secrets-management/) | ✅ |
 | 27–34 | **Kubernetes deep-dive** (RBAC, NetworkPolicy, Kyverno, cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack) | [labs/27–34](../labs/) | ✅ |
+| 48 | **CKA exam readiness**: etcd backup/restore, drains, kubelet, static pods, mock exam | [labs/48](../labs/48-cka-exam-readiness/) | ✅ |
+
+## The fast track (interview-ready as soon as possible)
+
+Fifty-plus labs is depth, not a prerequisite for applying. If the goal is a job **soon**, run
+this critical path first — it produces everything an interviewer will actually probe:
+
+> **00–08 → 10 → 13 → 15 → 16 → 22 → 23 → 25 → 26 → 35 → 48**, then rehearse with
+> [INTERVIEW_PREP.md](INTERVIEW_PREP.md) (§10 is the weekly mock-interview loop).
+
+That's: foundation + monitoring → registry + CI → Terraform → Kubernetes + Helm → the EKS/GitOps
+capstone + secrets → incident drills → CKA drills. **At this point: book the CKA and start
+applying.** You can, and should, apply before "finishing" — the remaining labs (11–12, 17–21,
+24, 27–34, 36–47, the AI assistant) are what you work through *in parallel with* interviewing;
+each one you complete becomes a fresh interview answer, and the job search itself takes weeks
+you'd otherwise waste waiting. The two interview centerpieces — capstone (25) and incident
+drills (35) — are both on the fast track; nothing an interviewer expects from a junior/associate
+candidate is missing from it.
 
 ---
 
@@ -728,8 +746,13 @@ runs on kind (or EKS). Full walkthroughs in the labs; one-line each:
   (cluster-state DR).
 - **[34 · kube-prometheus-stack](../labs/34-k8s-kube-prometheus-stack/)** — the Prometheus
   Operator; scrape the app via a `ServiceMonitor`.
+- **[48 · CKA exam readiness](../labs/48-cka-exam-readiness/)** — the *cluster-operations*
+  half of the exam on a throwaway 3-node kind cluster: kubectl speed drills, **etcd backup &
+  restore** for real, drain vs PDB, kubelet break-fix, static pods, kubeadm pointers, and a
+  timed 10-task mock exam.
 
-These map directly onto what **CKA/CKS** and Platform/SRE interviews probe.
+These map directly onto what **CKA/CKS** and Platform/SRE interviews probe: labs 27–34 teach
+the objects, lab 48 teaches the cluster — together they cover the exam surface.
 
 ## Milestone 4 — Operate, Automate & Prove It (labs 35–42)
 
@@ -797,12 +820,17 @@ DevOps foundations. Start at [ai-assistant/README.md](../ai-assistant/README.md)
 
 ## Getting hired
 
+If speed matters, follow [the fast track](#the-fast-track-interview-ready-as-soon-as-possible)
+above and start applying when it's done — depth continues in parallel with interviewing.
+
 The capstone (Step 25) is your interview centerpiece; the incident drills (lab 35) are your
 second one — rehearsed answers to "tell me about something you debugged". Prepare with
 [INTERVIEW_PREP.md](INTERVIEW_PREP.md): a portfolio talk track with likely questions and
-strong, project-grounded answers for every concept in this guide, plus troubleshooting
-scenarios and an honest gap-closing study plan (**CKA first** — labs 22–34 are most of the
-prep — then AWS SAA).
+strong, project-grounded answers for every concept in this guide, plus a fundamentals
+screener (§8), a system-design round (§9), a weekly mock-interview protocol (§10),
+troubleshooting scenarios and an honest gap-closing study plan (**CKA first** — labs 22–34
+teach the objects, [lab 48](../labs/48-cka-exam-readiness/) drills the cluster ops + mock
+exam — then AWS SAA).
 
 ---
 

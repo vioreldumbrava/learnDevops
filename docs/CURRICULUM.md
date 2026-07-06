@@ -10,6 +10,11 @@ legacy DBC-based path each lab corresponds to.
 
 ## Roadmap
 
+> ⚡ **Fast track (job ASAP):** `00–08 → 10 → 13 → 15 → 16 → 22 → 23 → 25 → 26 → 35 → 48`,
+> then [INTERVIEW_PREP.md](INTERVIEW_PREP.md) — book the CKA and **start applying**; the
+> remaining labs run in parallel with interviewing. Rationale in
+> [DOCKER_LEARNING_PATH.md](DOCKER_LEARNING_PATH.md#the-fast-track-interview-ready-as-soon-as-possible).
+
 | Lab | Topic | Maps to original § | Milestone | Status |
 |-----|-------|--------------------|-----------|--------|
 | [00](../labs/00-prerequisites/) | Prerequisites, tooling, repo tour, `git init` | — | 1 | ✅ |
@@ -52,6 +57,7 @@ legacy DBC-based path each lab corresponds to.
 | [32](../labs/32-k8s-argo-rollouts/) | Argo Rollouts (canary) | — | ✅ |
 | [33](../labs/33-k8s-velero-backup/) | Velero backup & DR | — | ✅ |
 | [34](../labs/34-k8s-kube-prometheus-stack/) | kube-prometheus-stack (cluster monitoring) | — | ✅ |
+| [48](../labs/48-cka-exam-readiness/) | **CKA exam readiness**: etcd backup/restore, drain vs PDB, kubelet, static pods, mock exam | CKA | ✅ |
 
 ### Milestone 4 — Operate, Automate & Prove It
 

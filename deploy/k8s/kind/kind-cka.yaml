@@ -1,0 +1,11 @@
+# Throwaway 3-node cluster for the CKA cluster-ops drills (lab 48). No host port
+# mappings, so it coexists with the dojo cluster. kind nodes are containers running
+# real kubeadm + systemd + kubelet, so etcd backup/restore, kubelet failures and
+# node drains behave like on real servers. Delete it freely: kind delete cluster --name cka
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: cka
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker

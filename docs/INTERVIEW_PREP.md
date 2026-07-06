@@ -120,6 +120,16 @@ that's the "why care".
 > my traces show a `store.*` DB span nested in the request span, so I can tell app vs DB time.
 > Alertmanager pages me before users notice via rules like error-rate and p95 thresholds.
 
+**Follow-up — Q: What SLO would you set for this service? What's an error budget?**
+> The **SLI** is the measurement, the **SLO** is the target on it. For the dojo API I'd start
+> with: *99.5% of requests succeed and complete under 500ms, over 30 days* — both computable
+> today from my existing metrics (`dojo_http_requests_total` for success rate,
+> `dojo_http_request_duration_seconds` histogram for latency). The **error budget** is the
+> allowed 0.5%: while budget remains you ship freely; when it's burning down you slow
+> releases and spend the time on reliability. It turns "is it stable enough to deploy?" from
+> an argument into arithmetic — and good alerts fire on **burn rate** (how fast the budget is
+> being consumed), not on every blip.
+
 ### Security
 
 **Q: How did you harden this?**
@@ -254,10 +264,13 @@ Then pivot to how you're closing the gap (below).
 ## 6. Close the gaps (study plan)
 
 Highest leverage next steps to become clearly hireable, in order:
-1. **CKA first.** Labs 22–34 already cover most of the exam surface, so it's the cheapest
-   high-recognition credential from where you stand — and the strongest CV filter-pass for
-   Platform/DevOps roles in Europe. Book the exam date now; a deadline beats an intention.
-   Add **CKS** later if you're targeting security-leaning roles.
+1. **CKA first.** Labs 22–34 cover the workloads-and-policy half of the exam;
+   [lab 48](../labs/48-cka-exam-readiness/) drills the cluster-operations half — etcd
+   backup/restore, drains vs PDBs, kubelet break-fix, static pods, kubeadm — and ends in a
+   timed 10-task mock exam. It's the cheapest high-recognition credential from where you
+   stand and the strongest CV filter-pass for Platform/DevOps roles in Europe. Book the exam
+   date now; a deadline beats an intention. Add **CKS** later if you're targeting
+   security-leaning roles.
 2. **One cloud, deep:** AWS — VPC/subnets/IAM, RDS, S3, ELB, autoscaling. Labs 16/25/**40**
    are the hands-on base; target the **AWS Solutions Architect Associate** cert after CKA.
 3. **Scripting:** covered in lab **37** (Bash strict mode, Python, boto3, jq/awk) — keep
@@ -328,3 +341,123 @@ training models. Rehearse these:
 Can you, without notes: draw the architecture, explain liveness vs readiness, describe your CI
 stages, define GitOps and its benefits, and say what you'd change for production? If yes,
 you're interview-ready for junior/associate DevOps, Platform, and SRE roles.
+
+---
+
+## 8. Fundamentals screener (the round before the round)
+
+Many pipelines start with a 20-minute quick-fire on networking and Linux — it filters people
+*before* anyone asks about Kubernetes. Every answer below is grounded in this project, so you
+can always continue with "…and in my project that's exactly the X hop."
+
+**Q: What happens when you open `https://dojo.example.com`?** Walk the layers, in order:
+> 1. **DNS**: browser cache → OS cache/`hosts` file → the configured resolver, which walks
+>    root → TLD → authoritative and returns the A/AAAA record (my EC2 IP).
+> 2. **TCP**: three-way handshake (SYN, SYN-ACK, ACK) to port 443.
+> 3. **TLS**: handshake — server presents its cert (mine is issued by Let's Encrypt via
+>    Caddy, in-cluster by cert-manager), client verifies the chain, they agree keys.
+> 4. **HTTP**: request hits **Caddy** (reverse proxy), which routes `/` to the **nginx**
+>    container serving the React build and `/api` to the **Go API**, which queries
+>    **Postgres** (through a Redis cache) and returns JSON.
+> Naming each hop matters because that's the 502-debugging path in reverse (§3).
+
+**Q: TCP vs UDP?**
+> TCP: connection, ordering, retransmission — HTTP, Postgres, Redis: everything in my stack.
+> UDP: fire-and-forget, no handshake — DNS queries, metrics agents (statsd), streaming.
+> Follow-up they like: HTTP/3 runs over UDP (QUIC) and reimplements reliability in userspace.
+
+**Q: How does DNS work *inside* your stack?**
+> Twice over. Docker's embedded DNS (`127.0.0.11`) resolves Compose service names — my nginx
+> proxies to `http://api:8080` by service name. In Kubernetes, CoreDNS resolves
+> `api.devops-dojo.svc.cluster.local` to the Service's ClusterIP. Same idea, different resolver
+> — and "the app can't reach the DB" is a DNS/NetworkPolicy question before it's an app question.
+
+**Q: Explain the HTTP status codes you've actually dealt with.**
+> `200/201` fine; `301/308` redirects (Caddy HTTP→HTTPS); `401` no credentials vs `403`
+> authenticated-but-forbidden (RBAC, lab 27); `404` wrong path (my nginx `/api` proxy strip);
+> `499` client gave up (k6 timeouts, lab 20); `502` proxy can't reach upstream (dead api
+> container); `503` upstream alive but not ready (readiness probe failing — lab 08); `504`
+> upstream too slow (DB lock drill, lab 35).
+
+**Linux triage one-liners** (drill until automatic — deeper walkthrough in
+[LINUX_FOR_CONTAINERS.md](LINUX_FOR_CONTAINERS.md)):
+
+| Symptom | First commands | What you're distinguishing |
+|---|---|---|
+| "Server is slow" | `uptime`, `top` | load (runnable queue) vs CPU%; I/O wait vs compute |
+| Out of memory? | `free -m`, `dmesg \| grep -i oom` | cache (fine) vs real exhaustion; did the OOM-killer strike |
+| Disk full | `df -h`, `du -xh --max-depth=1 /var \| sort -h` | which mount, which directory (usually logs or Docker) |
+| Port in use / is it listening? | `ss -tlnp` | nothing listening (app down) vs listening on wrong interface |
+| Runaway process | `ps aux --sort=-%cpu \| head` | who, and is it yours |
+| Service died | `systemctl status X`, `journalctl -u X -n 50` | crashed vs never started vs restart-looping |
+
+The container versions of these are lab 35's bread and butter: `kubectl top`, `kubectl logs
+--previous`, `docker stats`, `kubectl describe` events.
+
+---
+
+## 9. System design round (mid-level gatekeeper)
+
+Structure beats brilliance: **requirements → the boring working version → what changes at
+scale → trade-offs, named unprompted.** Both classics below are answerable *from this repo* —
+you've built the small version of each.
+
+### "Design CI/CD for a team with 20 microservices."
+
+> **Requirements first:** how often do we ship, what's the rollback story, what must never
+> reach prod (unscanned/unsigned images), who approves what.
+> **The boring version (mine, scaled):** one pipeline *template* — a reusable workflow /
+> Jenkins Shared Library (labs 15/24/43) so 20 repos don't copy-paste — that builds once,
+> tests, Trivy-gates, signs with cosign (lab 41), pushes an immutable digest to the registry.
+> Delivery is **pull-based GitOps**: an ArgoCD ApplicationSet (labs 25/36) stamps out
+> dev/staging/prod per service from one chart + values-per-env; **promotion is a PR** bumping
+> a pinned tag, prod syncs manually or behind an approval; rollback is `git revert`. Canary
+> via Argo Rollouts (lab 32) for the risky services.
+> **At scale you add:** build caching + a runner fleet, preview environments per PR,
+> secrets from a real manager via External Secrets (lab 26), drift detection, and org-wide
+> admission policies (Kyverno, lab 29) as the backstop when a team bypasses the template.
+> **Trade-offs to name:** push vs pull deploys (credentials live in the cluster, not CI);
+> monorepo vs polyrepo (template reuse vs blast radius); speed vs gates (that's what the
+> error budget arbitrates, §2).
+
+### "Design observability for a microservices platform."
+
+> **Requirements first:** MTTD/MTTR targets, who gets paged, retention and cost limits.
+> **The boring version (mine, scaled):** the three pillars, one UI. **Metrics**: every service
+> exposes Prometheus histograms; RED (rate/errors/duration) per service — that's my
+> `dojo_http_*` metrics generalized; collected by the Prometheus Operator via ServiceMonitors
+> (lab 34). **Logs**: structured JSON to stdout, shipped by an agent (Promtail) to Loki —
+> never `exec` into pods to read files. **Traces**: OpenTelemetry SDK, context propagated on
+> every hop, sent to Tempo — trace-ID in the logs links all three. **Alerting**: SLO
+> burn-rate alerts (§2) to Alertmanager, which groups, dedupes, and routes — page only on
+> user-facing symptoms; everything else is a ticket.
+> **At scale you add:** trace **sampling** (head vs tail — tail keeps the interesting errors,
+> costs a buffer), **cardinality control** (a `user_id` label will melt Prometheus; that's
+> what exemplars and traces are for), retention tiers (hot vs object storage — Loki/Tempo
+> already do this), and federation/Thanos when one Prometheus isn't enough.
+> **Trade-offs to name:** alert fatigue vs coverage (symptom-based paging), metric cost vs
+> insight (labels are the price), and "observability ≠ dashboards" — it's being able to ask
+> new questions without shipping new code.
+
+---
+
+## 10. Mock-interview protocol (run it weekly)
+
+Rehearsing alone beats re-reading. One 40-minute loop, timer visible, **answers spoken out
+loud** — the gap between "I know this" and "I can say this" is exactly what interviews measure.
+Record yourself once; it's uncomfortable and worth it.
+
+1. **Quick-fire — 10 min.** Six questions picked blind from §2/§8 (roll a die twice). No notes.
+   Pass: 5/6 answered in under a minute each.
+2. **Live incident — 20 min.** `scripts/chaos/roulette.sh` (lab 35) breaks your own stack
+   blind. Narrate the method as you go — *observe → hypothesize → verify → fix → confirm* —
+   as if the interviewer were watching your screen. Pass: root cause **and** fix inside 20
+   minutes, method narrated, three-line postmortem written.
+3. **Design — 10 min.** One question from §9, sketched on paper while talking. Pass: you named
+   at least two trade-offs *without being prompted*.
+
+**Exit criterion:** two consecutive clean loops → you're not "still preparing", you're ready —
+start applying and keep the weekly loop running *during* the search (fresh drills feed fresh
+interview stories). Pair this with the [fast track](DOCKER_LEARNING_PATH.md#the-fast-track-interview-ready-as-soon-as-possible)
+ordering and the CKA booking (§6): interviews, applications, and the remaining depth labs run
+in parallel, not in sequence.

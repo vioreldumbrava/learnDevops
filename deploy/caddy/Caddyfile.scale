@@ -1,6 +1,8 @@
 # Scaling variant of the Caddyfile (lab 21). Uses DNS "dynamic upstreams" so Caddy
 # re-resolves the service name and load-balances across ALL replicas Docker returns,
 # instead of pinning to one. Mounted by compose.scale.yaml.
+# Global options: the email Let's Encrypt uses for the ACME account
+# (expiry notices land here). {$VAR} = read from the container's environment.
 {
 	email {$ACME_EMAIL}
 }
@@ -8,6 +10,9 @@
 {$SITE_DOMAIN} {
 	encode gzip
 
+	# API traffic → EVERY api replica: Docker DNS returns one A record per
+	# replica; `refresh 5s` re-resolves, so `--scale api=3` is picked up live
+	# without reloading Caddy. (The plain Caddyfile pins to one name instead.)
 	handle /api/* {
 		reverse_proxy {
 			dynamic a {

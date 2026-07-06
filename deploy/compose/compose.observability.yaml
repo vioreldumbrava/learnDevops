@@ -16,6 +16,10 @@ services:
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: tempo:4318
 
+  # METRICS: Prometheus *pulls* /metrics from the targets listed in prometheus.yml
+  # (api, itself, blackbox…) and evaluates alerts.yml. Config mounts are :ro on
+  # purpose — config is code; the container must not modify it. The named volume
+  # keeps the metrics history across restarts.
   prometheus:
     image: prom/prometheus:v2.55.1
     volumes:
@@ -29,6 +33,9 @@ services:
       - "127.0.0.1:9090:9090"
     restart: unless-stopped
 
+  # ALERTING: Prometheus fires rules; Alertmanager groups, dedupes, silences and
+  # routes them (to email/Slack/webhook — receivers live in alertmanager.yml).
+  # Separate service because alert *routing* policy shouldn't live in the scraper.
   alertmanager:
     image: prom/alertmanager:v0.27.0
     volumes:
@@ -37,6 +44,9 @@ services:
       - "127.0.0.1:9093:9093"
     restart: unless-stopped
 
+  # ONE UI over all three pillars: the provisioning/ mount registers Prometheus,
+  # Loki and Tempo as datasources AND loads the dashboards from files — no
+  # click-ops, so a fresh `up` always yields a fully wired Grafana.
   grafana:
     image: grafana/grafana:11.3.0
     environment:
@@ -52,6 +62,8 @@ services:
       - prometheus
     restart: unless-stopped
 
+  # LOGS: Loki stores log lines but only indexes their *labels* (service, level…),
+  # not the full text — that's why it's far cheaper to run than an ELK stack.
   loki:
     image: grafana/loki:3.2.1
     command: ["-config.file=/etc/loki/loki-config.yml"]
@@ -62,6 +74,10 @@ services:
       - "127.0.0.1:3100:3100"
     restart: unless-stopped
 
+  # LOG SHIPPER: discovers every container via the (read-only) Docker socket and
+  # pushes their stdout/stderr to Loki with labels. Publishes no ports — it's a
+  # push agent, nothing needs to reach it. The apps never know logging exists:
+  # they just write to stdout (12-factor).
   promtail:
     image: grafana/promtail:3.2.1
     command: ["-config.file=/etc/promtail/promtail-config.yml"]
@@ -72,6 +88,8 @@ services:
       - loki
     restart: unless-stopped
 
+  # TRACES: Tempo receives OTLP spans on 4318 (that's the OTEL_EXPORTER_OTLP_ENDPOINT
+  # the api/worker are pointed at above) and Grafana links log lines ↔ traces by ID.
   tempo:
     image: grafana/tempo:2.6.1
     command: ["-config.file=/etc/tempo/tempo.yaml"]
@@ -82,6 +100,9 @@ services:
       - "127.0.0.1:3200:3200"
     restart: unless-stopped
 
+  # OUTSIDE-IN probe: Prometheus asks blackbox to HTTP-probe the app the way a
+  # *user* would. Internal metrics can look healthy while the site is down —
+  # this catches that class of failure (and feeds the uptime alert).
   blackbox-exporter:
     image: prom/blackbox-exporter:v0.25.0
     volumes:

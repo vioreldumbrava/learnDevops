@@ -125,7 +125,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build:
     name: Build, scan & push images
-    needs: test
+    needs: test   # fail fast: never build/push images whose code failed the tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -139,6 +139,8 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
+      # PRs build but never push (and never see credentials) — a malicious PR
+      # must not be able to publish images. Same condition gates every push/sign step.
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -148,6 +150,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # --- API image ---
+      # metadata-action computes the tag set from what triggered the run:
+      #   branch push → :master, PR → :pr-N, tag v1.2.0 → :1.2.0, always → :sha-<commit>.
+      # The :sha tag is the one you deploy — immutable and traceable to a commit.
       - name: Metadata (api)
         id: meta-api
         uses: docker/metadata-action@v5
@@ -168,9 +173,9 @@ jobs:
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
           sbom: true            # generate & attach a Software Bill of Materials
-          provenance: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          provenance: true      # attach a build attestation (who/what/when built it)
+          cache-from: type=gha  # reuse Docker layers from the Actions cache…
+          cache-to: type=gha,mode=max   # …so unchanged deps don't rebuild on every PR
 
       # --- Frontend image ---
       - name: Metadata (frontend)

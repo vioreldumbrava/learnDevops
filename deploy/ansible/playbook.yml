@@ -1,7 +1,7 @@
 ---
 - name: Configure server and deploy DevOps Dojo
-  hosts: dojo
-  become: true
+  hosts: dojo        # the [dojo] group from inventory.ini (the EC2 IP Terraform printed)
+  become: true       # apt/service/user tasks need root; ubuntu → sudo
 
   vars:
     # Point this at your fork/clone (the server pulls compose files from here).
@@ -50,7 +50,7 @@
         repo: "{{ repo_url }}"
         dest: "{{ app_dir }}"
         version: "{{ repo_version }}"
-        force: true
+        force: true       # server copy is disposable: discard any local edits, Git wins
       become_user: "{{ ansible_user }}"
 
     - name: Render the .env file

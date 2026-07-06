@@ -7,7 +7,9 @@
 # public entrypoint in prod). The db and redis publish no host ports at all.
 name: devops-dojo
 
-# Shared environment for the api and worker.
+# Shared environment for the api and worker — one anchor (&app-env), merged into
+# both services (<<: *app-env), so they can never drift apart. The ${VAR:-default}
+# form means: use the value from .env / the shell if set, else the default.
 x-app-env: &app-env
   DATABASE_URL: ${DATABASE_URL:-postgres://dojo:dojo@db:5432/dojo?sslmode=disable}
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
@@ -15,6 +17,9 @@ x-app-env: &app-env
   OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-dojo-api}
 
 services:
+  # PostgreSQL — the system of record. No host port on purpose (only services on
+  # the Compose network reach it). The healthcheck is what gates the rest of the
+  # stack: migrate and api wait for `service_healthy`, not just "started".
   db:
     image: postgres:16-alpine
     environment:
@@ -30,6 +35,9 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # Redis — cache for the api + job queue for the worker (lab 09).
+  # --save 60 1: snapshot to disk at most every 60s if ≥1 key changed, so queued
+  # jobs survive a restart; --loglevel warning keeps `compose logs` readable.
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
@@ -57,6 +65,8 @@ services:
         condition: service_healthy
     restart: "no"
 
+  # The Go API. Starts only after the db is healthy, redis is healthy AND the
+  # migrations finished — so it never serves against a missing schema.
   api:
     build:
       context: ../../app/api
@@ -74,6 +84,8 @@ services:
       migrate:
         condition: service_completed_successfully
     healthcheck:
+      # The distroless image has no shell/curl/wget, so the binary probes itself
+      # (`/api -healthcheck` performs an HTTP GET against its own /healthz).
       test: ["CMD", "/api", "-healthcheck"]
       interval: 10s
       timeout: 3s
@@ -94,6 +106,8 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Nginx serving the built React app; its /api/* location proxies to the api
+  # service by Docker DNS name. Host port 3000 → container port 80.
   frontend:
     build:
       context: ../../app/frontend
@@ -103,6 +117,7 @@ services:
     depends_on:
       - api
     healthcheck:
+      # wget, not curl: nginx:alpine ships wget (BusyBox) but not curl.
       test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
       interval: 10s
       timeout: 3s
@@ -137,6 +152,8 @@ services:
       - ../../backups:/backups
     entrypoint: ["sh", "-c"]
     command:
+      # $$ = a literal $ (Compose would otherwise try to interpolate it), so
+      # $(date ...) runs in the container's shell at backup time.
       - 'pg_dump -h db -U ${POSTGRES_USER:-dojo} -d ${POSTGRES_DB:-dojo} -F p -f /backups/dojo_$$(date +%Y%m%d_%H%M%S).sql && echo "backup written to ./backups/"'
     depends_on:
       db:

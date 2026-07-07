@@ -77,6 +77,27 @@ jobs:
           exit-code: "1"
 
   # ---------------------------------------------------------------------------
+  # The Kubernetes operator (dojo-operator/) is gated like any other service:
+  # vet + unit tests (fake-client suite — see operator lab 06) on every change.
+  operator:
+    name: Operator tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: dojo-operator/go.sum
+
+      - name: Go vet & test
+        working-directory: dojo-operator
+        run: |
+          go vet ./...
+          go test ./...
+
+  # ---------------------------------------------------------------------------
   # IaC checks (lab 39): fmt is non-negotiable style, validate catches broken
   # references per ROOT module, tflint catches provider-specific mistakes, and
   # checkov flags insecure patterns (report-only here, like the Trivy fs scan).

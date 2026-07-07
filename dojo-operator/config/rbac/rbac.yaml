@@ -1,0 +1,63 @@
+# The operator's identity + permissions (lab 27 applied to our own software).
+# Least privilege, spelled out: exactly the verbs the reconciler calls, on
+# exactly the resources it touches. Two things worth noticing:
+#   - NO rule for secrets: the operator wires a secretKeyRef into the backup
+#     pod but never reads the secret itself.
+#   - ClusterRole (not Role) because the operator watches DojoBackups in ALL
+#     namespaces; scope it down to a Role if you deploy per-namespace.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dojo-operator-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dojo-operator
+  namespace: dojo-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dojo-operator
+rules:
+  # Our own API: read CRs, update them (finalizers), and write status.
+  - apiGroups: ["dojo.dev"]
+    resources: ["dojobackups"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["dojo.dev"]
+    resources: ["dojobackups/status"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["dojo.dev"]
+    resources: ["dojobackups/finalizers"]
+    verbs: ["update"]
+  # Children we create and converge.
+  - apiGroups: ["batch"]
+    resources: ["cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Jobs are only OBSERVED (for status/finalizer decisions) — read-only verbs.
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+  # The backup PVC: create-if-missing only, never delete (ownerRef GC deletes it).
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create"]
+  # kubectl-describe events.
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dojo-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dojo-operator
+subjects:
+  - kind: ServiceAccount
+    name: dojo-operator
+    namespace: dojo-operator-system

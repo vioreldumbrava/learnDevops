@@ -1,0 +1,21 @@
+# A DojoBackup for the Dojo's own database, as deployed by deploy/k8s/base
+# (lab 22): Postgres Service "db", database/user "dojo", password in the
+# existing dojo-secrets Secret. Every 2 minutes is absurd for production and
+# perfect for a lab — you see a backup land while you watch.
+apiVersion: dojo.dev/v1alpha1
+kind: DojoBackup
+metadata:
+  name: dojo-db
+  namespace: devops-dojo
+spec:
+  schedule: "*/2 * * * *"
+  retention: 3
+  storageSize: 1Gi
+  database:
+    host: db
+    port: 5432
+    name: dojo
+    user: dojo
+    passwordSecret:
+      name: dojo-secrets
+      key: POSTGRES_PASSWORD

@@ -17,6 +17,12 @@ deploying, and operating a small but real web application — and the applicatio
 > **Qdrant** vectors, grounding guardrails, metrics, an eval harness, and Compose/CI/K8s. It's
 > the AI-infra differentiator on top of this DevOps foundation.
 
+> ⚙️ **Third project — [dojo-operator/](dojo-operator/):** build your own **Kubernetes
+> operator** in Go — a CRD + controller that manages scheduled Postgres backups for the Dojo's
+> database (reconcile loop, status/conditions, finalizers, GC, least-priv RBAC, fake-client
+> tests). You've *used* operators (cert-manager, KEDA, ArgoCD); this teaches how they work
+> inside — the Platform-engineer depth signal. Six step-by-step labs.
+
 ## What you build
 
 | Tier | Tech | Why it's here |
@@ -116,6 +122,7 @@ labs/            one folder per concept
 docs/            curriculum + references
 .github/workflows CI/CD                                          (milestone 2)
 ai-assistant/    Second project: local/remote RAG assistant (LLMOps) — see its own README
+dojo-operator/   Third project: build a Kubernetes operator in Go — see its own README
 ```
 
 ## Build status

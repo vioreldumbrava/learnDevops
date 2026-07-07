@@ -1,0 +1,46 @@
+# Runs the operator IN the cluster (lab 05). Until then you run it on your
+# laptop with `go run ./cmd` — same binary, different credentials: here it
+# authenticates as the ServiceAccount above (in-cluster config); locally it
+# uses your kubeconfig. Note everything the app labs taught shows up again:
+# distroless image, probes, resources, non-root.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dojo-operator
+  namespace: dojo-operator-system
+  labels:
+    app: dojo-operator
+spec:
+  replicas: 1               # bump to 2 only WITH --leader-elect (lab 05 exercise)
+  selector:
+    matchLabels:
+      app: dojo-operator
+  template:
+    metadata:
+      labels:
+        app: dojo-operator
+    spec:
+      serviceAccountName: dojo-operator
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: manager
+          image: devops-dojo/operator:dev   # kind load docker-image puts it in the cluster
+          imagePullPolicy: IfNotPresent
+          args:
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=:8080
+          ports:
+            - name: metrics
+              containerPort: 8080
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8081 }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /readyz, port: 8081 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits: { cpu: 250m, memory: 128Mi }

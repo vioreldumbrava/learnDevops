@@ -823,6 +823,17 @@ adds **Python** and **LLMOps** to the portfolio — the AI-infra differentiator 
 DevOps foundations. Start at [ai-assistant/README.md](../ai-assistant/README.md) and its
 [labs/](../ai-assistant/labs/).
 
+## Companion project: Dojo Operator (build your own Kubernetes operator)
+
+The third project — [`dojo-operator/`](../dojo-operator/) — goes one level *deeper* than the
+K8s deep-dive: instead of using operators (cert-manager, KEDA, ArgoCD), you **write one** in
+Go. A `DojoBackup` custom resource + controller manages scheduled `pg_dump` backups of the
+Dojo's database: the reconcile loop, CRD schema validation, status/conditions/events,
+ownerReferences + garbage collection, finalizers (the stuck-in-Terminating mechanism),
+least-privilege RBAC for software, and fake-client unit tests — six step-by-step labs on the
+lab-22 kind cluster. Best after lab 34. Start at
+[dojo-operator/README.md](../dojo-operator/README.md).
+
 ## Getting hired
 
 If speed matters, follow [the fast track](#the-fast-track-interview-ready-as-soon-as-possible)

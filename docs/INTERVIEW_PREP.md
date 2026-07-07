@@ -111,6 +111,33 @@ that's the "why care".
 > in `values-staging.yaml`, then `values-prod.yaml`; prod is manual-sync on purpose.
 > `git log values-prod.yaml` *is* the deploy history (lab 36).
 
+### Kubernetes internals — the operator you wrote
+
+**Q: What actually happens when you `kubectl apply` a Deployment?** *(or: how do
+controllers work?)*
+> The API server validates it against the schema and stores it in etcd — nothing runs yet.
+> Controllers *watch* the types they own and **reconcile**: read desired state (spec), read
+> actual state, converge, write what they observed to **status**. It's level-based, not
+> event-based — one code path handles create, update, tampering and restarts. I know this
+> because I **wrote an operator** ([dojo-operator](../dojo-operator/)): a `DojoBackup` CRD
+> whose controller manages scheduled Postgres backups — delete its CronJob and it resurrects,
+> exactly like ArgoCD self-heals my deployments, because it's the same mechanism.
+
+**Follow-up — Q: Why do namespaces get stuck in Terminating?**
+> A **finalizer** whose controller never removed it. Finalizers are pre-delete hooks: the API
+> server sets `deletionTimestamp` and holds the object until every finalizer is cleared. Mine
+> blocks deletion while a backup Job is running. The fix is to give the controller what it's
+> waiting for — force-clearing `metadata.finalizers` skips the cleanup and is a last resort
+> for controllers that no longer exist. I've manufactured and fixed this failure on purpose
+> (operator lab 04).
+
+**Follow-up — Q: How do you secure something like that?**
+> The operator runs as a ServiceAccount with a ClusterRole derived line-by-line from what the
+> reconciler calls — and the sharpest line is what's *missing*: it has **no access to
+> secrets**, because it only wires a `secretKeyRef` into the backup pod; the kubelet resolves
+> the value. Add an API call without adding the verb and the operator breaks with `Forbidden`
+> — RBAC doubles as a scope-creep tripwire.
+
 ### Observability — the three pillars
 
 **Q: How would you debug a slow endpoint in production?**

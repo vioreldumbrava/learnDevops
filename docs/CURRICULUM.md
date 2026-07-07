@@ -126,6 +126,26 @@ RAG, guardrails+observability, evaluation, deploy) then LLMOps depth (06 tokens/
 07 tool calling, 08 evaluation v2 + prompt versioning). The LLMOps interview Q&A is §7 of
 [INTERVIEW_PREP.md](INTERVIEW_PREP.md).
 
+## Companion project — Dojo Operator (build your own K8s operator)
+
+The third project, [`../dojo-operator/`](../dojo-operator/), flips you from operator *user*
+(cert-manager, KEDA, ArgoCD, Velero — labs 30–33) to operator *author*: a Go
+**CRD + controller** (`DojoBackup`) that manages scheduled `pg_dump` backups of the Dojo's
+own database. Six step-by-step labs ([dojo-operator/labs](../dojo-operator/labs/)):
+
+| Lab | Topic | The "aha" |
+|-----|-------|-----------|
+| [01](../dojo-operator/labs/01-crd-the-api-half/) | CRDs: the API half | a CR with no controller does *nothing* |
+| [02](../dojo-operator/labs/02-reconcile-loop/) | The reconcile loop | delete its CronJob — it resurrects (level-based convergence) |
+| [03](../dojo-operator/labs/03-status-conditions-events/) | Status, conditions, events | `kubectl wait --for=condition=Ready` on *your* type |
+| [04](../dojo-operator/labs/04-ownership-gc-finalizers/) | OwnerRefs, GC, finalizers | manufacture & properly fix a stuck-Terminating object |
+| [05](../dojo-operator/labs/05-rbac-and-deploy/) | RBAC & in-cluster deploy | the backup operator *can't read the db password* |
+| [06](../dojo-operator/labs/06-testing-and-ci/) | Tests & CI | drift-convergence as a unit test (fake client) |
+
+Do it after lab 34 (or after 22/23 at a stretch). It reuses the lab-22 cluster and deepens
+Go, K8s API machinery, RBAC and testing — the strongest "Platform engineer" portfolio signal
+in the repo.
+
 ## The three pillars of observability
 
 Labs 10–12 deliberately build all three: **metrics** (Prometheus), **logs** (Loki), and

@@ -138,10 +138,11 @@ dojo-operator/   Third project: build a Kubernetes operator in Go — see its ow
   (ArgoCD)** — the end-to-end, interview-ready deployment.
 - ✅ **Production secrets (lab 26):** Sealed Secrets / External Secrets Operator — no plaintext
   in Git.
-- ✅ **Kubernetes deep-dive (labs 27–34 + 48):** RBAC, NetworkPolicies (+Calico), Kyverno,
+- ✅ **Kubernetes deep-dive (labs 27–34 + 48 + 49):** RBAC, NetworkPolicies (+Calico), Kyverno,
   cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack — plus **lab 48**, the
   CKA cluster-ops drills (etcd backup/restore, drain vs PDB, kubelet break-fix, timed mock
-  exam) — Platform/SRE, CKA/CKS.
+  exam), and **lab 49**, the networking **data plane** deep dive (pause/veth, ClusterIP +
+  kube-proxy DNAT, CoreDNS, service types, the Ingress path) — Platform/SRE, CKA/CKS.
 - ✅ **Milestone 4 — operate, automate & prove it (labs 35–42):** incident drills + runbooks,
   multi-env promotion, Bash/Python automation, Git workflows, Terraform state/modules, AWS
   core services, supply-chain security, GitLab CI. **43 labs (00–42) complete.**

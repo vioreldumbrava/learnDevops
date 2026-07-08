@@ -57,6 +57,7 @@ legacy DBC-based path each lab corresponds to.
 | [32](../labs/32-k8s-argo-rollouts/) | Argo Rollouts (canary) | — | ✅ |
 | [33](../labs/33-k8s-velero-backup/) | Velero backup & DR | — | ✅ |
 | [34](../labs/34-k8s-kube-prometheus-stack/) | kube-prometheus-stack (cluster monitoring) | — | ✅ |
+| [49](../labs/49-k8s-networking-deep-dive/) | **Networking data plane**: pause/veth, ClusterIP + kube-proxy DNAT, CoreDNS, service types, Ingress path | CKA/CKS | ✅ |
 | [48](../labs/48-cka-exam-readiness/) | **CKA exam readiness**: etcd backup/restore, drain vs PDB, kubelet, static pods, mock exam | CKA | ✅ |
 
 ### Milestone 4 — Operate, Automate & Prove It

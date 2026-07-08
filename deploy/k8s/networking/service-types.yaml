@@ -1,0 +1,65 @@
+# Read-along for operator/networking lab 49, Step 5: the Service *types*, side by
+# side, so you can see what each adds on top of the last. Apply into the
+# devops-dojo namespace ON TOP of the lab-22 stack (the api Deployment already
+# exists; these just expose it different ways). None of this changes the running
+# app — they're extra front doors to the same api pods.
+#
+#   kubectl apply -f deploy/k8s/networking/service-types.yaml
+#
+# The base stack already ships the two most important cases, so the lab points
+# at them instead of duplicating:
+#   - api  (deploy/k8s/base/api.yaml)  = a normal ClusterIP (gets a virtual IP)
+#   - db   (deploy/k8s/base/postgres-statefulset.yaml) = headless (clusterIP: None)
+---
+# NODEPORT — ClusterIP PLUS a static port on every node (30000–32767). Same
+# kube-proxy DNAT as ClusterIP, with an extra rule catching the node port. The
+# oldest way to reach a Service from outside; blunt (one port per service, the
+# client must know a node IP) — real clusters put an Ingress/LB in front instead.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-nodeport
+  namespace: devops-dojo
+  labels: { app: api, demo: service-types }
+spec:
+  type: NodePort
+  selector:
+    app: api            # same pods as the ClusterIP "api" service
+  ports:
+    - port: 8080        # the ClusterIP port
+      targetPort: 8080  # the container port
+      nodePort: 30080   # the node-wide port (omit to get a random one)
+---
+# EXTERNALNAME — no proxying, no selector, no endpoints at all: CoreDNS just
+# returns a CNAME to an out-of-cluster hostname. Lets in-cluster code say
+# "db.example.com" and be redirected to a managed database (RDS in lab 40)
+# without hardcoding the address. Purely a DNS trick — kube-proxy never sees it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-db
+  namespace: devops-dojo
+  labels: { demo: service-types }
+spec:
+  type: ExternalName
+  externalName: db.devops-dojo.svc.cluster.local   # here: point back at our own db (a CNAME you can prove with nslookup)
+---
+# HEADLESS with a selector (clusterIP: None) — no virtual IP; a DNS query returns
+# the POD IPs directly, one A record each. This is what StatefulSets use so
+# clients can address individual pods (db-0, db-1…). The base "db" Service is
+# already headless; this duplicate targets the api pods so you can see multiple
+# A records come back from one name (contrast with the single VIP the normal
+# "api" Service resolves to).
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-headless
+  namespace: devops-dojo
+  labels: { app: api, demo: service-types }
+spec:
+  clusterIP: None
+  selector:
+    app: api
+  ports:
+    - port: 8080
+      targetPort: 8080

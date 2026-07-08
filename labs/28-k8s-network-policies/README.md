@@ -65,4 +65,8 @@ real-world NetworkPolicy gotcha.
 - Everything breaks after default-deny → you forgot `allow-dns`, or a source is missing its
   egress rule.
 
+> 🔬 **Go deeper:** this lab *restricts* the traffic; [Lab 49](../49-k8s-networking-deep-dive/)
+> shows the data plane those flows ride on — why `allow-dns` matters (CoreDNS), and the
+> kube-proxy DNAT rules a NetworkPolicy sits in front of.
+
 ➡️ Next: [Lab 29 — Policy-as-code with Kyverno](../29-k8s-kyverno/)

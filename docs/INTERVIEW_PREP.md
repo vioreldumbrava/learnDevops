@@ -138,6 +138,23 @@ controllers work?)*
 > the value. Add an API call without adding the verb and the operator breaks with `Forbidden`
 > — RBAC doubles as a scope-creep tripwire.
 
+**Q: Walk a packet from a Service ClusterIP to a pod. What is a ClusterIP, really?**
+> It's a **virtual IP that no host owns** — ping it and nothing answers, but TCP works, because
+> **kube-proxy** programmed the node's kernel (iptables DNAT rules, or IPVS) to rewrite packets
+> aimed at the ClusterIP toward a real pod IP, load-balancing across the current endpoints. The
+> **endpoint controller** keeps an **EndpointSlice** in sync with *ready* pods (failing
+> readiness pulls a pod out, so it stops receiving traffic), and kube-proxy keeps the kernel in
+> sync with the slice. **CoreDNS** resolves the Service name to that ClusterIP. So: DNS → VIP →
+> kernel DNAT → pod. I've read those exact iptables chains off a kind node
+> ([lab 49](../labs/49-k8s-networking-deep-dive/)).
+
+**Follow-up — Q: "A Service isn't responding" — how do you debug it?** *(the classic)*
+> Isolate one layer at a time: **DNS** (does the name resolve? `nslookup`) → **Endpoints**
+> (`kubectl get endpointslices` — *empty* means no ready pods, the most common cause) →
+> **pod readiness** (`get pods`, `describe` the probe) → **kube-proxy** (rules present on the
+> node?). Nine times in ten it's an empty EndpointSlice because a readiness probe is failing —
+> the network is fine, the Service just has nothing to route to.
+
 ### Observability — the three pillars
 
 **Q: How would you debug a slow endpoint in production?**
@@ -386,7 +403,9 @@ can always continue with "…and in my project that's exactly the X hop."
 > 4. **HTTP**: request hits **Caddy** (reverse proxy), which routes `/` to the **nginx**
 >    container serving the React build and `/api` to the **Go API**, which queries
 >    **Postgres** (through a Redis cache) and returns JSON.
-> Naming each hop matters because that's the 502-debugging path in reverse (§3).
+> Naming each hop matters because that's the 502-debugging path in reverse (§3). *(The
+> in-cluster continuation of this story — ClusterIP, kube-proxy, CoreDNS, the Ingress path —
+> is drilled hands-on in [lab 49](../labs/49-k8s-networking-deep-dive/).)*
 
 **Q: TCP vs UDP?**
 > TCP: connection, ordering, retransmission — HTTP, Postgres, Redis: everything in my stack.

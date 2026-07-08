@@ -81,4 +81,8 @@ drive load to watch it scale automatically.
 
 Teardown: `kind delete cluster`.
 
+> 🔬 **Go deeper:** [Lab 49](../49-k8s-networking-deep-dive/) opens up how the Services, DNS
+> names and Ingress you just used actually work — ClusterIP as a virtual IP, kube-proxy's
+> kernel rules, CoreDNS, and the request path end to end.
+
 ➡️ Next: [Lab 23 — Helm packaging](../23-helm/)

@@ -755,9 +755,15 @@ runs on kind (or EKS). Full walkthroughs in the labs; one-line each:
   half of the exam on a throwaway 3-node kind cluster: kubectl speed drills, **etcd backup &
   restore** for real, drain vs PDB, kubelet break-fix, static pods, kubeadm pointers, and a
   timed 10-task mock exam.
+- **[49 · Networking deep dive](../labs/49-k8s-networking-deep-dive/)** — the *data plane* the
+  other labs stand on: the `pause` sandbox + `veth` pair, the flat pod network, **ClusterIP as
+  a virtual IP** with the **kube-proxy DNAT** rules read straight off the node, CoreDNS name
+  resolution, every Service type, and the Ingress path traced end to end — plus the
+  "Service returns nothing" decision tree.
 
 These map directly onto what **CKA/CKS** and Platform/SRE interviews probe: labs 27–34 teach
-the objects, lab 48 teaches the cluster — together they cover the exam surface.
+the objects, lab 48 teaches the cluster, and lab 49 explains how the objects connect underneath
+— together they cover the exam surface.
 
 ## Milestone 4 — Operate, Automate & Prove It (labs 35–42)
 

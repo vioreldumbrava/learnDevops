@@ -29,6 +29,7 @@ deploying, and operating a small but real web application — and the applicatio
 |------|------|---------------|
 | `frontend` | React + Vite + TypeScript | The dashboard UI |
 | `api` | Go (`chi`, `pgx`) | REST API with real `/metrics`, `/healthz`, `/readyz`, tracing |
+| `api-py` | Python (`FastAPI`, `asyncpg`) | Optional drop-in twin of `api` — same contract; swap via a Compose overlay ([lab 50](labs/50-go-vs-python-parity/)) |
 | `worker` | Go | Background jobs off a Redis queue (teaches scaling & queues) |
 | `db` | PostgreSQL | Progress, notes, curriculum — teaches migrations & backups |
 | `redis` | Redis | Cache + job queue |
@@ -109,6 +110,7 @@ lives in [docs/CURRICULUM.md](docs/CURRICULUM.md) and inside the running dashboa
 
 ```
 app/api          Go API + worker (one image, two entrypoints)
+app/api-py       Python (FastAPI) drop-in twin of app/api — same contract (lab 50)
 app/frontend     React + Vite dashboard
 db/migrations    golang-migrate SQL (schema + seeded curriculum)
 deploy/compose   base + dev + prod + observability Compose files

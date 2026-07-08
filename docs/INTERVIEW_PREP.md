@@ -155,6 +155,23 @@ controllers work?)*
 > node?). Nine times in ten it's an empty EndpointSlice because a readiness probe is failing —
 > the network is fine, the Service just has nothing to route to.
 
+### Polyglot — Go vs Python, and fleet consistency
+
+**Q: Go or Python for a backend service — how do you decide, and how do you keep a mixed fleet
+sane?**
+> I've built the *same* Dojo API twice — Go ([app/api](../app/api/)) and Python/FastAPI
+> ([app/api-py](../app/api-py/)) — behind one contract, so I can speak to this concretely.
+> **Go** when I want small images and high throughput: the static binary is a ~52 MB distroless
+> image, instant start, a goroutine per request. **Python** when iteration speed or the data/ML
+> ecosystem matters: FastAPI is ~550 lines vs ~690, at the cost of a ~276 MB image and an event
+> loop instead of threads. The decider is the workload, not taste.
+> **Consistency across a polyglot fleet** doesn't come from one language — it comes from shared
+> **contracts**: both twins expose identical HTTP/JSON, the same `dojo_http_*` metric names, and
+> the same structured-log shape, so one Prometheus/Grafana/Loki stack and one frontend serve
+> either. I can hot-swap the backend language with a one-line Compose overlay (or
+> `kubectl set image`) and nothing downstream notices — that's the proof the contract, not the
+> code, is the interface (lab 50).
+
 ### Observability — the three pillars
 
 **Q: How would you debug a slow endpoint in production?**

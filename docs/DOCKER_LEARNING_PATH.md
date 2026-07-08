@@ -840,6 +840,15 @@ least-privilege RBAC for software, and fake-client unit tests — six step-by-st
 lab-22 kind cluster. Best after lab 34. Start at
 [dojo-operator/README.md](../dojo-operator/README.md).
 
+## Polyglot twin: the same API in Python
+
+The main API also ships a **Python/FastAPI twin** — [`app/api-py/`](../app/api-py/) — that speaks
+the exact same HTTP contract, hits the same Postgres and Redis, and exports the same `dojo_*`
+metrics as the Go `app/api`. A one-file Compose overlay swaps `api`↔`api-py` under the running
+stack; the React frontend and database can't tell the difference. It's a compact, honest answer
+to "Go or Python?" and to "how do you keep a polyglot fleet consistent?" — the **contract** is the
+answer. Walk it in [lab 50](../labs/50-go-vs-python-parity/).
+
 ## Getting hired
 
 If speed matters, follow [the fast track](#the-fast-track-interview-ready-as-soon-as-possible)

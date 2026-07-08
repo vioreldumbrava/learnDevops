@@ -77,6 +77,12 @@ do them anytime.
 | [41](../labs/41-supply-chain-security/) | Supply chain: cosign signing, admission verification, scan gates | deepens 13/15/29 | ✅ |
 | [42](../labs/42-gitlab-ci/) | GitLab CI: translate the pipeline | optional · EU market | ✅ |
 
+### Polyglot extra
+
+| Lab | Topic | Notes | Status |
+|-----|-------|-------|--------|
+| [50](../labs/50-go-vs-python-parity/) | Same service, two languages: swap the Go API for its Python (FastAPI) twin | optional · do anytime after lab 09 | ✅ |
+
 Day-2 artifacts that come with this milestone: [runbooks](runbooks/),
 [postmortem template](postmortem-template.md) (+ [worked example](postmortems/)), chaos
 injectors ([scripts/chaos](../scripts/chaos/)), automation scripts ([scripts](../scripts/)).

@@ -7,6 +7,7 @@
   --muted: #8b98a5;
   --accent: #4cc9a0;
   --done: #2ea043;
+  --drilled: #d29922;
   --error: #f85149;
 }
 
@@ -45,6 +46,7 @@ header h1 {
 }
 
 .progress-bar {
+  position: relative;
   flex: 1;
   height: 12px;
   background: var(--surface-2);
@@ -52,10 +54,19 @@ header h1 {
   overflow: hidden;
 }
 
+/* Two overlaid fills: pale = completed (read it), solid = drilled (can do it). */
 .progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
   height: 100%;
   background: linear-gradient(90deg, var(--accent), var(--done));
+  opacity: 0.35;
   transition: width 0.3s ease;
+}
+
+.progress-fill.drilled {
+  background: var(--drilled);
+  opacity: 1;
 }
 
 .progress-label {
@@ -95,6 +106,64 @@ h2 {
   border-color: var(--done);
   background: linear-gradient(var(--surface), var(--surface)), var(--done);
   opacity: 0.92;
+}
+
+/* Drilled outranks done: recall beats recognition. */
+.card.drilled {
+  border-color: var(--drilled);
+  box-shadow: inset 3px 0 0 var(--drilled);
+}
+
+/* Drilled, but more than 30 days ago — the retention system's whole point. */
+.card.stale {
+  border-style: dashed;
+}
+
+.drill-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.6rem 0 0.2rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.drill-head input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--drilled);
+}
+
+.drill-head .when {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.drill-head .warn {
+  color: var(--drilled);
+}
+
+.stalest {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--drilled);
+  border-radius: 12px;
+  padding: 0.5rem 1.25rem 1rem;
+  margin-top: 1.5rem;
+  background: var(--surface);
+}
+
+.stalest h2 {
+  margin-top: 1rem;
+}
+
+.stalest ol {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.stalest li {
+  margin: 0.2rem 0;
 }
 
 .card-head {

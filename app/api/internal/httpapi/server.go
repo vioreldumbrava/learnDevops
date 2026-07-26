@@ -107,11 +107,18 @@ func (s *Server) handleSetProgress(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
 
+	// Pointers, so {"completed":true} leaves `drilled` alone and vice versa. A body with
+	// neither field is a no-op the caller almost certainly didn't mean, so it's a 400.
 	var req struct {
-		Completed bool `json:"completed"`
+		Completed *bool `json:"completed"`
+		Drilled   *bool `json:"drilled"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		return
+	}
+	if req.Completed == nil && req.Drilled == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "set completed and/or drilled"})
 		return
 	}
 
@@ -125,7 +132,8 @@ func (s *Server) handleSetProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.SetProgress(ctx, id, req.Completed); err != nil {
+	p, err := s.store.SetProgress(ctx, id, req.Completed, req.Drilled)
+	if err != nil {
 		s.serverError(w, "set progress", err)
 		return
 	}
@@ -134,7 +142,7 @@ func (s *Server) handleSetProgress(w http.ResponseWriter, r *http.Request) {
 	_ = s.cache.Del(ctx, stepsCacheKey)
 	_ = s.cache.Enqueue(ctx, JobQueue, "progress:"+id)
 
-	writeJSON(w, http.StatusOK, map[string]any{"step_id": id, "completed": req.Completed})
+	writeJSON(w, http.StatusOK, p)
 }
 
 func (s *Server) handleListNotes(w http.ResponseWriter, r *http.Request) {

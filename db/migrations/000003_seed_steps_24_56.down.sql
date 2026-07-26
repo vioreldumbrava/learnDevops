@@ -1,0 +1,38 @@
+-- Remove labs 24-56, leaving the original 24-lab roadmap from 000002.
+-- progress and notes rows cascade (ON DELETE CASCADE in 000001).
+
+DELETE FROM steps WHERE id IN (
+    '24-jenkins',
+    '25-capstone-eks-gitops',
+    '26-secrets-management',
+    '27-k8s-rbac',
+    '28-k8s-network-policies',
+    '29-k8s-kyverno',
+    '30-k8s-cert-manager',
+    '31-k8s-keda-autoscaling',
+    '32-k8s-argo-rollouts',
+    '33-k8s-velero-backup',
+    '34-k8s-kube-prometheus-stack',
+    '35-incident-response',
+    '36-multi-env-promotion',
+    '37-scripting-automation',
+    '38-git-workflows',
+    '39-terraform-state-and-modules',
+    '40-aws-core-services',
+    '41-supply-chain-security',
+    '42-gitlab-ci',
+    '43-jenkins-shared-library',
+    '44-ansible-at-scale',
+    '45-boto3-ops-automation',
+    '46-helm-library-chart',
+    '47-cloud-portability-aks',
+    '48-cka-exam-readiness',
+    '49-k8s-networking-deep-dive',
+    '50-go-vs-python-parity',
+    '51-k8s-cilium-ebpf',
+    '52-k8s-storage',
+    '53-k8s-scheduling',
+    '54-linux-server-ops',
+    '55-postgres-operations',
+    '56-slo-and-error-budgets'
+);

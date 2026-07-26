@@ -7,7 +7,20 @@ export interface Step {
   milestone: number
   doc_path: string
   summary: string
+  /** Worked through the lab with the repo open — recognition. */
   completed: boolean
+  /** Passed the lab's closed-book drill inside its time target — recall. See docs/DRILLS.md. */
+  drilled: boolean
+  /** RFC3339, or null if never touched. Drives the "stalest" spaced-repetition list. */
+  last_practiced_at: string | null
+}
+
+/** What POST /api/progress/:id returns — the state after the write. */
+export interface Progress {
+  step_id: string
+  completed: boolean
+  drilled: boolean
+  last_practiced_at: string | null
 }
 
 export interface Note {

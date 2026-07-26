@@ -1,4 +1,4 @@
-import type { Note, Step } from './types'
+import type { Note, Progress, Step } from './types'
 
 // Relative base works in dev (Vite proxy) and prod (Caddy/Nginx route /api).
 const BASE = import.meta.env.VITE_API_BASE || '/api'
@@ -9,13 +9,21 @@ export async function fetchSteps(): Promise<Step[]> {
   return res.json()
 }
 
-export async function setProgress(id: string, completed: boolean): Promise<void> {
+/**
+ * Send only the flag you're changing — the API leaves the other one alone.
+ * `{}` is rejected with a 400, which is why the patch type requires at least one key.
+ */
+export async function setProgress(
+  id: string,
+  patch: { completed: boolean; drilled?: boolean } | { completed?: boolean; drilled: boolean },
+): Promise<Progress> {
   const res = await fetch(`${BASE}/progress/${id}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ completed }),
+    body: JSON.stringify(patch),
   })
   if (!res.ok) throw new Error(`progress: HTTP ${res.status}`)
+  return res.json()
 }
 
 export async function fetchNotes(stepId: string): Promise<Note[]> {

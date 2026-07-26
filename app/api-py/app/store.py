@@ -19,6 +19,13 @@ tracer = trace.get_tracer("devops-dojo/store")
 
 
 class Step(BaseModel):
+    """One lab plus this learner's state on it — same JSON keys as the Go Step.
+
+    ``completed`` and ``drilled`` are independent on purpose: completed means "worked
+    through it with the repo open" (recognition), drilled means "passed the closed-book
+    drill inside its time target" (recall). See docs/DRILLS.md.
+    """
+
     id: str
     lab_no: int
     title: str
@@ -28,6 +35,17 @@ class Step(BaseModel):
     doc_path: str
     summary: str
     completed: bool
+    drilled: bool
+    last_practiced_at: datetime | None
+
+
+class Progress(BaseModel):
+    """A step's state on its own — what a write returns (Go: store.Progress)."""
+
+    step_id: str
+    completed: bool
+    drilled: bool
+    last_practiced_at: datetime | None
 
 
 class Note(BaseModel):
@@ -61,7 +79,8 @@ class Store:
             rows = await self._pool.fetch(
                 """
                 SELECT s.id, s.lab_no, s.title, s.topic, s.maps_to, s.milestone,
-                       s.doc_path, s.summary, COALESCE(p.completed, false) AS completed
+                       s.doc_path, s.summary, COALESCE(p.completed, false) AS completed,
+                       COALESCE(p.drilled, false) AS drilled, p.last_practiced_at
                 FROM steps s
                 LEFT JOIN progress p ON p.step_id = s.id
                 ORDER BY s.sort_order
@@ -69,22 +88,41 @@ class Store:
             )
         return [Step(**dict(r)) for r in rows]
 
-    async def set_progress(self, step_id: str, completed: bool) -> None:
+    async def set_progress(
+        self, step_id: str, completed: bool | None, drilled: bool | None
+    ) -> Progress:
+        """Upsert a step's state; ``None`` means "leave that flag alone".
+
+        Byte-for-byte the same SQL as the Go store, including the ``::boolean`` casts —
+        without them Postgres cannot infer a parameter's type inside COALESCE/CASE.
+        """
         with tracer.start_as_current_span("store.set_progress"):
-            completed_at = datetime.now() if completed else None
-            await self._pool.execute(
+            row = await self._pool.fetchrow(
                 """
-                INSERT INTO progress (step_id, completed, completed_at, updated_at)
-                VALUES ($1, $2, $3, now())
+                INSERT INTO progress (step_id, completed, completed_at, drilled, drilled_at,
+                                      last_practiced_at, updated_at)
+                VALUES ($1,
+                        COALESCE($2::boolean, false),
+                        CASE WHEN COALESCE($2::boolean, false) THEN now() END,
+                        COALESCE($3::boolean, false),
+                        CASE WHEN COALESCE($3::boolean, false) THEN now() END,
+                        now(), now())
                 ON CONFLICT (step_id) DO UPDATE
-                SET completed = EXCLUDED.completed,
-                    completed_at = EXCLUDED.completed_at,
-                    updated_at = now()
+                SET completed    = COALESCE($2::boolean, progress.completed),
+                    completed_at = CASE WHEN $2::boolean IS NULL THEN progress.completed_at
+                                        WHEN $2::boolean THEN now() END,
+                    drilled      = COALESCE($3::boolean, progress.drilled),
+                    drilled_at   = CASE WHEN $3::boolean IS NULL THEN progress.drilled_at
+                                        WHEN $3::boolean THEN now() END,
+                    last_practiced_at = now(),
+                    updated_at        = now()
+                RETURNING step_id, completed, drilled, last_practiced_at
                 """,
                 step_id,
                 completed,
-                completed_at,
+                drilled,
             )
+        return Progress(**dict(row))
 
     async def step_exists(self, step_id: str) -> bool:
         return bool(

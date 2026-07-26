@@ -9,7 +9,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import main
-from app.store import Note, Step
+from app.store import Note, Progress, Step
+
+PRACTICED_AT = datetime(2026, 7, 26, 8, 0, 0)
 
 
 # --- in-memory fakes implementing the async Store/Cache interfaces -------------
@@ -17,25 +19,40 @@ class FakeStore:
     def __init__(self):
         self.steps = [
             Step(id="00-prerequisites", lab_no=0, title="Prerequisites", topic="Setup",
-                 maps_to="—", milestone=1, doc_path="labs/00/", summary="", completed=False),
+                 maps_to="—", milestone=1, doc_path="labs/00/", summary="", completed=False,
+                 drilled=False, last_practiced_at=None),
             Step(id="01-docker-basics", lab_no=1, title="Docker basics", topic="Images",
-                 maps_to="§1", milestone=1, doc_path="labs/01/", summary="", completed=False),
+                 maps_to="§1", milestone=1, doc_path="labs/01/", summary="", completed=False,
+                 drilled=False, last_practiced_at=None),
         ]
-        self.progress: dict[str, bool] = {}
+        self.progress: dict[str, tuple[bool, bool]] = {}
         self.notes: list[Note] = []
 
     async def ping(self):  # healthy
         return None
 
     async def list_steps(self):
-        return [s.model_copy(update={"completed": self.progress.get(s.id, False)})
-                for s in self.steps]
+        out = []
+        for s in self.steps:
+            completed, drilled = self.progress.get(s.id, (False, False))
+            out.append(s.model_copy(update={
+                "completed": completed,
+                "drilled": drilled,
+                "last_practiced_at": PRACTICED_AT if s.id in self.progress else None,
+            }))
+        return out
 
     async def step_exists(self, step_id):
         return any(s.id == step_id for s in self.steps)
 
-    async def set_progress(self, step_id, completed):
-        self.progress[step_id] = completed
+    async def set_progress(self, step_id, completed, drilled):
+        # None means "leave that flag alone" — mirrors the real COALESCE upsert.
+        was_completed, was_drilled = self.progress.get(step_id, (False, False))
+        now_completed = was_completed if completed is None else completed
+        now_drilled = was_drilled if drilled is None else drilled
+        self.progress[step_id] = (now_completed, now_drilled)
+        return Progress(step_id=step_id, completed=now_completed, drilled=now_drilled,
+                        last_practiced_at=PRACTICED_AT)
 
     async def list_notes(self, step_id):
         return [n for n in self.notes if n.step_id == step_id]
@@ -104,7 +121,9 @@ def test_steps_cache_miss_then_hit(ctx):
     assert r1.headers["x-cache"] == "MISS"
     data = r1.json()
     assert len(data) == 2
-    assert set(data[0]) >= {"id", "lab_no", "title", "completed"}  # Go field names
+    # Go field names, including the drill-tracking pair
+    assert set(data[0]) >= {"id", "lab_no", "title", "completed", "drilled",
+                            "last_practiced_at"}
 
     r2 = client.get("/api/steps")
     assert r2.headers["x-cache"] == "HIT"      # served from the fake cache
@@ -118,10 +137,32 @@ def test_set_progress_persists_invalidates_and_enqueues(ctx):
 
     r = client.post("/api/progress/01-docker-basics", json={"completed": True})
     assert r.status_code == 200
-    assert r.json() == {"step_id": "01-docker-basics", "completed": True}
-    assert store.progress["01-docker-basics"] is True
+    assert r.json() == {
+        "step_id": "01-docker-basics",
+        "completed": True,
+        "drilled": False,
+        "last_practiced_at": PRACTICED_AT.isoformat(),
+    }
+    assert store.progress["01-docker-basics"] == (True, False)
     assert "steps:all" not in cache.kv          # cache invalidated
     assert cache.queue == ["progress:01-docker-basics"]  # job enqueued
+
+
+def test_set_drilled_leaves_completed_alone(ctx):
+    """The whole point of the pointer/None fields: one flag at a time."""
+    client, store, _ = ctx
+    client.post("/api/progress/01-docker-basics", json={"completed": True})
+    r = client.post("/api/progress/01-docker-basics", json={"drilled": True})
+    assert r.status_code == 200
+    assert r.json()["completed"] is True and r.json()["drilled"] is True
+    assert store.progress["01-docker-basics"] == (True, True)
+
+
+def test_set_progress_empty_body_400(ctx):
+    client, _, _ = ctx
+    r = client.post("/api/progress/01-docker-basics", json={})
+    assert r.status_code == 400
+    assert r.json() == {"error": "set completed and/or drilled"}
 
 
 def test_set_progress_unknown_step_404(ctx):

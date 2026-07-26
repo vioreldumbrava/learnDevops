@@ -165,7 +165,8 @@ async def list_steps(store: Store = Depends(get_store), cache: Cache = Depends(g
         return Response(cached, media_type="application/json", headers={"X-Cache": "HIT"})
 
     steps = await store.list_steps()
-    body = json.dumps([s.model_dump() for s in steps])
+    # mode="json" so last_practiced_at serialises to an ISO string, not a datetime object.
+    body = json.dumps([s.model_dump(mode="json") for s in steps])
     await cache.set(STEPS_CACHE_KEY, body, STEPS_CACHE_TTL)
     return Response(body, media_type="application/json", headers={"X-Cache": "MISS"})
 
@@ -177,20 +178,25 @@ async def set_progress(
     store: Store = Depends(get_store),
     cache: Cache = Depends(get_cache),
 ):
+    # Absent means "leave that flag alone", so both are optional — but a body with
+    # neither is a no-op the caller didn't mean (same 400 as Go).
     try:
         req = await request.json()
-        completed = bool(req["completed"])
+        completed = None if req.get("completed") is None else bool(req["completed"])
+        drilled = None if req.get("drilled") is None else bool(req["drilled"])
     except Exception:
         return JSONResponse({"error": "invalid body"}, status_code=400)
+    if completed is None and drilled is None:
+        return JSONResponse({"error": "set completed and/or drilled"}, status_code=400)
 
     if not await store.step_exists(step_id):
         return JSONResponse({"error": "unknown step"}, status_code=404)
 
-    await store.set_progress(step_id, completed)
+    progress = await store.set_progress(step_id, completed, drilled)
     # Invalidate the cached list and queue a report-refresh job (same as Go).
     await cache.delete(STEPS_CACHE_KEY)
     await cache.enqueue(JOB_QUEUE, f"progress:{step_id}")
-    return {"step_id": step_id, "completed": completed}
+    return progress.model_dump(mode="json")
 
 
 @app.get("/api/notes")

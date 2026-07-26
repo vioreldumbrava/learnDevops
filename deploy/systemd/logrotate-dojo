@@ -1,0 +1,30 @@
+# Lab 54 — /etc/logrotate.d/dojo
+#
+# Docker's json-file driver grows without bound by default; on a small VPS that is the
+# single most likely cause of a full disk. Two defences, both here:
+#   1. cap the logs at the source  -> deploy/compose/compose.prod.yaml logging options
+#   2. rotate whatever still lands -> this file
+# Belt and braces, because (1) only applies to containers created after you set it.
+
+/var/lib/docker/containers/*/*-json.log {
+    daily
+    rotate 7
+    maxsize 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    # Docker holds the file open. Without copytruncate you rotate the *name* and keep
+    # writing to a deleted inode — the classic "df says full, du says empty" bug this
+    # lab makes you diagnose by hand.
+    copytruncate
+}
+
+/opt/dojo/backups/*.log {
+    weekly
+    rotate 4
+    compress
+    missingok
+    notifempty
+    su root root
+}

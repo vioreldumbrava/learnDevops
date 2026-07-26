@@ -1,0 +1,30 @@
+[Unit]
+# Lab 54. What makes the Dojo survive a reboot without a human: systemd, not Docker's
+# restart policy. `restart: unless-stopped` brings a *container* back when the daemon is
+# up; it does nothing about "compose up was never run on this boot".
+Description=DevOps Dojo (Docker Compose stack)
+Documentation=https://github.com/OWNER/REPO/blob/main/labs/54-linux-server-ops/README.md
+# docker.service, not just docker.socket — we need the daemon, not lazy activation.
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+# oneshot + RemainAfterExit is the right shape for a command that *starts* something and
+# exits. Type=simple would make systemd think the unit died the moment `up -d` returned.
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/dojo
+EnvironmentFile=/opt/dojo/.env
+
+ExecStart=/usr/bin/docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml down
+ExecReload=/usr/bin/docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml up -d --remove-orphans
+
+# Pulls on a cold boot can be slow; the default 90s kills the unit mid-pull.
+TimeoutStartSec=300
+Restart=on-failure
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Nightly DevOps Dojo backup
+Documentation=https://github.com/OWNER/REPO/blob/main/labs/54-linux-server-ops/README.md
+
+[Timer]
+# 03:17, not 03:00 — everybody's cron fires on the hour.
+OnCalendar=*-*-* 03:17:00
+# Spread load and avoid a thundering herd across a fleet. Cron has no equivalent.
+RandomizedDelaySec=15m
+# The one cron genuinely cannot do: if the box was off at 03:17, run at next boot.
+Persistent=true
+Unit=dojo-backup.service
+
+[Install]
+WantedBy=timers.target

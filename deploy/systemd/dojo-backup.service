@@ -1,0 +1,18 @@
+[Unit]
+# Lab 54. The backup half of the cron-vs-timer pair: this unit does the work, the
+# .timer decides when. Splitting them is why you can run a backup *now* with
+# `systemctl start dojo-backup.service` without touching the schedule.
+Description=DevOps Dojo Postgres backup + rotation
+Documentation=https://github.com/OWNER/REPO/blob/main/labs/37-scripting-automation/README.md
+Requires=docker.service
+After=docker.service dojo.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/dojo
+# The lab-37 script: takes the dump through Compose, sanity-checks it, keeps the newest 7.
+ExecStart=/opt/dojo/scripts/backup_rotate.sh 7
+# Output lands in the journal (journalctl -u dojo-backup), not a logfile nobody rotates —
+# which is the concrete advantage over `cron ... >> /var/log/backup.log 2>&1`.
+StandardOutput=journal
+StandardError=journal

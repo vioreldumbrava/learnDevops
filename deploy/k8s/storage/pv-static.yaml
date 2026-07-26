@@ -1,0 +1,33 @@
+# Lab 52, step 4 — STATIC provisioning: the PV written BY HAND, the way an admin
+# pre-provisioned storage before dynamic provisioners existed (and still does
+# for NFS shares, local disks, pre-existing cloud volumes). The controller binds
+# claim to volume by MATCHING: class ("" here), access mode, and size (PV >=
+# request). storageClassName "" is not "unset" — it explicitly opts out of the
+# default class, on both sides.
+#
+# hostPath is fine on the single-node lab-22 cluster; a real static local PV
+# would pin its node with spec.nodeAffinity (required on multi-node).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: static-pv
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 100Mi
+  accessModes: ["ReadWriteOnce"]
+  persistentVolumeReclaimPolicy: Retain   # manual volumes are never auto-deleted
+  hostPath:
+    path: /mnt/dojo-static
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: static-pvc
+spec:
+  storageClassName: ""                    # match the classless PV above
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 50Mi                       # less than the PV offers -> still binds

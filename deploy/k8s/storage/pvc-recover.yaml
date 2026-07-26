@@ -1,0 +1,39 @@
+# Lab 52, step 3 — rescuing a Released PV.
+#
+# A Released PV is NOT re-used automatically, and re-creating the original claim
+# does NOT get you your data back: the provisioner just hands out a brand-new
+# empty volume while the old one sits Released. To actually recover you must
+# (1) clear the stale claimRef so the PV goes Available, then (2) claim that
+# exact volume BY NAME with spec.volumeName — otherwise dynamic provisioning
+# races ahead and gives you another empty one.
+#
+# REPLACE_ME is substituted with the Released PV's name by the lab step:
+#   (Get-Content deploy/k8s/storage/pvc-recover.yaml) -replace 'REPLACE_ME', $pv | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-recovered
+spec:
+  storageClassName: standard-retain
+  volumeName: REPLACE_ME      # bind to THIS volume, don't provision a new one
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: reader
+spec:
+  containers:
+    - name: reader
+      image: busybox:1.36
+      command: ["sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: demo-recovered

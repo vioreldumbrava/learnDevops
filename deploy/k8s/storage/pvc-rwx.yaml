@@ -1,0 +1,32 @@
+# Lab 52, step 5 — a claim the provisioner CANNOT satisfy: local-path volumes
+# are node-local, so ReadWriteMany (many NODES at once) is impossible. The
+# consumer pod is included because the class is WaitForFirstConsumer — without
+# a pod, provisioning is never even attempted and you'd only ever see
+# "waiting for first consumer" instead of the real error. RWX needs storage
+# that is network-attached by nature: NFS, CephFS, EFS/Azure Files CSI.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-rwx
+spec:
+  accessModes: ["ReadWriteMany"]          # <- the doomed request
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rwx-consumer
+spec:
+  containers:
+    - name: reader
+      image: busybox:1.36
+      command: ["sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: demo-rwx

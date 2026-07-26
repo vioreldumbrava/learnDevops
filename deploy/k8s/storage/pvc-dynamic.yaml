@@ -1,0 +1,15 @@
+# Lab 52, step 2 — a plain PVC against the DEFAULT StorageClass. Note what's
+# missing: no storageClassName. The admission controller injects the default
+# class ("standard" on kind) — the same silent injection the Postgres
+# volumeClaimTemplates (deploy/k8s/base/postgres-statefulset.yaml) has relied on
+# since lab 22. Applied ALONE it stays Pending: the class is
+# WaitForFirstConsumer, so nothing provisions until a pod needs it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-dynamic
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 100Mi

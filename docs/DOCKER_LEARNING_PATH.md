@@ -19,6 +19,14 @@ of *this* app.
 >
 > New to the Linux shell (needed from Step 18, servers)? See
 > [LINUX_FOR_CONTAINERS.md](LINUX_FOR_CONTAINERS.md).
+>
+> 🥋 **Reading a lab is half the work.** The labs train *recognition* — the answer file is
+> always open. Interviews and the CKA test *recall*, from a blank terminal, on a clock. That
+> half lives in **[DRILLS.md](DRILLS.md)** (from-scratch tasks with time targets),
+> **[WEEKLY.md](WEEKLY.md)** (the repeating week and the dated calendar — CKA booking,
+> authoring freeze, the day applications start), and **[TOOLBOX.md](TOOLBOX.md)** (one-time
+> setup; `kind` and `helm` are not installed yet). The dashboard tracks *completed* and
+> *drilled* separately, and tells you which lab is stalest.
 
 ---
 
@@ -114,7 +122,9 @@ Stop and wipe data for a clean slate:
 > hands-on, type-it-yourself part. You're not building from a blank page; you're learning to
 > operate, break, fix and change a working system, always against a reference that runs.
 
-Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Milestone 2/3.
+Steps mirror the lab folders. **✅ means the lab is written and runnable — not that you can do
+it.** Your own two states (*completed* and *drilled closed-book*) live in the dashboard; see
+[DRILLS.md](DRILLS.md).
 
 | # | Step | Lab | Status |
 |---|------|-----|--------|
@@ -151,6 +161,9 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 51 | **Cilium/eBPF**: kube-proxy-free Services, Hubble, L7 policy, Gateway API | [labs/51](../labs/51-k8s-cilium-ebpf/) | ✅ |
 | 52 | **Storage**: StorageClass, PV/PVC lifecycle, reclaim policies, access modes | [labs/52](../labs/52-k8s-storage/) | ✅ |
 | 53 | **Scheduling**: requests, taints/tolerations, affinity, spread, preemption | [labs/53](../labs/53-k8s-scheduling/) | ✅ |
+| 54 | **Linux server ops**: systemd units & timers, journald, SSH hardening, disk triage | [labs/54](../labs/54-linux-server-ops/) | ✅ |
+| 55 | **Postgres under load**: `EXPLAIN`, indexes, locks, pooling, vacuum | [labs/55](../labs/55-postgres-operations/) | ✅ |
+| 56 | **SLOs & error budgets**: recording rules, multi-window burn-rate alerts | [labs/56](../labs/56-slo-and-error-budgets/) | ✅ |
 
 ## The fast track (interview-ready as soon as possible)
 
@@ -269,7 +282,7 @@ persistence, `depends_on` for ordering, and one-shot jobs (migrations) that fini
 **Understand.** The API reaches Postgres at `db:5432` purely by service name. `db-data` /
 `redis-data` volumes survive `down`; `down -v` deletes them.
 
-**Checkpoint.** `/api/steps` returns 24 steps; toggling a lab persists across reload.
+**Checkpoint.** `/api/steps` returns the full 57-lab roadmap; toggling a lab persists across reload.
 
 ➡️ Full lab: [labs/04-docker-compose](../labs/04-docker-compose/)
 
@@ -308,7 +321,7 @@ values instead of merging.
 **Understand.** Re-running `up` is a no-op (idempotent), which is why the API can depend on it
 every boot. Migrations live in [`db/migrations/`](../db/migrations/).
 
-**Checkpoint.** `schema_migrations` shows the applied versions; `steps` has 24 rows.
+**Checkpoint.** `schema_migrations` shows the applied versions; `steps` has 57 rows.
 
 ➡️ Full lab: [labs/06-database-migrations](../labs/06-database-migrations/)
 
@@ -813,6 +826,21 @@ and screening tests hit hardest. One line each; full walkthroughs in the labs:
   with a governed `.trivyignore`.
 - **[42 · GitLab CI](../labs/42-gitlab-ci/)** — the same pipeline translated to
   `.gitlab-ci.yml` (optional, but GitLab is everywhere in EU job postings).
+- **[54 · Linux server operations](../labs/54-linux-server-ops/)** — own the box under the
+  containers: a **systemd unit** that survives a reboot, a **timer** instead of cron, journald
+  queries (`-u`, `--since`, `-b -1`), a sudoers drop-in and `sshd -T`, and the disk-full drill
+  where `df` and `du` disagree because a **deleted-but-open** file is holding the space. The
+  generalist screening round, rehearsed.
+- **[55 · Postgres under load](../labs/55-postgres-operations/)** — the incident you're most
+  likely to meet: find the query with `pg_stat_statements`, prove why with
+  `EXPLAIN (ANALYZE, BUFFERS)`, fix it with a **migration you write**, then manufacture lock
+  contention (`pg_blocking_pids()`) and connection exhaustion, and survive the second with
+  **PgBouncer** and no application change.
+- **[56 · SLOs & error budgets](../labs/56-slo-and-error-budgets/)** — retire "5xx > 5% for
+  5 minutes" and replace it with **multi-window multi-burn-rate** alerting: SLI recording
+  rules, 14.4×/6×/1× thresholds, page-vs-ticket routing with inhibition, a budget gauge, and
+  an [error-budget policy](runbooks/error-budget-policy.md). Turns the SLO answer in
+  INTERVIEW_PREP §2 from a claim into a demo.
 
 ## Milestone 5 — Ecosystem breadth & portability (labs 43–47)
 
@@ -873,6 +901,8 @@ answer. Walk it in [lab 50](../labs/50-go-vs-python-parity/).
 
 If speed matters, follow [the fast track](#the-fast-track-interview-ready-as-soon-as-possible)
 above and start applying when it's done — depth continues in parallel with interviewing.
+[WEEKLY.md](WEEKLY.md) puts dates on that: the CKA booking, the lab-authoring freeze, and the
+day applications start whether or not it feels ready.
 
 The capstone (Step 25) is your interview centerpiece; the incident drills (lab 35) are your
 second one — rehearsed answers to "tell me about something you debugged". Prepare with

@@ -98,7 +98,7 @@ cd deploy/eks; terraform destroy
 
 - ✅ `kubectl get nodes` shows EKS worker nodes.
 - ✅ ArgoCD reports the `devops-dojo` app **Synced / Healthy**.
-- ✅ The app is reachable via the ELB hostname; `/api/steps` returns 24 steps.
+- ✅ The app is reachable via the ELB hostname; `/api/steps` returns all 57 steps.
 - ✅ Scaling a deployment by hand is auto-reverted by ArgoCD (self-heal).
 - ✅ You destroyed the cluster afterward.
 

@@ -80,7 +80,8 @@ docker compose -f deploy/compose/compose.yaml down -v
 Work through `labs/00..26` in order, then pick up the Kubernetes deep-dive (`27..34` + the
 CKA exam-ops drills in `48`, the networking deep dives in `49`/`51`, and storage/scheduling
 in `52`/`53`), the
-operate-and-automate track (`35..42` — labs 37–38 can be done anytime after the foundation),
+operate-and-automate track (`35..42` plus `54..56` — Linux server ops, Postgres under load,
+SLOs & burn-rate alerting; labs 37–38 can be done anytime after the foundation),
 and the ecosystem-breadth track (`43..47`, TWN-inspired).
 In a hurry to interview? Follow the ⚡ **fast track** in
 [docs/CURRICULUM.md](docs/CURRICULUM.md) instead and do the rest in parallel with applying.
@@ -95,6 +96,15 @@ the lab's **Exercise** (that's the type-it-yourself part: add a migration, tight
 write a script). This is deliberate: you always have a working reference, so a typo can't
 strand you for hours. Labs build on each other's artifacts — lab 02 reuses lab 01's image,
 lab 18 deploys the server from labs 16–17, lab 35 breaks the cluster from lab 22.
+
+**Then close the book.** That model trains recognition; interviews and the CKA test recall
+from a blank terminal on a clock. So each lab also has a **closed-book drill** in
+[docs/DRILLS.md](docs/DRILLS.md) — a from-scratch task with a time target and a pass test —
+and the dashboard tracks *completed* (read it) and *drilled* (can do it) as two separate
+states, with a **Drill next** panel that picks the stalest one for you.
+[docs/WEEKLY.md](docs/WEEKLY.md) is the repeating week and the dated calendar;
+[docs/TOOLBOX.md](docs/TOOLBOX.md) is the one-time setup (`kind` and `helm` still need
+installing).
 
 A couple of labs sort out of numeric order on purpose (they were added later): **lab 24**
 (Jenkins) is a Milestone 2 lab, and **lab 48** (CKA drills) belongs in the Kubernetes
@@ -115,7 +125,9 @@ app/api          Go API + worker (one image, two entrypoints)
 app/api-py       Python (FastAPI) drop-in twin of app/api — same contract (lab 50)
 app/frontend     React + Vite dashboard
 db/migrations    golang-migrate SQL (schema + seeded curriculum)
+db/seed          throwaway drill data (lab 55) — deliberately NOT migrations
 deploy/compose   base + dev + prod + observability Compose files
+deploy/systemd   systemd unit, backup timer, logrotate config       (lab 54)
 deploy/caddy      Caddyfile (reverse proxy / HTTPS)
 deploy/monitoring Prometheus, Grafana, Loki, Promtail, Tempo, Alertmanager, blackbox
 deploy/k8s       Kubernetes manifests, Helm chart, kind config   (milestone 3)
@@ -151,14 +163,24 @@ dojo-operator/   Third project: build a Kubernetes operator in Go — see its ow
   Gateway API with a real LoadBalancer IP on kind), **lab 52** (storage: StorageClass,
   PV/PVC lifecycle, reclaim policies, access modes) and **lab 53** (scheduling: requests,
   taints/tolerations, affinity, topology spread, preemption) — Platform/SRE, CKA/CKS.
-- ✅ **Milestone 4 — operate, automate & prove it (labs 35–42):** incident drills + runbooks,
-  multi-env promotion, Bash/Python automation, Git workflows, Terraform state/modules, AWS
-  core services, supply-chain security, GitLab CI. **43 labs (00–42) complete.**
-- ⬜ **Milestone 5 — ecosystem breadth & portability (labs 43–47):** Jenkins Shared Library +
+- ✅ **Milestone 4 — operate, automate & prove it (labs 35–42, 54–56):** incident drills +
+  runbooks, multi-env promotion, Bash/Python automation, Git workflows, Terraform
+  state/modules, AWS core services, supply-chain security, GitLab CI — plus **lab 54** (Linux
+  server ops: systemd units & timers, journald, SSH hardening, the deleted-but-open disk-full
+  drill), **lab 55** (Postgres under load: `pg_stat_statements`, `EXPLAIN (ANALYZE, BUFFERS)`,
+  lock contention, connection exhaustion + PgBouncer) and **lab 56** (SLOs & error budgets:
+  SLI recording rules, multi-window burn-rate alerting, page-vs-ticket routing,
+  [error-budget policy](docs/runbooks/error-budget-policy.md)).
+- ✅ **Milestone 5 — ecosystem breadth & portability (labs 43–47):** Jenkins Shared Library +
   dynamic versioning, Ansible dynamic inventory + Terraform handoff, Boto3 ops automation,
   Helm library chart + Helmfile, and the same chart on **Azure AKS**
   (+ [cloud provider map](docs/CLOUD_PROVIDER_MAP.md)) — TWN-bootcamp-inspired additions.
 
+**57 labs authored.** That count is a measure of the library, not of you — the number that
+matters is how many are **drilled closed-book** and how recently, which is what the dashboard
+tracks.
+
 > 🎯 **Aiming for a DevOps job?** The capstone is your interview centerpiece; see
 > [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md) for a full talk track (likely questions +
-> project-grounded answers, troubleshooting scenarios, and a gap-closing study plan).
+> project-grounded answers, troubleshooting scenarios, and a gap-closing study plan) — and
+> [docs/WEEKLY.md](docs/WEEKLY.md) for the dated plan that gets you from here to applying.

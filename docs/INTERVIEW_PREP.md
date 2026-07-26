@@ -185,14 +185,29 @@ sane?**
 > Alertmanager pages me before users notice via rules like error-rate and p95 thresholds.
 
 **Follow-up — Q: What SLO would you set for this service? What's an error budget?**
-> The **SLI** is the measurement, the **SLO** is the target on it. For the dojo API I'd start
-> with: *99.5% of requests succeed and complete under 500ms, over 30 days* — both computable
-> today from my existing metrics (`dojo_http_requests_total` for success rate,
-> `dojo_http_request_duration_seconds` histogram for latency). The **error budget** is the
-> allowed 0.5%: while budget remains you ship freely; when it's burning down you slow
-> releases and spend the time on reliability. It turns "is it stable enough to deploy?" from
-> an argument into arithmetic — and good alerts fire on **burn rate** (how fast the budget is
-> being consumed), not on every blip.
+> The **SLI** is the measurement, the **SLO** is the target on it. Mine is *99.5% of requests
+> succeed and complete under 500ms, over 30 days*, and it's **implemented, not hypothetical**
+> ([lab 56](../labs/56-slo-and-error-budgets/)): recording rules over
+> `dojo_http_requests_total` and the `dojo_http_request_duration_seconds` histogram — I read
+> the latency SLI straight off the `le="0.5"` bucket rather than `histogram_quantile`, so
+> there's no interpolation in the number I'm alerting on. The **error budget** is the allowed
+> 0.5% ≈ 3h36m per 30 days: while budget remains you ship freely; when it's spent, feature
+> releases pause. I wrote that down as an
+> [error-budget policy](runbooks/error-budget-policy.md), because an SLO with no policy is
+> just a dashboard.
+
+**Follow-up — Q: So how do you alert on it?** *(the SRE question)*
+> **Multi-window, multi-burn-rate** — I deleted my static "5xx > 5% for 5 minutes" rule to do
+> it. Burn rate is how many times faster than sustainable you're spending the budget: at
+> **14.4×** the whole 30-day budget is gone in two days, so that pages; **6×** pages;
+> **1×** opens a ticket. Each alert pairs a **long** window ("is this real?") with a **short**
+> one ("is it still happening?") — without the short one, a 6h window keeps firing for hours
+> after you've fixed it and people learn to ignore it. Alertmanager routes `severity=page` vs
+> `severity=ticket` and inhibits slow-burn when fast-burn is already firing.
+> The trade-off I'd name unprompted: **burn-rate alerting needs traffic.** At three requests a
+> minute one error is a 33% error rate, so for a low-traffic internal service a static
+> threshold is still the honest choice. I've watched mine fire — kill the database, generate
+> load, and fast-burn goes Firing in ~5 minutes while slow-burn stays Inactive.
 
 ### Security
 
@@ -231,6 +246,27 @@ lab 28 closed it with default-deny + explicit allows on Calico — say so, it sh
 > service; re-running is idempotent, so the app can depend on it every boot. Backups use
 > `pg_dump` to a location *outside* the DB container, and I actually test restores — delete a
 > row, restore, confirm it's back — because a backup you've never restored isn't a backup.
+
+**Follow-up — Q: "The database is slow." Walk me through it.** *(the most common real incident)*
+> Four steps, in this order. **Which query** — `pg_stat_statements` ranked by *total* time, not
+> mean: a 2 ms query run 500,000 times beats a 400 ms query run twice. **Why** —
+> `EXPLAIN (ANALYZE, BUFFERS)`, and I read *actual vs estimated rows* (an order-of-magnitude
+> gap means stale stats, so `ANALYZE`) and *shared hit vs read* (cache vs disk). I ignore
+> `cost` — it's a unitless planner estimate, not milliseconds. **Fix** — usually an index, and
+> it ships as a **migration**, not a hand-typed `CREATE INDEX`, or it only exists on the box
+> where the incident happened. **Prove** — same `EXPLAIN`, plus the p95 panel in Grafana
+> before and after. I've done exactly this on my own stack ([lab 55](../labs/55-postgres-operations/)).
+
+**Follow-up — Q: And if it isn't the query?**
+> Then it's one of three, and they look nothing alike. **Locks** — `pg_blocking_pids()` names
+> the blocker; the usual culprit is `idle in transaction`, a session holding locks while
+> running nothing, which is why `pg_cancel_backend` does nothing to it and why
+> `idle_in_transaction_session_timeout` exists. **Connections** — a Postgres connection is a
+> whole backend *process*, so the ceiling is low; the answer is a pooler (PgBouncer, transaction
+> mode) rather than raising `max_connections`, and the cost is that session state and
+> server-side prepared statements stop working. **Bloat** — dead tuples from churn; `VACUUM`
+> makes space reusable but doesn't shrink the file, and only `VACUUM FULL` returns disk to the
+> OS, at the price of an `ACCESS EXCLUSIVE` lock you can't take on a busy table.
 
 ### Ecosystem breadth (labs 43–47)
 
@@ -306,28 +342,48 @@ Use a light STAR:
   automated, auditable pipeline."
 - **Action:** the 60-second pitch above.
 - **Result:** "I can take a commit to a self-healing EKS deployment via GitOps, and I
-  understand the trade-offs at each layer — which I documented as 25 hands-on labs."
+  understand the trade-offs at each layer — which I documented as hands-on labs I drill 
+  from scratch on a clock, not just notes I wrote once."
 
 ---
 
 ## 5. Weaknesses — name them before they do
 
 Interviewers respect honesty over bluffing:
+
 - "My production experience is from this project, not yet a high-traffic system on-call —
   but I've drilled incident response deliberately: eight break-fix scenarios on my own
-  cluster, with runbooks and written postmortems (lab 35)."
+  cluster, with runbooks and written postmortems (lab 35), and I run a blind one weekly."
 - "I've run Kubernetes on kind and EKS, but haven't operated a large multi-team cluster."
+- "My SLO is on a service with my traffic levels, not a million requests a minute — I know
+  burn-rate alerting needs volume to be meaningful and I can say where it stops working."
 - "Local/dev uses a demo password for convenience — but the chart supports `secrets.create=false`
   so real deployments get `dojo-secrets` from **Sealed Secrets** or the **External Secrets
   Operator** (lab 26), keeping plaintext out of Git." *(A gap I already closed — turn it into a
   strength.)*
+
+Two that *used* to be on this list, worth naming as closed rather than hiding: NetworkPolicies
+(lab 28 — default-deny with explicit allows) and "I can describe SLOs but haven't built one"
+(lab 56 — recording rules, multi-window burn-rate alerts, and a written error-budget policy).
+Saying "that was a gap; here's what I did about it" is stronger than either bluffing or
+staying quiet.
+
 Then pivot to how you're closing the gap (below).
 
 ---
 
 ## 6. Close the gaps (study plan)
 
+> 📅 **This section says *what*. [WEEKLY.md](WEEKLY.md) says *when*** — the CKA booking date,
+> the lab-authoring freeze, and the fixed day applications start regardless of how ready it
+> feels. Preparation expands to fill the time you give it; the dates are the constraint.
+
 Highest leverage next steps to become clearly hireable, in order:
+0. **Drill what you've already built.** Fifty-seven authored labs and a handful you could
+   reproduce from a blank terminal is a worse position than fifteen of each. [DRILLS.md](DRILLS.md)
+   is the from-scratch, timed version of each lab; the dashboard tracks *drilled* separately
+   from *completed* and shows you the stalest. This outranks every item below — it's the one
+   that changes interview outcomes, and it's the one that feels least like progress.
 1. **CKA first.** Labs 22–34 cover the workloads-and-policy half of the exam;
    [lab 48](../labs/48-cka-exam-readiness/) drills the cluster-operations half — etcd
    backup/restore, drains vs PDBs, kubelet break-fix, static pods, kubeadm — and ends in a
@@ -341,8 +397,10 @@ Highest leverage next steps to become clearly hireable, in order:
    every new piece of glue in `scripts/`, shellcheck-clean, so the habit shows.
 4. **Secrets management:** done in lab 26 (Sealed Secrets / External Secrets Operator) — go
    further with Vault dynamic secrets and automatic rotation.
-5. **Keep extending this repo** and write short posts on each capstone step; visible learning
-   is a hiring signal.
+5. **Stop extending this repo.** The breadth is done; from 2026-08-14 the labs are frozen
+   until the CKA is passed and applications are out ([WEEKLY.md](WEEKLY.md)). Adding a lab
+   always feels productive and never ends — that's exactly why it's the comfortable work.
+   Resume only when a specific interview exposes a specific gap.
 
 ---
 
@@ -458,7 +516,36 @@ can always continue with "…and in my project that's exactly the X hop."
 | Service died | `systemctl status X`, `journalctl -u X -n 50` | crashed vs never started vs restart-looping |
 
 The container versions of these are lab 35's bread and butter: `kubectl top`, `kubectl logs
---previous`, `docker stats`, `kubectl describe` events.
+--previous`, `docker stats`, `kubectl describe` events. The host versions are drilled for real
+in [lab 54](../labs/54-linux-server-ops/).
+
+**Q: How do you make a service start on boot, and how do you read its logs?**
+> A **systemd unit**, not a `restart:` policy — Docker's restart policy brings a container back
+> when the daemon is up; it does nothing about "nobody ran `compose up` after the reboot". Mine
+> is `Type=oneshot` with `RemainAfterExit=yes`, because the command *starts* something and
+> exits — with `Type=simple` systemd watches `docker compose up -d` return immediately and
+> declares the unit dead. `Requires=docker.service` is the dependency, `After=` is the
+> ordering; you need both, since `Requires` alone lets them start in parallel. Logs are
+> `journalctl -u dojo`, and the flags that matter in an incident are `--since "10 min ago"`,
+> `-p err`, and **`-b -1`** — the previous boot, which is the only way to answer "it died
+> overnight and the box rebooted".
+
+**Follow-up — Q: cron or a systemd timer?**
+> Timer, for three concrete reasons: `Persistent=true` runs a missed job after downtime (cron
+> just skips it), `RandomizedDelaySec` stops a fleet from stampeding on the hour, and output
+> lands in the journal with the unit's retention instead of a `>> /var/log/x.log` that nobody
+> rotates. It also splits schedule from work, so I can run the job now with
+> `systemctl start x.service` without touching the schedule, and `systemctl list-timers` shows
+> me when it fires next — which cron cannot.
+
+**Q: `df` says the disk is full, `du` says it isn't. What's going on?** *(a favourite)*
+> A **deleted-but-still-open** file. The blocks aren't freed until the last file descriptor
+> closes, so the space is gone while the *name* is not — `du` walks the directory tree and
+> can't see it; `df` reads the filesystem's allocation and can. Find it with `sudo lsof +L1`
+> (link count 0), or `ls -l /proc/*/fd | grep deleted` if lsof isn't installed. `rm` won't help:
+> restart or kill the process holding it. Classic cause is a logfile rotated without
+> `copytruncate` while the writer kept the handle — which is exactly the `logrotate` config I
+> ship for the Docker json logs.
 
 ---
 
@@ -519,8 +606,13 @@ Record yourself once; it's uncomfortable and worth it.
    blind. Narrate the method as you go — *observe → hypothesize → verify → fix → confirm* —
    as if the interviewer were watching your screen. Pass: root cause **and** fix inside 20
    minutes, method narrated, three-line postmortem written.
+   *(Host-level variant: `scripts/chaos/fill-disk.sh` from lab 54 — same loop, no `kubectl`.)*
 3. **Design — 10 min.** One question from §9, sketched on paper while talking. Pass: you named
    at least two trade-offs *without being prompted*.
+
+This is the Saturday slot in [WEEKLY.md](WEEKLY.md). The Mon/Wed/Thu slots are the closed-book
+drills in [DRILLS.md](DRILLS.md) — the mock loop tests whether you can *talk*; the drills test
+whether you can *produce*. Interviews ask for both.
 
 **Exit criterion:** two consecutive clean loops → you're not "still preparing", you're ready —
 start applying and keep the weekly loop running *during* the search (fresh drills feed fresh

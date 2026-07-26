@@ -15,7 +15,13 @@ legacy DBC-based path each lab corresponds to.
 > remaining labs run in parallel with interviewing. Rationale in
 > [DOCKER_LEARNING_PATH.md](DOCKER_LEARNING_PATH.md#the-fast-track-interview-ready-as-soon-as-possible).
 
-| Lab | Topic | Maps to original § | Milestone | Status |
+📊 **The ✅ in the *Authored* column means "this lab is written and runnable" — not "I can do
+it."** Personal progress lives in the running dashboard, which tracks two separate states per
+lab: **completed** (worked through it with the repo open) and **drilled** (passed its
+closed-book drill inside the time target — [DRILLS.md](DRILLS.md)). The schedule that turns the
+two into a habit is [WEEKLY.md](WEEKLY.md); tooling setup is [TOOLBOX.md](TOOLBOX.md).
+
+| Lab | Topic | Maps to original § | Milestone | Authored |
 |-----|-------|--------------------|-----------|--------|
 | [00](../labs/00-prerequisites/) | Prerequisites, tooling, repo tour, `git init` | — | 1 | ✅ |
 | [01](../labs/01-docker-basics/) | Docker basics: image vs container vs layer | §1 | 1 | ✅ |
@@ -47,7 +53,7 @@ legacy DBC-based path each lab corresponds to.
 
 ### Kubernetes deep-dive track (Platform/SRE · CKA/CKS-aligned)
 
-| Lab | Topic | Cert | Status |
+| Lab | Topic | Cert | Authored |
 |-----|-------|------|--------|
 | [27](../labs/27-k8s-rbac/) | RBAC & least privilege | CKA/CKS | ✅ |
 | [28](../labs/28-k8s-network-policies/) | NetworkPolicies (zero-trust) + Calico | CKA/CKS | ✅ |
@@ -69,7 +75,7 @@ The interview-readiness track: troubleshooting under pressure, scripting, IaC ma
 promotion flows, supply-chain proof. Labs 37–38 have no dependencies beyond the foundation —
 do them anytime.
 
-| Lab | Topic | Notes | Status |
+| Lab | Topic | Notes | Authored |
 |-----|-------|-------|--------|
 | [35](../labs/35-incident-response/) | Incident response: break-fix drills, runbooks, postmortems | interview centerpiece #2 | ✅ |
 | [36](../labs/36-multi-env-promotion/) | Multi-env promotion (Helm values-per-env + ArgoCD ApplicationSet) | — | ✅ |
@@ -79,10 +85,13 @@ do them anytime.
 | [40](../labs/40-aws-core-services/) | AWS core: RDS, S3 lifecycle, IAM/IRSA, VPC tour | 💸 needs EKS (lab 25) | ✅ |
 | [41](../labs/41-supply-chain-security/) | Supply chain: cosign signing, admission verification, scan gates | deepens 13/15/29 | ✅ |
 | [42](../labs/42-gitlab-ci/) | GitLab CI: translate the pipeline | optional · EU market | ✅ |
+| [54](../labs/54-linux-server-ops/) | Linux server ops: systemd units & timers, journald, SSH hardening, disk triage | the generalist screening filter | ✅ |
+| [55](../labs/55-postgres-operations/) | Postgres under load: `EXPLAIN`, indexes, locks, pooling, vacuum | the most common real incident | ✅ |
+| [56](../labs/56-slo-and-error-budgets/) | SLOs & error budgets: recording rules, multi-window burn-rate alerts | deepens 10/12/34 | ✅ |
 
 ### Polyglot extra
 
-| Lab | Topic | Notes | Status |
+| Lab | Topic | Notes | Authored |
 |-----|-------|-------|--------|
 | [50](../labs/50-go-vs-python-parity/) | Same service, two languages: swap the Go API for its Python (FastAPI) twin | optional · do anytime after lab 09 | ✅ |
 
@@ -96,13 +105,13 @@ The [TWN Bootcamp demo projects](../TWN_Demo_Projects_Overview.01.pdf) compared 
 path left four genuinely additive patterns, plus the one-lab answer to "could you work in an
 Azure shop?". Breadth — deliberately *after* depth.
 
-| Lab | Topic | Notes | Status |
+| Lab | Topic | Notes | Authored |
 |-----|-------|-------|--------|
-| [43](../labs/43-jenkins-shared-library/) | Jenkins Shared Library, webhook triggers, dynamic versioning | deepens lab 24 | ⬜ |
-| [44](../labs/44-ansible-at-scale/) | Ansible at scale: dynamic inventory, roles, Terraform handoff | 💸 deepens 16/17 | ⬜ |
-| [45](../labs/45-boto3-ops-automation/) | Python + Boto3: snapshot lifecycle, self-healing monitor | 💸 deepens 37/40 | ⬜ |
-| [46](../labs/46-helm-library-chart/) | Helm library chart + Helmfile (push-based multi-env) | deepens 23/36 | ⬜ |
-| [47](../labs/47-cloud-portability-aks/) | Cloud portability: the same chart on Azure AKS (+ [provider map](CLOUD_PROVIDER_MAP.md)) | 💸 needs 22/23 | ⬜ |
+| [43](../labs/43-jenkins-shared-library/) | Jenkins Shared Library, webhook triggers, dynamic versioning | deepens lab 24 | ✅ |
+| [44](../labs/44-ansible-at-scale/) | Ansible at scale: dynamic inventory, roles, Terraform handoff | 💸 deepens 16/17 | ✅ |
+| [45](../labs/45-boto3-ops-automation/) | Python + Boto3: snapshot lifecycle, self-healing monitor | 💸 deepens 37/40 | ✅ |
+| [46](../labs/46-helm-library-chart/) | Helm library chart + Helmfile (push-based multi-env) | deepens 23/36 | ✅ |
+| [47](../labs/47-cloud-portability-aks/) | Cloud portability: the same chart on Azure AKS (+ [provider map](CLOUD_PROVIDER_MAP.md)) | 💸 needs 22/23 | ✅ |
 
 ## Intentionally out of scope (and why)
 

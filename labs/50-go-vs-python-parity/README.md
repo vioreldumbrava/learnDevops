@@ -53,7 +53,7 @@ the db/redis/frontend services, and every dependency are inherited unchanged.
 ### 3. Prove it's the same service
 
 ```powershell
-# Same 24 steps, same JSON field names (id, lab_no, completed, …):
+# Same 57 steps, same JSON field names (id, lab_no, completed, drilled, last_practiced_at, …):
 curl -s http://localhost:8080/api/steps -o steps-py.json
 #   -> the ticks you made under Go in step 1 are STILL THERE. State lives in
 #      Postgres, not in the app — so swapping the app language changes nothing.

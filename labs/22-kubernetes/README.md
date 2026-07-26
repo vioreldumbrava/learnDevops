@@ -69,7 +69,7 @@ drive load to watch it scale automatically.
 ## Checkpoint
 
 - ✅ `kubectl -n devops-dojo get pods` shows api/frontend/worker/redis Running and db Ready.
-- ✅ <http://localhost/api/steps> returns the 24 steps through the Ingress.
+- ✅ <http://localhost/api/steps> returns all 57 steps through the Ingress.
 - ✅ Deleting an API pod recreates it; scaling changes replica count.
 
 ## Common failures

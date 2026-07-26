@@ -58,7 +58,7 @@ resets. That contrast *is* the difference between ephemeral containers and persi
 ## Checkpoint
 
 - ✅ `ps` shows db/redis/api/frontend running (migrate `Exited (0)`).
-- ✅ `curl .../api/steps` returns a JSON array of 24 steps.
+- ✅ `curl .../api/steps` returns a JSON array of 57 steps (the whole curriculum).
 - ✅ Toggling a lab at :3000 persists across reload (and across `down`/`up`, but not `down -v`).
 
 ## Common failures

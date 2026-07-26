@@ -1,0 +1,43 @@
+# Lab 55 overlay — turn the database into something you can actually diagnose.
+#
+#   docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.pgtune.yaml up -d
+#
+# Two changes, both deliberate:
+#
+#  1. pg_stat_statements — the single most useful thing you can enable on a Postgres you
+#     are responsible for. It aggregates every query by normalised text with call counts
+#     and total/mean time, which is how you find the slow query instead of guessing. It
+#     needs shared_preload_libraries, which needs a RESTART (not a reload), which is why
+#     it lives in an overlay rather than being on by default.
+#
+#  2. max_connections=25 — deliberately small so the connection-exhaustion drill fails
+#     fast on a laptop instead of needing thousands of virtual users. Production default
+#     is 100; the lesson (connections are a bounded, expensive resource) is identical.
+services:
+  db:
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - max_connections=25
+      # Log anything slower than 200ms. In production this is your early-warning system;
+      # set it too low and the log itself becomes the performance problem.
+      - -c
+      - log_min_duration_statement=200
+      # Report lock waits that outlast 1s — the "who is blocking whom" drill in the lab.
+      - -c
+      - log_lock_waits=on
+      - -c
+      - deadlock_timeout=1s
+      # Tell the planner it has real memory. The default 4MB makes it avoid index scans
+      # it should be choosing, which muddies every EXPLAIN you read.
+      - -c
+      - effective_cache_size=1GB
+      - -c
+      - shared_buffers=256MB
+    # The default 64MB is not enough once the drill loads 200k notes rows; Postgres uses
+    # /dev/shm for parallel query workers and hash joins.
+    shm_size: 512mb

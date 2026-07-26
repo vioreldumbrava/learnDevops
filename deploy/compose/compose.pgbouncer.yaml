@@ -1,0 +1,58 @@
+# Lab 55 overlay — put a connection pooler in front of Postgres.
+#
+#   docker compose -f deploy/compose/compose.yaml \
+#                  -f deploy/compose/compose.pgtune.yaml \
+#                  -f deploy/compose/compose.pgbouncer.yaml up -d
+#
+# The point of the drill: with max_connections=25 (see compose.pgtune.yaml) a burst of
+# concurrent requests exhausts Postgres and the API starts returning 500s. Nothing about
+# the application changed — it ran out of a resource it doesn't manage.
+#
+# PgBouncer fixes it by decoupling *client* connections (cheap, thousands) from *server*
+# connections (expensive, dozens). In transaction pooling mode a backend connection is
+# handed to a client only for the duration of a transaction, so 200 idle clients can share
+# 20 server connections.
+#
+# The cost, and the thing to say in an interview: transaction pooling breaks anything that
+# assumes session state survives between transactions — session-level SET, LISTEN/NOTIFY,
+# advisory locks, and server-side prepared statements. pgx and asyncpg both use prepared
+# statements by default, which is why the DSNs below disable them.
+services:
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p2
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER:-dojo}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-dojo}
+      DB_NAME: ${POSTGRES_DB:-dojo}
+      POOL_MODE: transaction
+      # Far more than Postgres will ever allow directly — that is the whole trick.
+      MAX_CLIENT_CONN: "500"
+      # Stay well under max_connections=25 so psql sessions and the migrate job still fit.
+      DEFAULT_POOL_SIZE: "10"
+      AUTH_TYPE: scram-sha-256
+      ADMIN_USERS: ${POSTGRES_USER:-dojo}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER:-dojo}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Point the app tier at the pooler instead of the database. Nothing else changes —
+  # that's the demonstration.
+  api: &via-pooler
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-dojo}:${POSTGRES_PASSWORD:-dojo}@pgbouncer:6432/${POSTGRES_DB:-dojo}?sslmode=disable&default_query_exec_mode=simple_protocol&statement_cache_capacity=0
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+
+  worker: *via-pooler
+
+  # Migrations keep talking to Postgres directly: DDL wants a real session, and one
+  # short-lived connection at boot is not what exhausts the pool.

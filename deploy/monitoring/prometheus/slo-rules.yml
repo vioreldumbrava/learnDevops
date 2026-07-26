@@ -1,0 +1,214 @@
+# Lab 56 — SLIs, SLOs and multi-window multi-burn-rate alerting.
+#
+# THE SLO (write it down, in one sentence, before writing any PromQL):
+#
+#   99.5% of API requests succeed and complete within 500 ms, measured over 30 days.
+#
+# That gives an error budget of 0.5% of 30 days = 3h36m of "bad" requests per window.
+#
+# Two SLIs, both computable from metrics the API already exports:
+#   availability — the fraction of requests that are not 5xx
+#   latency      — the fraction of requests served faster than 500 ms
+#
+# Recording rules exist because these ratios are (a) expensive to compute repeatedly and
+# (b) referenced by six alerts and a dashboard each. Compute once, read many. The naming
+# convention is `level:metric:operation` — the Prometheus community standard, and worth
+# using because it makes a rule's meaning readable without opening this file.
+
+groups:
+  # ---------------------------------------------------------------------------
+  # SLIs, as error RATIOS (fraction bad). Ratios, not counts, so the alerting
+  # arithmetic below is the same regardless of traffic volume.
+  #
+  # Two idioms appear in every availability rule, and both exist because of a way
+  # this silently returns NOTHING instead of zero:
+  #
+  #   `or vector(0)`  — when the service has served no 5xx at all, the selector
+  #     {status=~"5.."} matches no series, so sum(rate(...)) is an EMPTY vector,
+  #     and empty / anything is empty. The dashboard shows "No data" and the alert
+  #     can never fire. `or vector(0)` supplies the zero that a human expects.
+  #
+  #   `clamp_min(..., 1e-9)` — with no traffic at all the denominator is 0 and the
+  #     ratio is NaN; comparisons against NaN are false, so the alert stays silent
+  #     during a total outage. (ApiDown covers that case — see alerts.yml.)
+  #
+  # Both are the same lesson: an alert that cannot fire looks exactly like an alert
+  # that has nothing to report.
+  # ---------------------------------------------------------------------------
+  - name: dojo-slo-sli
+    interval: 30s
+    rules:
+      # --- availability: fraction of requests that failed -----------------------
+      - record: job:slo_availability_error:ratio_rate5m
+        expr: |
+          (sum(rate(dojo_http_requests_total{status=~"5.."}[5m])) or vector(0))
+            / clamp_min(sum(rate(dojo_http_requests_total[5m])), 1e-9)
+      - record: job:slo_availability_error:ratio_rate30m
+        expr: |
+          (sum(rate(dojo_http_requests_total{status=~"5.."}[30m])) or vector(0))
+            / clamp_min(sum(rate(dojo_http_requests_total[30m])), 1e-9)
+      - record: job:slo_availability_error:ratio_rate1h
+        expr: |
+          (sum(rate(dojo_http_requests_total{status=~"5.."}[1h])) or vector(0))
+            / clamp_min(sum(rate(dojo_http_requests_total[1h])), 1e-9)
+      - record: job:slo_availability_error:ratio_rate6h
+        expr: |
+          (sum(rate(dojo_http_requests_total{status=~"5.."}[6h])) or vector(0))
+            / clamp_min(sum(rate(dojo_http_requests_total[6h])), 1e-9)
+      - record: job:slo_availability_error:ratio_rate1d
+        expr: |
+          (sum(rate(dojo_http_requests_total{status=~"5.."}[1d])) or vector(0))
+            / clamp_min(sum(rate(dojo_http_requests_total[1d])), 1e-9)
+      - record: job:slo_availability_error:ratio_rate3d
+        expr: |
+          (sum(rate(dojo_http_requests_total{status=~"5.."}[3d])) or vector(0))
+            / clamp_min(sum(rate(dojo_http_requests_total[3d])), 1e-9)
+
+      # --- latency: fraction of requests SLOWER than 500ms ----------------------
+      # Straight off the histogram's cumulative le="0.5" bucket — no
+      # histogram_quantile, no interpolation error. This is why an SLO on a
+      # bucket boundary is easier to defend than an SLO on "p95".
+      - record: job:slo_latency_error:ratio_rate5m
+        expr: |
+          1 - (
+            sum(rate(dojo_http_request_duration_seconds_bucket{le="0.5"}[5m]))
+              / clamp_min(sum(rate(dojo_http_request_duration_seconds_count[5m])), 1e-9)
+          )
+      - record: job:slo_latency_error:ratio_rate1h
+        expr: |
+          1 - (
+            sum(rate(dojo_http_request_duration_seconds_bucket{le="0.5"}[1h]))
+              / clamp_min(sum(rate(dojo_http_request_duration_seconds_count[1h])), 1e-9)
+          )
+      - record: job:slo_latency_error:ratio_rate6h
+        expr: |
+          1 - (
+            sum(rate(dojo_http_request_duration_seconds_bucket{le="0.5"}[6h]))
+              / clamp_min(sum(rate(dojo_http_request_duration_seconds_count[6h])), 1e-9)
+          )
+
+      # --- the number a human wants: how much budget is left, 0-1 ---------------
+      # 30d error ratio against a 0.5% target. 1.0 = untouched, 0 = spent,
+      # negative = over budget.
+      - record: job:slo_availability_budget_remaining:ratio30d
+        expr: |
+          1 - (
+            (
+              (sum(increase(dojo_http_requests_total{status=~"5.."}[30d])) or vector(0))
+                / clamp_min(sum(increase(dojo_http_requests_total[30d])), 1e-9)
+            ) / 0.005
+          )
+
+  # ---------------------------------------------------------------------------
+  # Multi-window, multi-burn-rate alerts (Google SRE Workbook, ch. 5).
+  #
+  # BURN RATE = how many times faster than "budget exactly exhausted at 30 days"
+  # you are consuming the budget. 1x spends it precisely over the window. 14.4x
+  # spends the entire 30-day budget in ~50 hours.
+  #
+  # Each alert pairs a LONG window (is this real?) with a SHORT one (is it still
+  # happening?). The long window stops a 30-second blip from paging you; the
+  # short window makes the alert RESOLVE quickly once the incident is over —
+  # without it, a 6h window keeps an alert firing for hours after the fix.
+  #
+  #   budget consumed   long    short   burn rate   action
+  #   2%                1h      5m      14.4x       page  — you have ~2 days
+  #   5%                6h      30m      6x         page  — you have ~5 days
+  #   10%               3d      6h       1x         ticket — degrading, not urgent
+  #
+  # Fast/slow is the whole design: page on things that will exhaust the budget
+  # before anyone gets round to it, ticket on things that won't.
+  # ---------------------------------------------------------------------------
+  - name: dojo-slo-burn
+    rules:
+      - alert: SLOAvailabilityFastBurn
+        expr: |
+          job:slo_availability_error:ratio_rate1h > (14.4 * 0.005)
+            and
+          job:slo_availability_error:ratio_rate5m > (14.4 * 0.005)
+        for: 2m
+        labels:
+          severity: page
+          slo: availability
+          burn: fast
+        annotations:
+          summary: "Availability budget burning at >14x (2% in 1h)"
+          description: >-
+            5xx rate is {{ $value | humanizePercentage }} over the last hour. At this rate
+            the entire 30-day error budget is gone in about two days.
+          runbook_url: "https://github.com/OWNER/REPO/blob/main/docs/runbooks/error-budget-policy.md"
+
+      - alert: SLOAvailabilitySlowBurn
+        expr: |
+          job:slo_availability_error:ratio_rate6h > (6 * 0.005)
+            and
+          job:slo_availability_error:ratio_rate30m > (6 * 0.005)
+        for: 15m
+        labels:
+          severity: page
+          slo: availability
+          burn: slow
+        annotations:
+          summary: "Availability budget burning at >6x (5% in 6h)"
+          description: "Sustained elevated 5xx rate: {{ $value | humanizePercentage }} over 6h."
+          runbook_url: "https://github.com/OWNER/REPO/blob/main/docs/runbooks/error-budget-policy.md"
+
+      - alert: SLOAvailabilityBudgetDegrading
+        expr: |
+          job:slo_availability_error:ratio_rate3d > (1 * 0.005)
+            and
+          job:slo_availability_error:ratio_rate6h > (1 * 0.005)
+        for: 1h
+        labels:
+          severity: ticket
+          slo: availability
+          burn: creep
+        annotations:
+          summary: "Availability budget on track to be exhausted this month"
+          description: >-
+            Not urgent, but at the current rate the budget runs out before the window
+            closes. Freeze risky releases per the error-budget policy.
+          runbook_url: "https://github.com/OWNER/REPO/blob/main/docs/runbooks/error-budget-policy.md"
+
+      - alert: SLOLatencyFastBurn
+        expr: |
+          job:slo_latency_error:ratio_rate1h > (14.4 * 0.005)
+            and
+          job:slo_latency_error:ratio_rate5m > (14.4 * 0.005)
+        for: 2m
+        labels:
+          severity: page
+          slo: latency
+          burn: fast
+        annotations:
+          summary: "Latency budget burning at >14x (too many requests over 500ms)"
+          description: "{{ $value | humanizePercentage }} of requests exceeded 500ms in the last hour."
+          runbook_url: "https://github.com/OWNER/REPO/blob/main/docs/runbooks/high-latency.md"
+
+      - alert: SLOLatencySlowBurn
+        expr: |
+          job:slo_latency_error:ratio_rate6h > (6 * 0.005)
+            and
+          job:slo_latency_error:ratio_rate1h > (6 * 0.005)
+        for: 15m
+        labels:
+          severity: page
+          slo: latency
+          burn: slow
+        annotations:
+          summary: "Latency budget burning at >6x"
+          description: "{{ $value | humanizePercentage }} of requests exceeded 500ms over 6h."
+          runbook_url: "https://github.com/OWNER/REPO/blob/main/docs/runbooks/high-latency.md"
+
+      - alert: SLOErrorBudgetExhausted
+        expr: job:slo_availability_budget_remaining:ratio30d <= 0
+        for: 5m
+        labels:
+          severity: ticket
+          slo: availability
+        annotations:
+          summary: "30-day error budget is spent"
+          description: >-
+            Feature releases pause until the budget recovers — see the error-budget policy.
+            This is a decision trigger, not an outage.
+          runbook_url: "https://github.com/OWNER/REPO/blob/main/docs/runbooks/error-budget-policy.md"

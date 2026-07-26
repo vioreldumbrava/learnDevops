@@ -10,24 +10,24 @@ groups:
           summary: "DevOps Dojo API is down"
           description: "Prometheus has not been able to scrape the api target for 1 minute."
 
-      - alert: HighErrorRate
-        expr: |
-          sum(rate(dojo_http_requests_total{status=~"5.."}[5m]))
-            / sum(rate(dojo_http_requests_total[5m])) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High 5xx error rate"
-          description: "More than 5% of API requests have failed over the last 5 minutes."
+        # NOTE (lab 56): ApiDown stays. "The service is gone" is a symptom you always
+        # want paged immediately, and no burn-rate window beats `up == 0` for it — with
+        # zero traffic there is no error *ratio* to compute at all.
 
-      - alert: HighLatencyP95
-        expr: |
-          histogram_quantile(0.95,
-            sum by (le) (rate(dojo_http_request_duration_seconds_bucket[5m]))) > 0.5
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "API p95 latency above 500ms"
-          description: "95th percentile request latency has exceeded 500ms for 5 minutes."
+  # HighErrorRate and HighLatencyP95 used to live here. They were retired in lab 56 and
+  # replaced by the burn-rate alerts in slo-rules.yml. Keeping the reasoning, because the
+  # trade-off is the interview answer:
+  #
+  #   A static threshold ("5xx > 5% for 5 minutes") has no idea how much reliability you
+  #   have left to spend. It pages at 3am for a 6-minute blip that cost 0.02% of the
+  #   month's budget, and it stays silent through a 3% error rate that quietly exhausts
+  #   the budget over a fortnight. Both are the wrong call, and the first one is worse,
+  #   because alert fatigue is how real pages get ignored.
+  #
+  #   A burn-rate alert asks a different question: at the current rate, when do I run out
+  #   of budget? That makes urgency and severity fall out of arithmetic instead of taste —
+  #   fast burn pages, slow creep opens a ticket.
+  #
+  #   What you give up: burn-rate alerts need meaningful traffic (the ratio is noise at
+  #   3 requests/minute) and they are harder to explain to someone who hasn't met SLOs.
+  #   For a low-traffic internal service, a static threshold is still the honest choice.

@@ -1,14 +1,60 @@
+# Lab 56 — routing by severity, not one bucket for everything.
+#
+# The routing tree is the difference between "we have alerts" and "we have on-call".
+# Two classes, deliberately only two:
+#
+#   severity: page    a human is woken up. User-facing, budget burning fast.
+#   severity: ticket  goes in a queue. Real, but it can wait for business hours.
+#
+# Everything the burn-rate rules emit (prometheus/slo-rules.yml) carries one of those.
 route:
   receiver: default
-  group_by: ["alertname"]
+  # Group by the SLO being violated, not just alertname: availability fast-burn and
+  # availability slow-burn during one incident should arrive as ONE notification.
+  group_by: ["alertname", "slo"]
   group_wait: 10s
   group_interval: 1m
   repeat_interval: 1h
 
+  routes:
+    - matchers: ['severity="page"']
+      receiver: pager
+      # Page fast: a 14x burn rate leaves about two days of budget in total.
+      group_wait: 10s
+      repeat_interval: 30m
+
+    - matchers: ['severity="ticket"']
+      receiver: tickets
+      # Batch aggressively. Nobody needs a second notification about budget creep.
+      group_wait: 5m
+      group_interval: 30m
+      repeat_interval: 12h
+
+# Don't page about the symptom when you're already paging about the cause: if the API is
+# down, the burn-rate alerts firing underneath it are noise.
+inhibit_rules:
+  - source_matchers: ['alertname="ApiDown"']
+    target_matchers: ['severity="page"']
+    equal: ["job"]
+
+  # A fast burn implies the slow one. Only the sharper alert should notify.
+  - source_matchers: ['burn="fast"']
+    target_matchers: ['burn="slow"']
+    equal: ["slo"]
+
 receivers:
   - name: default
     # Learning setup: fired alerts are visible in the Alertmanager UI at :9093.
-    # Add a real receiver (email/Slack/webhook) here when you want notifications, e.g.:
+
+  - name: pager
+    # Real setups wire PagerDuty/Opsgenie here. The routing tree is what matters —
+    # swapping in a receiver is a five-line change; designing the tree is the skill.
+    # pagerduty_configs:
+    #   - routing_key: <integration-key>
+    #     severity: critical
+
+  - name: tickets
+    # In a real setup: a Jira/Linear webhook, or a low-priority Slack channel.
     # slack_configs:
     #   - api_url: https://hooks.slack.com/services/XXX
-    #     channel: "#alerts"
+    #     channel: "#reliability-backlog"

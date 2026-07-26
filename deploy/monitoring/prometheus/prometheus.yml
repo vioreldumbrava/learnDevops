@@ -9,6 +9,8 @@ alerting:
 
 rule_files:
   - /etc/prometheus/alerts.yml
+  # Lab 56: SLI recording rules + multi-window burn-rate alerts.
+  - /etc/prometheus/slo-rules.yml
 
 scrape_configs:
   # Prometheus scraping itself.

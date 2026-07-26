@@ -25,6 +25,9 @@ services:
     volumes:
       - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ../monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      # Lab 56: SLI recording rules + burn-rate alerts. Mounted as its own file because
+      # rule *policy* and availability *alerts* have different review cadences.
+      - ../monitoring/prometheus/slo-rules.yml:/etc/prometheus/slo-rules.yml:ro
       - prometheus-data:/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml

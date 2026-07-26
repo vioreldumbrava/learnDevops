@@ -78,8 +78,10 @@ docker compose -f deploy/compose/compose.yaml down -v
 ## How to use the labs
 
 Work through `labs/00..26` in order, then pick up the Kubernetes deep-dive (`27..34` + the
-CKA exam-ops drills in `48`), the operate-and-automate track (`35..42` — labs 37–38 can be
-done anytime after the foundation), and the ecosystem-breadth track (`43..47`, TWN-inspired).
+CKA exam-ops drills in `48`, the networking deep dives in `49`/`51`, and storage/scheduling
+in `52`/`53`), the
+operate-and-automate track (`35..42` — labs 37–38 can be done anytime after the foundation),
+and the ecosystem-breadth track (`43..47`, TWN-inspired).
 In a hurry to interview? Follow the ⚡ **fast track** in
 [docs/CURRICULUM.md](docs/CURRICULUM.md) instead and do the rest in parallel with applying.
 Every lab follows the same shape:
@@ -140,11 +142,15 @@ dojo-operator/   Third project: build a Kubernetes operator in Go — see its ow
   (ArgoCD)** — the end-to-end, interview-ready deployment.
 - ✅ **Production secrets (lab 26):** Sealed Secrets / External Secrets Operator — no plaintext
   in Git.
-- ✅ **Kubernetes deep-dive (labs 27–34 + 48 + 49):** RBAC, NetworkPolicies (+Calico), Kyverno,
+- ✅ **Kubernetes deep-dive (labs 27–34 + 48/49 + 51):** RBAC, NetworkPolicies (+Calico), Kyverno,
   cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack — plus **lab 48**, the
   CKA cluster-ops drills (etcd backup/restore, drain vs PDB, kubelet break-fix, timed mock
-  exam), and **lab 49**, the networking **data plane** deep dive (pause/veth, ClusterIP +
-  kube-proxy DNAT, CoreDNS, service types, the Ingress path) — Platform/SRE, CKA/CKS.
+  exam), **lab 49**, the networking **data plane** deep dive (pause/veth, ClusterIP +
+  kube-proxy DNAT, CoreDNS, service types, the Ingress path), and **lab 51**, the same data
+  plane re-implemented in **Cilium/eBPF** (kube-proxy-free Services, Hubble, L7 policy,
+  Gateway API with a real LoadBalancer IP on kind), **lab 52** (storage: StorageClass,
+  PV/PVC lifecycle, reclaim policies, access modes) and **lab 53** (scheduling: requests,
+  taints/tolerations, affinity, topology spread, preemption) — Platform/SRE, CKA/CKS.
 - ✅ **Milestone 4 — operate, automate & prove it (labs 35–42):** incident drills + runbooks,
   multi-env promotion, Bash/Python automation, Git workflows, Terraform state/modules, AWS
   core services, supply-chain security, GitLab CI. **43 labs (00–42) complete.**

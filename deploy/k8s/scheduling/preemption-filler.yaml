@@ -1,0 +1,28 @@
+# Lab 53, step 7 — fill ONE node past the brim with low-priority pods. 40
+# replicas x 1 CPU pinned to cka-worker deliberately overshoots any laptop's
+# allocatable: however many CPUs you have, SOME replicas end up Pending — which
+# proves the node is genuinely full. Then a dojo-high pod (typed in the step)
+# requesting the same node must PREEMPT one of these to fit.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filler
+spec:
+  replicas: 40
+  selector:
+    matchLabels:
+      app: filler
+  template:
+    metadata:
+      labels:
+        app: filler
+    spec:
+      priorityClassName: dojo-low
+      nodeSelector:
+        kubernetes.io/hostname: cka-worker   # pin the squeeze to one node
+      containers:
+        - name: app
+          image: nginx:1.27-alpine
+          resources:
+            requests:
+              cpu: "1"

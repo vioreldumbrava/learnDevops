@@ -1,0 +1,64 @@
+# Lab 53, step 5 — pod anti-affinity, both strengths side by side. Each
+# deployment wants 3 replicas spread across nodes, but this cluster has only
+# TWO schedulable workers (the control-plane is tainted):
+#   spread-hard (required)  -> 2 Running, 1 Pending FOREVER: "never co-locate"
+#                              silently caps replicas at node count.
+#   spread-soft (preferred) -> 3 Running: spread when possible, co-locate when
+#                              not. What most Deployments should actually use.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spread-hard
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: spread-hard
+  template:
+    metadata:
+      labels:
+        app: spread-hard
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: spread-hard
+              topologyKey: kubernetes.io/hostname   # "node" as the unit of apart-ness
+      containers:
+        - name: app
+          image: nginx:1.27-alpine
+          resources:
+            requests:
+              cpu: "50m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spread-soft
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: spread-soft
+  template:
+    metadata:
+      labels:
+        app: spread-soft
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: spread-soft
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: app
+          image: nginx:1.27-alpine
+          resources:
+            requests:
+              cpu: "50m"

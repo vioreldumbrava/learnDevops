@@ -1,0 +1,17 @@
+# Lab 53, step 2 — nodeSelector: the bluntest placement tool. The pod may only
+# land on a node carrying EXACTLY this label. No label anywhere -> Pending.
+# The step labels a worker, watches the pod land, then removes the label and
+# proves the running pod DOESN'T move (scheduling is a one-shot decision).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: picky
+spec:
+  nodeSelector:
+    disk: fast
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      resources:
+        requests:
+          cpu: "50m"

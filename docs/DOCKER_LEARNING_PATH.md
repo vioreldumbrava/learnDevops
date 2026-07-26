@@ -147,6 +147,10 @@ Steps mirror the lab folders. ✅ = built & runnable now (Milestone 1). ⏳ = Mi
 | 26 | Production secrets management | [labs/26](../labs/26-secrets-management/) | ✅ |
 | 27–34 | **Kubernetes deep-dive** (RBAC, NetworkPolicy, Kyverno, cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack) | [labs/27–34](../labs/) | ✅ |
 | 48 | **CKA exam readiness**: etcd backup/restore, drains, kubelet, static pods, mock exam | [labs/48](../labs/48-cka-exam-readiness/) | ✅ |
+| 49 | **Networking data plane**: pause/veth, ClusterIP + kube-proxy DNAT, CoreDNS, Ingress path | [labs/49](../labs/49-k8s-networking-deep-dive/) | ✅ |
+| 51 | **Cilium/eBPF**: kube-proxy-free Services, Hubble, L7 policy, Gateway API | [labs/51](../labs/51-k8s-cilium-ebpf/) | ✅ |
+| 52 | **Storage**: StorageClass, PV/PVC lifecycle, reclaim policies, access modes | [labs/52](../labs/52-k8s-storage/) | ✅ |
+| 53 | **Scheduling**: requests, taints/tolerations, affinity, spread, preemption | [labs/53](../labs/53-k8s-scheduling/) | ✅ |
 
 ## The fast track (interview-ready as soon as possible)
 
@@ -760,10 +764,26 @@ runs on kind (or EKS). Full walkthroughs in the labs; one-line each:
   a virtual IP** with the **kube-proxy DNAT** rules read straight off the node, CoreDNS name
   resolution, every Service type, and the Ingress path traced end to end — plus the
   "Service returns nothing" decision tree.
+- **[51 · Cilium/eBPF](../labs/51-k8s-cilium-ebpf/)** — lab 49's data plane, re-implemented: a
+  **kube-proxy-free** kind cluster where Services live in **eBPF maps** (`cilium-dbg bpf lb
+  list`), flows are narrated by **Hubble**, lab 28's policy set climbs to **L7** (a denied
+  POST gets a 403, not a timeout), and **Gateway API** + LB-IPAM give a LoadBalancer a real
+  IP on kind.
+- **[52 · Storage](../labs/52-k8s-storage/)** — the CKA storage domain on kind's local-path
+  provisioner: reading the default **StorageClass**, dynamic provisioning and why
+  `WaitForFirstConsumer` holds a PVC `Pending` on purpose, `Delete` vs `Retain` (and rescuing
+  a `Released` PV by clearing its `claimRef`), hand-written static PVs, why RWX fails here,
+  and what really protects `data-db-0`.
+- **[53 · Scheduling](../labs/53-k8s-scheduling/)** — who put every pod where it is: requests
+  as the scheduler's arithmetic, `nodeSelector`, **taints vs tolerations**, node affinity
+  required vs preferred, pod anti-affinity (and how `required` silently caps replicas at node
+  count), `topologySpreadConstraints`, and **PriorityClass preemption** — plus a timed
+  three-fault break-fix.
 
 These map directly onto what **CKA/CKS** and Platform/SRE interviews probe: labs 27–34 teach
-the objects, lab 48 teaches the cluster, and lab 49 explains how the objects connect underneath
-— together they cover the exam surface.
+the objects, lab 48 teaches the cluster, lab 49 explains how the objects connect underneath,
+lab 51 swaps that data plane for the eBPF one you'll meet in managed clouds, and labs 52–53
+close the storage and scheduling domains — together they cover the exam surface.
 
 ## Milestone 4 — Operate, Automate & Prove It (labs 35–42)
 

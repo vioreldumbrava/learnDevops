@@ -58,6 +58,9 @@ legacy DBC-based path each lab corresponds to.
 | [33](../labs/33-k8s-velero-backup/) | Velero backup & DR | — | ✅ |
 | [34](../labs/34-k8s-kube-prometheus-stack/) | kube-prometheus-stack (cluster monitoring) | — | ✅ |
 | [49](../labs/49-k8s-networking-deep-dive/) | **Networking data plane**: pause/veth, ClusterIP + kube-proxy DNAT, CoreDNS, service types, Ingress path | CKA/CKS | ✅ |
+| [51](../labs/51-k8s-cilium-ebpf/) | **Cilium/eBPF**: kube-proxy-free Services, Hubble flows, L7 policy, Gateway API + LB-IPAM | CKA/CKS | ✅ |
+| [52](../labs/52-k8s-storage/) | **Storage**: StorageClass, dynamic vs static PV/PVC, WaitForFirstConsumer, reclaim policies, access modes | CKA | ✅ |
+| [53](../labs/53-k8s-scheduling/) | **Scheduling**: requests, taints/tolerations, node & pod (anti-)affinity, topology spread, preemption | CKA | ✅ |
 | [48](../labs/48-cka-exam-readiness/) | **CKA exam readiness**: etcd backup/restore, drain vs PDB, kubelet, static pods, mock exam | CKA | ✅ |
 
 ### Milestone 4 — Operate, Automate & Prove It

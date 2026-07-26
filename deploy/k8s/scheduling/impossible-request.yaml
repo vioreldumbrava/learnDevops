@@ -1,0 +1,27 @@
+# Lab 53, step 1 — two identical pods, one number apart. The scheduler does
+# ARITHMETIC on requests (never on live usage): "greedy" asks for 64 CPUs no
+# node can offer and stays Pending forever; "modest" asks for 100m and runs.
+# Side by side so you can compare their describe/events.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: greedy
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      resources:
+        requests:
+          cpu: "64"          # <- more than any node's allocatable
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: modest
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      resources:
+        requests:
+          cpu: "100m"

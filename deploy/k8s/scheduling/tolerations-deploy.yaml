@@ -1,0 +1,30 @@
+# Lab 53, step 3 — taints repel, tolerations permit. After the step taints
+# cka-worker2 (dedicated=payments:NoSchedule), these pods can only use the other
+# worker — until you UNCOMMENT the tolerations block below (the type-it moment)
+# and re-apply: now they're ALLOWED back. Note a toleration never ATTRACTS a pod
+# to the tainted node — pairing the taint with affinity is how you dedicate one.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      # tolerations:
+      #   - key: dedicated
+      #     operator: Equal
+      #     value: payments
+      #     effect: NoSchedule
+      containers:
+        - name: app
+          image: nginx:1.27-alpine
+          resources:
+            requests:
+              cpu: "50m"

@@ -1,0 +1,45 @@
+# Lab 53, step 4 — node affinity: nodeSelector's expressive successor, in both
+# strengths. "require-fast" HARD-requires a disk=fast node (Pending until one
+# exists); "prefer-fast" only scores such nodes higher and schedules anywhere
+# when none qualify. The strength is spelled out in the field names —
+# *DuringScheduling* (gates placement) *IgnoredDuringExecution* (never evicts).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: require-fast
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: disk
+                operator: In
+                values: ["fast"]
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      resources:
+        requests:
+          cpu: "50m"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: prefer-fast
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 80
+          preference:
+            matchExpressions:
+              - key: disk
+                operator: In
+                values: ["fast"]
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      resources:
+        requests:
+          cpu: "50m"

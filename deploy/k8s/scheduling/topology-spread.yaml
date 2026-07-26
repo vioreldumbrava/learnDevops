@@ -1,0 +1,41 @@
+# Lab 53, step 6 — topologySpreadConstraints: the QUANTITATIVE spreading tool.
+# Anti-affinity is binary (co-locate: never/avoid); this says "across nodes, the
+# replica-count difference may be at most maxSkew". 6 replicas over 2 usable
+# workers with maxSkew 1 should give a 3/3 split... but as written it does NOT.
+#
+# A "domain" is every node carrying the topologyKey label — INCLUDING the tainted
+# control-plane, which can never run these pods. By default (nodeTaintsPolicy:
+# Ignore) the scheduler measures skew against that permanently-empty domain, so
+# putting a 3rd pod on a worker would mean skew 3-0 > 1 and it refuses. Result:
+# 1 pod per worker and 4 stuck Pending.
+#
+# UNCOMMENT nodeTaintsPolicy below (the type-it moment) to exclude nodes whose
+# taints this pod doesn't tolerate — then the real 3/3 split appears.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: balanced
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: balanced
+  template:
+    metadata:
+      labels:
+        app: balanced
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule   # ScheduleAnyway = prefer, not require
+          # nodeTaintsPolicy: Honor          # <- uncomment: ignore untolerated nodes
+          labelSelector:
+            matchLabels:
+              app: balanced
+      containers:
+        - name: app
+          image: nginx:1.27-alpine
+          resources:
+            requests:
+              cpu: "50m"

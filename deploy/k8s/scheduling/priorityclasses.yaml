@@ -1,0 +1,20 @@
+# Lab 53, step 7 — priority only exists if you define it: with no
+# PriorityClasses every pod ties at priority 0 and nobody preempts anybody.
+# These two make importance explicit. (For scale: system-node-critical, which
+# kube-system components use, sits at 2000001000 — your "high" is still nothing
+# next to the components that keep the node alive.)
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: dojo-low
+value: 1000
+globalDefault: false
+description: "Batch/filler work — first to be evicted when something important needs room."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: dojo-high
+value: 1000000
+globalDefault: false
+description: "Critical workloads — may preempt lower-priority pods to schedule."

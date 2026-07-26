@@ -67,6 +67,8 @@ real-world NetworkPolicy gotcha.
 
 > 🔬 **Go deeper:** this lab *restricts* the traffic; [Lab 49](../49-k8s-networking-deep-dive/)
 > shows the data plane those flows ride on — why `allow-dns` matters (CoreDNS), and the
-> kube-proxy DNAT rules a NetworkPolicy sits in front of.
+> kube-proxy DNAT rules a NetworkPolicy sits in front of. Calico enforces at L3/4 —
+> [Lab 51](../51-k8s-cilium-ebpf/) re-creates this policy set in Cilium and pushes it to **L7**
+> (GET-only allows; a denied request gets a **403**, not a timeout).
 
 ➡️ Next: [Lab 29 — Policy-as-code with Kyverno](../29-k8s-kyverno/)

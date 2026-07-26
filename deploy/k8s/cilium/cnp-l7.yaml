@@ -1,0 +1,82 @@
+# Lab 51, step 4 — CiliumNetworkPolicy: lab 28's zero-trust idea, pushed to L7.
+# Compare with deploy/k8s/network-policies/network-policies.yaml (Calico):
+#   - same whitelist model, but NO namespace-wide default-deny object is needed —
+#     the moment a policy selects an endpoint for a direction, that endpoint is
+#     default-deny for that direction. These two policies restrict ONLY the
+#     frontend's egress and the api's ingress; db/redis/worker are untouched.
+#   - rules match on IDENTITY (labels), and can climb from ports (L4) to HTTP
+#     methods/paths and DNS names (L7) — enforced by a node-local Envoy the CNI
+#     manages. A NetworkPolicy can say "frontend may reach api:8080"; a CNP can
+#     say "frontend may only GET".
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: frontend-egress
+  namespace: devops-dojo
+spec:
+  endpointSelector:
+    matchLabels:
+      app: frontend
+  egress:
+    # DNS — lab 28's allow-dns, upgraded: the L7 dns rule makes every query
+    # VISIBLE to Hubble (hubble observe --protocol dns) while still allowing all
+    # names. Tighten matchPattern to allowlist domains — that's egress control
+    # NetworkPolicy simply cannot express.
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # The only other thing the frontend may reach: the api, on its port (L4).
+    - toEndpoints:
+        - matchLabels:
+            app: api
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: api-ingress-l7
+  namespace: devops-dojo
+spec:
+  endpointSelector:
+    matchLabels:
+      app: api
+  ingress:
+    # From the frontend: HTTP is allowed METHOD BY METHOD. GETs pass; a POST is
+    # answered "HTTP/1.1 403 Forbidden" BY THE PROXY — the request never reaches
+    # the app. Contrast lab 28, where a denied flow just times out at L3/4.
+    - fromEndpoints:
+        - matchLabels:
+            app: frontend
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+          rules:
+            http:
+              - method: "GET"
+                path: "/healthz"
+              - method: "GET"
+                path: "/readyz"
+              - method: "GET"
+                path: "/api/.*"
+    # From the Gateway (step 5): traffic arriving through Cilium's Gateway/
+    # Ingress carries the reserved identity "ingress". L4-only on purpose, so
+    # the dashboard's POSTs (toggle a lab, add a note) keep working through the
+    # Gateway while direct pod-to-pod POSTs are L7-filtered above.
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP

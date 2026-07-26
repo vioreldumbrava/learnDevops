@@ -1,0 +1,15 @@
+# Lab 51, step 5 — LB-IPAM: the pool Cilium assigns LoadBalancer IPs from.
+# In lab 49 a Service of type LoadBalancer stayed <pending> because nothing on
+# kind implements it; this object makes Cilium that implementation.
+#
+# The CIDR must live INSIDE kind's docker network (check yours:
+#   docker network inspect kind --format "{{(index .IPAM.Config 0).Subnet}}"
+# — usually 172.18.0.0/16). We take a high /27 slice that DHCP won't hand to
+# node containers. If your subnet differs, edit the block below to match.
+apiVersion: cilium.io/v2
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: kind-pool
+spec:
+  blocks:
+    - cidr: 172.18.255.192/27

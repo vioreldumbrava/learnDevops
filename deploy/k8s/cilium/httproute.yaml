@@ -1,0 +1,29 @@
+# Lab 51, step 5 — the Gateway-API translation of deploy/k8s/base/ingress.yaml,
+# rule for rule: /api and /healthz to the api Service, everything else to the
+# frontend. Read them side by side. One upgrade you get for free: Gateway API
+# defines path-match precedence IN THE SPEC (longest prefix wins), so the rule
+# ORDER below doesn't matter — with Ingress that was controller-specific lore.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dojo-routes
+  namespace: devops-dojo
+spec:
+  parentRefs:
+    - name: dojo-gw   # attach to the Gateway (same namespace)
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /api }
+      backendRefs:
+        - name: api
+          port: 8080
+    - matches:
+        - path: { type: PathPrefix, value: /healthz }
+      backendRefs:
+        - name: api
+          port: 8080
+    - matches:
+        - path: { type: PathPrefix, value: / }
+      backendRefs:
+        - name: frontend
+          port: 80

@@ -107,8 +107,10 @@ kubectl -n devops-dojo get endpointslices -l kubernetes.io/service-name=api -o w
 #   ENDPOINTS = the current api pod IPs (compare to `get pods -o wide`)
 
 # The ClusterIP is FICTION: nothing answers ICMP, yet TCP works —
-kubectl -n devops-dojo exec $fe -- sh -c "ping -c1 -W1 api >/dev/null 2>&1; echo ping=$?; wget -qO- --timeout=3 http://api:8080/healthz"
-#   ping=1   (no host owns the VIP)      ok   (the kernel DNAT'd the connection)
+# SINGLE quotes matter: in double quotes PowerShell expands $? itself ("ping=True").
+kubectl -n devops-dojo exec $fe -- sh -c 'ping -c1 -W1 api >/dev/null 2>&1; echo ping=$?; wget -qO- --timeout=3 http://api:8080/healthz'
+#   ping=1   (no host owns the VIP)
+#   {"status":"ok"}   (the kernel DNAT'd the connection)
 
 # See the rules kube-proxy wrote. Find the api ClusterIP, then grep the node's iptables:
 $cip = kubectl -n devops-dojo get svc api -o jsonpath="{.spec.clusterIP}"
@@ -239,8 +241,9 @@ walk the tree:
 
 ```powershell
 # Inject: make the api pods fail readiness (a common real cause — bad probe/dependency).
+# NOTE the \" escaping: PowerShell mangles bare JSON on its way to kubectl.
 kubectl -n devops-dojo patch deploy api --type=json `
-  -p='[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/nope"}]'
+  -p '[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/readinessProbe/httpGet/path\",\"value\":\"/nope\"}]'
 kubectl -n devops-dojo rollout status deploy/api --timeout=60s
 kubectl -n devops-dojo exec $fe -- sh -c "wget -qO- --timeout=3 http://api:8080/healthz || echo DOWN"
 ```
@@ -256,7 +259,7 @@ Diagnose in order — each command isolates one layer:
 ```powershell
 # Fix and confirm the endpoint (and traffic) come back:
 kubectl -n devops-dojo patch deploy api --type=json `
-  -p='[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/readyz"}]'
+  -p '[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/readinessProbe/httpGet/path\",\"value\":\"/readyz\"}]'
 kubectl -n devops-dojo rollout status deploy/api --timeout=60s
 kubectl -n devops-dojo get endpointslices -l kubernetes.io/service-name=api   # populated again
 ```
@@ -290,9 +293,10 @@ to "a Service isn't responding, what do you check?" and it mirrors lab 35's meth
 
 ## Where to go next
 
-- **Cilium / eBPF**: modern CNIs replace the iptables DNAT you saw here with eBPF programs
-  (faster at scale, better observability). Same *concept*, different data plane — install Cilium
-  on a kind cluster and re-run step 3 to compare.
+- **[Lab 51 — Cilium/eBPF](../51-k8s-cilium-ebpf/)**: modern CNIs replace the iptables DNAT you
+  saw here with eBPF programs (faster at scale, better observability). Lab 51 installs Cilium on
+  a **kube-proxy-free** kind cluster and re-runs this lab's step-3 proofs against eBPF maps —
+  plus Hubble flow observability, L7 policy, and Gateway API with a real LoadBalancer IP.
 - **Service mesh** (Istio/Linkerd): a sidecar/ambient layer that adds mTLS, L7 routing and
   traffic mirroring *on top of* this — [CURRICULUM.md](../../docs/CURRICULUM.md) explains why the
   Dojo deliberately doesn't need one. Now you can articulate exactly what it would add.

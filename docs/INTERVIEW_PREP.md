@@ -146,7 +146,10 @@ controllers work?)*
 > readiness pulls a pod out, so it stops receiving traffic), and kube-proxy keeps the kernel in
 > sync with the slice. **CoreDNS** resolves the Service name to that ClusterIP. So: DNS → VIP →
 > kernel DNAT → pod. I've read those exact iptables chains off a kind node
-> ([lab 49](../labs/49-k8s-networking-deep-dive/)).
+> ([lab 49](../labs/49-k8s-networking-deep-dive/)). Modern CNIs (Cilium — GKE Dataplane V2,
+> Azure CNI) replace those chains with **eBPF**: I've also run the same cluster kube-proxy-free
+> and read the service map from the BPF side with `cilium-dbg` and Hubble
+> ([lab 51](../labs/51-k8s-cilium-ebpf/)).
 
 **Follow-up — Q: "A Service isn't responding" — how do you debug it?** *(the classic)*
 > Isolate one layer at a time: **DNS** (does the name resolve? `nslookup`) → **Endpoints**

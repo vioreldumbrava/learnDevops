@@ -1,0 +1,19 @@
+# Throwaway 3-node cluster for the Cilium/eBPF lab (51) with NO default CNI and
+# NO kube-proxy — Cilium will replace both. Three nodes so cross-node eBPF routing
+# and per-node Hubble buffers are visible. Nodes stay NotReady until Cilium is
+# installed (expected). No host port mappings, so it coexists with the dojo
+# cluster. Delete it freely: kind delete cluster --name cilium
+#
+# NOTE: the cluster NAME matters — deploy/k8s/cilium/values.yaml dials the API
+# server at "cilium-control-plane:6443", which is this cluster's control-plane
+# container. Rename one, rename both.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: cilium
+networking:
+  disableDefaultCNI: true    # no kindnet — Cilium is the CNI
+  kubeProxyMode: "none"      # no kube-proxy DaemonSet at all — eBPF replaces it
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker

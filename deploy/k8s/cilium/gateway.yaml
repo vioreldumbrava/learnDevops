@@ -1,0 +1,22 @@
+# Lab 51, step 5 — Gateway API: the role-split successor to Ingress.
+# A Gateway is the LISTENER half (infrastructure: "give me an HTTP entry point
+# on :80") — the platform team's object. Which traffic goes where lives in
+# HTTPRoutes (httproute.yaml) — the app team's object. Ingress crammed both
+# roles (plus controller-specific annotations) into one resource.
+# gatewayClassName selects the implementation: Cilium's operator watches for
+# class "cilium" and programs its per-node Envoy — no extra controller to
+# install, unlike ingress-nginx in lab 22.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: dojo-gw
+  namespace: devops-dojo
+spec:
+  gatewayClassName: cilium
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same   # only HTTPRoutes in devops-dojo may attach

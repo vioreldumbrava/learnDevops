@@ -1,0 +1,48 @@
+# Helm values for Cilium on the lab-51 kind cluster (deploy/k8s/kind/kind-cilium.yaml):
+#
+#   helm repo add cilium https://helm.cilium.io
+#   helm install cilium cilium/cilium --version 1.19.5 -n kube-system -f deploy/k8s/cilium/values.yaml
+#
+# Read-along for lab 51 — every key here is a teaching point, not boilerplate.
+
+# Replace kube-proxy entirely: Services are resolved by eBPF programs (per-node
+# BPF maps), not iptables DNAT chains. This is what lab 51 step 1–2 proves.
+kubeProxyReplacement: true
+
+# Chicken-and-egg: with no kube-proxy there is no ClusterIP path to
+# kubernetes.default yet, so the agent must dial the API server DIRECTLY.
+# "cilium-control-plane" is the control-plane container of the kind cluster
+# named "cilium" — reachable by name on kind's docker network.
+k8sServiceHost: cilium-control-plane
+k8sServicePort: 6443
+
+# Hand out pod IPs from the podCIDR kind already allocated to each node, so
+# `kubectl get node -o jsonpath='{.spec.podCIDR}'` stays truthful.
+ipam:
+  mode: kubernetes
+
+# Hubble: the flow observability layer (step 3). The relay aggregates per-node
+# flow buffers; the UI draws the live service map.
+hubble:
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+
+# Let Cilium implement Gateway API (step 5). REQUIRES the Gateway API CRDs to be
+# applied BEFORE this install — the operator checks for them at startup and
+# skips the feature (no `cilium` GatewayClass) if they're missing.
+gatewayAPI:
+  enabled: true
+
+# LB-IPAM + L2: answer ARP for LoadBalancer IPs so a Service of type
+# LoadBalancer gets a REAL, reachable address on kind (step 5) — the thing that
+# stayed <pending> in lab 49. L2 announcements use client-side leases, hence the
+# rate-limit bump (the documented mitigation).
+l2announcements:
+  enabled: true
+externalIPs:
+  enabled: true
+k8sClientRateLimit:
+  qps: 20
+  burst: 40

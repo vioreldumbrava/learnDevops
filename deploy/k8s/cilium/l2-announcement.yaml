@@ -1,0 +1,18 @@
+# Lab 51, step 5 — L2 announcements: an IP from the pool is useless until some
+# node ANSWERS ARP for it. This policy makes worker nodes respond to "who has
+# <LB-IP>?" on their eth0, pulling traffic for Gateway/LoadBalancer IPs to
+# themselves (a lease elects one node per IP — the same trick MetalLB's L2 mode
+# uses, built into Cilium).
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: kind-l2
+spec:
+  loadBalancerIPs: true
+  interfaces:
+    - ^eth[0-9]+
+  nodeSelector:
+    matchExpressions:
+      # keep the control-plane out of the data path, like a real cluster would
+      - key: node-role.kubernetes.io/control-plane
+        operator: DoesNotExist

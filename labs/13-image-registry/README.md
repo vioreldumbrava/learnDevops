@@ -80,4 +80,4 @@ just labels pointing at the same immutable image.
 
 Cleanup: `docker rm -f registry`.
 
-➡️ Next: [Lab 14 — Artifact repository](../14-artifact-repository/)
+➡️ Next: [Lab 15 — Secure CI/CD](../15-cicd/)

@@ -7,5 +7,20 @@
       "image"      (printf "%s:%s" .Values.image.frontend.repository .Values.image.frontend.tag)
       "pullPolicy" .Values.image.frontend.pullPolicy
       "port"       80
+      "podSecurityContext" (dict
+        "runAsNonRoot" true
+        "runAsUser" 101
+        "runAsGroup" 101
+        "fsGroup" 101
+        "seccompProfile" (dict "type" "RuntimeDefault")
+        "sysctls" (list (dict "name" "net.ipv4.ip_unprivileged_port_start" "value" "0")))
       "readinessProbe" (dict "httpGet" (dict "path" "/healthz" "port" 80) "initialDelaySeconds" 3 "periodSeconds" 10)
+      "volumeMounts" (list
+        (dict "name" "nginx-cache" "mountPath" "/var/cache/nginx")
+        (dict "name" "nginx-run" "mountPath" "/var/run")
+        (dict "name" "tmp" "mountPath" "/tmp"))
+      "volumes" (list
+        (dict "name" "nginx-cache" "emptyDir" (dict))
+        (dict "name" "nginx-run" "emptyDir" (dict))
+        (dict "name" "tmp" "emptyDir" (dict)))
       "resources" (dict "requests" (dict "cpu" "25m" "memory" "32Mi") "limits" (dict "cpu" "200m" "memory" "128Mi"))) }}

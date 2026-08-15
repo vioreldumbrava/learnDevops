@@ -25,7 +25,7 @@ docker compose run --rm ingest
 
 ## Steps — Kubernetes
 
-Follow [../k8s/README.md](../k8s/README.md):
+Follow [the Kubernetes deployment guide](../../k8s/README.md):
 
 ```powershell
 docker build -t dojo-ai/rag-api:dev ./api
@@ -47,11 +47,11 @@ kubectl apply -f k8s/ingest-job.yaml     # set REPO_URL first
 
 ## How it works
 
-The [Dockerfile](../../ai-assistant/api/Dockerfile) is a slim, non-root Python image; the
-[compose.yaml](../../ai-assistant/compose.yaml) wires Ollama + Qdrant + rag-api + a one-shot
-ingest; CI ([ai-assistant-ci.yml](../../.github/workflows/ai-assistant-ci.yml)) runs unit tests,
+The [Dockerfile](../../api/Dockerfile) is a slim, non-root Python image; the
+[compose.yaml](../../compose.yaml) wires Ollama + Qdrant + rag-api + a one-shot
+ingest; CI ([ai-assistant-ci.yml](../../../.github/workflows/ai-assistant-ci.yml)) runs unit tests,
 builds the image, and **Trivy-scans it with the same CRITICAL gate as the main app** (lab 41);
-[k8s/](../../ai-assistant/k8s/) orchestrates the same stack.
+[k8s/](../../k8s/) orchestrates the same stack.
 
 ## Exercise — apply the hardening you already know
 
@@ -73,7 +73,7 @@ kindnet accepts but ignores them, exactly as in lab 28.
 ## Checkpoint
 
 - ✅ The Compose stack serves grounded answers at :8000.
-- ✅ (K8s) pods are Running and the app answers through the Ingress.
+- ✅ (K8s) pods are Running and the app answers through its HTTPRoute.
 - ✅ `kubectl -n dojo-ai get networkpolicy,pdb,hpa` shows the hardening applied.
 - ✅ You can name three ways operating an LLM service differs from a stateless web app.
 
@@ -86,7 +86,7 @@ kindnet accepts but ignores them, exactly as in lab 28.
 - With NetworkPolicies applied, rag-api can't reach Qdrant/Ollama → your CNI enforces them
   and a label doesn't match (`app: qdrant`/`app: ollama`); `kubectl describe networkpolicy`.
 - HPA shows `<unknown>` targets → metrics-server isn't installed (see the main
-  [deploy/k8s/README.md](../../deploy/k8s/README.md)).
+  [deploy/k8s/README.md](../../../deploy/k8s/README.md)).
 - ingest Job can't clone → `OWNER/REPO` placeholder in `ingest-job.yaml` isn't set to your fork.
 
 ➡️ Next: [AI Lab 06 — Tokens, cost & telemetry](../06-tokens-cost-telemetry/)

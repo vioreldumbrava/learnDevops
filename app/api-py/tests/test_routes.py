@@ -20,10 +20,13 @@ class FakeStore:
         self.steps = [
             Step(id="00-prerequisites", lab_no=0, title="Prerequisites", topic="Setup",
                  maps_to="—", milestone=1, doc_path="labs/00/", summary="", completed=False,
-                 drilled=False, last_practiced_at=None),
+                 tier="core", tracks=["common-core"], requires=[], effort_minutes=60,
+                 cost_class="free", drill_required=True, drilled=False, last_practiced_at=None),
             Step(id="01-docker-basics", lab_no=1, title="Docker basics", topic="Images",
                  maps_to="§1", milestone=1, doc_path="labs/01/", summary="", completed=False,
-                 drilled=False, last_practiced_at=None),
+                 tier="core", tracks=["common-core"], requires=["00-prerequisites"],
+                 effort_minutes=60, cost_class="local", drill_required=True, drilled=False,
+                 last_practiced_at=None),
         ]
         self.progress: dict[str, tuple[bool, bool]] = {}
         self.notes: list[Note] = []
@@ -121,9 +124,14 @@ def test_steps_cache_miss_then_hit(ctx):
     assert r1.headers["x-cache"] == "MISS"
     data = r1.json()
     assert len(data) == 2
-    # Go field names, including the drill-tracking pair
-    assert set(data[0]) >= {"id", "lab_no", "title", "completed", "drilled",
-                            "last_practiced_at"}
+    # Go field names, including additive curriculum metadata and drill tracking.
+    assert set(data[0]) >= {
+        "id", "lab_no", "title", "tier", "tracks", "requires", "effort_minutes",
+        "cost_class", "drill_required", "completed", "drilled", "last_practiced_at",
+    }
+    assert data[0]["tier"] == "core"
+    assert data[0]["tracks"] == ["common-core"]
+    assert data[0]["drill_required"] is True
 
     r2 = client.get("/api/steps")
     assert r2.headers["x-cache"] == "HIT"      # served from the fake cache
@@ -133,7 +141,7 @@ def test_steps_cache_miss_then_hit(ctx):
 def test_set_progress_persists_invalidates_and_enqueues(ctx):
     client, store, cache = ctx
     client.get("/api/steps")                    # prime the cache
-    assert "steps:all" in cache.kv
+    assert "steps:v2:all" in cache.kv
 
     r = client.post("/api/progress/01-docker-basics", json={"completed": True})
     assert r.status_code == 200
@@ -144,7 +152,7 @@ def test_set_progress_persists_invalidates_and_enqueues(ctx):
         "last_practiced_at": PRACTICED_AT.isoformat(),
     }
     assert store.progress["01-docker-basics"] == (True, False)
-    assert "steps:all" not in cache.kv          # cache invalidated
+    assert "steps:v2:all" not in cache.kv       # cache invalidated
     assert cache.queue == ["progress:01-docker-basics"]  # job enqueued
 
 

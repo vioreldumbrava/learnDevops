@@ -18,7 +18,7 @@ Project conventions used below:
 - Compose files live under **`deploy/compose/`**; the prod stack is
   `-f deploy/compose/compose.yaml -f deploy/compose/compose.prod.yaml`.
 - App services: `db`, `redis`, `migrate`, `api`, `worker`, `frontend`, `caddy`
-  (observability overlay adds `prometheus`, `grafana`, `loki`, `promtail`, `tempo`,
+  (observability overlay adds `prometheus`, `grafana`, `loki`, `alloy`, `tempo`,
   `alertmanager`, `blackbox-exporter`).
 
 ## 1. Know Where You Are
@@ -368,7 +368,7 @@ docker compose --env-file .env \
   -f deploy/compose/compose.yaml \
   -f deploy/compose/compose.prod.yaml \
   -f deploy/compose/compose.observability.yaml \
-  up -d prometheus grafana loki promtail tempo alertmanager blackbox-exporter
+  up -d prometheus grafana loki alloy tempo alertmanager blackbox-exporter
 ```
 
 ## 18. Container Logs
@@ -439,7 +439,7 @@ For the Kubernetes track (labs 22, 27–34). `-n` selects the namespace.
 
 ```bash
 kubectl get pods -n devops-dojo
-kubectl get pods,svc,ingress -n devops-dojo
+kubectl get pods,svc,gateway,httproute -n devops-dojo
 kubectl get pods -A                        # every namespace
 kubectl describe pod <pod> -n devops-dojo  # events (why it won't start)
 kubectl logs -f deploy/api -n devops-dojo

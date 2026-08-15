@@ -23,10 +23,19 @@ spec:
       serviceAccountName: dojo-operator
       securityContext:
         runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: manager
           image: devops-dojo/operator:dev   # kind load docker-image puts it in the cluster
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
           args:
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=:8080

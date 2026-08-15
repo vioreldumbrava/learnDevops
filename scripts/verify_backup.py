@@ -6,10 +6,10 @@ cleans up. Exit codes: 0 = verified, 1 = verification failed, 2 = bad usage.
 
 Usage:
     python scripts/verify_backup.py backups/dojo_20260701_120000.sql
-    python scripts/verify_backup.py backups/latest.sql --min-steps 24
 """
 
 import argparse
+import json
 import os
 import pathlib
 import subprocess
@@ -18,6 +18,8 @@ import time
 
 IMAGE = "postgres:16-alpine"
 USER = DB = "dojo"
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+MANIFEST = ROOT / "curriculum" / "manifest.json"
 
 
 def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
@@ -41,12 +43,6 @@ def wait_ready(container: str, timeout: int = 30) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dump", type=pathlib.Path, help="plain-format pg_dump file")
-    parser.add_argument(
-        "--min-steps",
-        type=int,
-        default=1,
-        help="fail unless the steps table has at least this many rows (default 1)",
-    )
     args = parser.parse_args()
 
     if not args.dump.is_file():
@@ -72,16 +68,25 @@ def main() -> int:
             print(f"FAIL: restore errored:\n{restore.stderr}", file=sys.stderr)
             return 1
 
-        count = int(
+        expected_ids = {
+            step["id"]
+            for step in json.loads(MANIFEST.read_text(encoding="utf-8"))["steps"]
+        }
+        actual_ids = set(
             run(["docker", "exec", container, "psql", "-U", USER, "-d", DB,
-                 "-tAc", "SELECT count(*) FROM steps;"]).stdout.strip()
+                 "-tAc", "SELECT id FROM steps ORDER BY id;"]).stdout.splitlines()
         )
-        if count < args.min_steps:
-            print(f"FAIL: steps has {count} rows, expected >= {args.min_steps}",
-                  file=sys.stderr)
+        if actual_ids != expected_ids:
+            missing = sorted(expected_ids - actual_ids)
+            extra = sorted(actual_ids - expected_ids)
+            print(
+                f"FAIL: restored step IDs differ from {MANIFEST}: "
+                f"missing={missing}, extra={extra}",
+                file=sys.stderr,
+            )
             return 1
 
-        print(f"OK: backup restores cleanly; steps has {count} rows")
+        print(f"OK: backup restores cleanly; all {len(expected_ids)} manifest step IDs match")
         return 0
     finally:
         # cleanup must run on every path — success, failure, or exception

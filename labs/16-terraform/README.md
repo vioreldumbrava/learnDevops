@@ -73,14 +73,19 @@ the drift and propose the update. (You don't have to apply it.)
 - ✅ `terraform apply` completes and `terraform output` shows a public IP.
 - ✅ You can `ssh -i dojo-key.pem ubuntu@<public_ip>` into the box.
 - ✅ A second `terraform plan` reports no changes.
+- ✅ You recorded the tagged resources that must be absent after the lab-18 teardown.
 
 ## Common failures
 
-- **Credentials/`AccessDenied`** → `aws sts get-caller-identity` should print your identity;
-  if not, redo `aws configure` (README Step 0).
+- **Credentials/`AccessDenied`** → `aws sts get-caller-identity --profile dojo` should print
+  your identity; if not, refresh the short-lived session with `aws sso login --profile dojo`.
 - **SSH times out** → `allowed_ssh_cidr` isn't your current IP; update it and re-apply.
 - **Windows: key too open** → run the `icacls` commands above.
 
-**Don't forget** `terraform destroy` when you're done, to stop paying.
+**Resource lifecycle:** keep this tagged server only while completing labs 17 and 18 (and the
+optional EC2 variant of 54). At the end of that chain run `terraform destroy`, then confirm
+`aws resourcegroupstaggingapi get-resources --tag-filters Key=Project,Values=devops-dojo`
+lists no live billable resource. If you pause the path for more than a day, destroy now and
+re-apply later.
 
-➡️ Next: [Lab 17 — Configuration management (Ansible)](../17-ansible/)
+➡️ Next: [Lab 39 — Terraform remote state, modules & OIDC plan](../39-terraform-state-and-modules/)

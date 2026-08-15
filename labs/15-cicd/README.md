@@ -1,70 +1,101 @@
-# Lab 15 — CI/CD with GitHub Actions
+# Lab 15 — Secure CI/CD with GitHub Actions
 
-**Maps to:** original §12 · **Milestone:** 2
+**Tier:** core · **Milestone:** delivery
 
-**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+**Run from:** the **repo root** (`learnDevops/`). Every command and path below is relative to it.
 
 ## Concept
 
-**CI** (Continuous Integration) runs your build, tests, and scans automatically on every
-change. **CD** (Continuous Delivery) publishes the artifacts (images) and can deploy them.
-The pipeline is the single most valuable automation in DevOps: it turns "works on my machine"
-into "verified and shippable on every commit."
+Continuous integration turns a commit into repeatable evidence: tests passed, configuration
+rendered, vulnerabilities were evaluated, and artifacts are traceable. Continuous delivery
+publishes immutable images without giving pull requests publishing credentials.
+
+Workflow dependencies are code. Third-party actions are pinned to full commit SHAs—the only
+immutable action reference—and a nearby version comment keeps upgrades reviewable. Dependabot
+opens updates for Actions and application dependencies rather than silently tracking mutable
+tags.
 
 ## What you'll do
 
-Push the repo to GitHub and watch the pipeline build, test, scan, and publish images to GHCR.
+Take a pull request through the repository's validation pipeline, merge it, then inspect two
+published images with SBOMs, provenance attestations, vulnerability gates, and keyless
+signatures. AWS authentication is introduced in lab 39; no AWS keys belong in this workflow.
 
 ## Steps
 
 ```powershell
-# Create an empty GitHub repo, then from the repo root:
+# Create an empty GitHub repository, then from this repository root:
 git remote add origin https://github.com/<owner>/<repo>.git
-git push -u origin master        # or: git branch -M main; git push -u origin main
+git branch -M main
+git push -u origin main
 ```
 
-- Open the repo's **Actions** tab and watch the `CI` workflow run.
-- After a run on `main`/`master`, open **Packages** — `api` and `frontend` images are
-  published to GHCR.
-- Open a **pull request** with a small change: CI builds, tests, and scans but does **not**
-  push images (guard: `push: ${{ github.event_name != 'pull_request' }}`).
+Open a small branch and pull request. In the Actions run, verify these independent outcomes:
 
-Optional — run it locally with [`act`](https://github.com/nektos/act):
+- Go, Python, Node, and operator tests/builds pass.
+- Compose overlays, migrations, curriculum/docs, Helm rendering, workload security, and
+  Terraform roots validate.
+- Trivy reports HIGH findings and blocks unexcepted CRITICAL findings.
+- Images build and scan in a read-only PR job; the privileged publish/sign job is absent.
+
+Review [`ci.yml`](../../.github/workflows/ci.yml) before merging. Every `uses:` entry must be
+`owner/action@<40-character-commit>` with a readable version comment. Review
+[`dependabot.yml`](../../.github/dependabot.yml) to see how updates remain automated without
+making runtime references mutable.
+
+Merge the PR. The protected push path publishes `api` and `frontend` to GHCR. Capture the
+immutable digest printed by each build and inspect it:
 
 ```powershell
-act pull_request
+docker buildx imagetools inspect ghcr.io/<owner>/<repo>/api@sha256:<digest>
+
+cosign verify `
+  --certificate-identity-regexp '^https://github.com/<owner>/<repo>/' `
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com `
+  ghcr.io/<owner>/<repo>/api@sha256:<digest>
 ```
+
+The workflow's `id-token: write` permission is used only for Sigstore keyless signing. It
+does not expose an AWS credential and is unavailable to the PR publication path.
 
 ## How it works
 
-[.github/workflows/ci.yml](../../.github/workflows/ci.yml) has two jobs:
-
-1. **test** — `go vet` + `go test`, `npm ci` + `npm run build`, `docker compose config`
-   validation, and a Trivy filesystem scan of dependencies.
-2. **build** — logs in to GHCR with the built-in `GITHUB_TOKEN`, builds both images with
-   Buildx, tags them via `docker/metadata-action` (branch, semver, SHA), attaches an **SBOM**
-   and provenance, pushes on non-PR events, and runs a Trivy scan of the published API image
-   by **digest**.
-
-Triggers: pushes to `main`/`master`, version tags (`v*`), pull requests, and manual dispatch.
+- The top-level workflow permission is read-only. PR code runs in a job with only
+  `contents: read`; it cannot request a package-write token or OIDC identity.
+- A separate non-PR publish job receives only the package and OIDC permissions required for
+  GHCR push and keyless signing. A PR can prove buildability but cannot publish a trusted
+  artifact.
+- Buildx attaches an SBOM (what is inside) and provenance (source/builder/process) to each
+  image. Cosign signs the immutable digest using the workflow's short-lived OIDC identity.
+- The security policy reports HIGH findings but fails on fixable, non-excepted CRITICAL
+  findings. `.trivyignore` is a governed exception file, not a bin for unexplained CVEs.
 
 ## Exercise
 
-Make CI **gate** on vulnerabilities: change the Trivy steps' `exit-code: "0"` to `"1"`. Push
-a branch and see the job fail if any CRITICAL/HIGH (fixable) vulnerabilities exist — then
-decide whether to bump a base image or add an ignore policy. This is the build-vs-security
-trade-off teams tune constantly.
+1. Change one third-party action locally from its SHA to `@main`; run the curriculum/CI
+   checks and explain why that reference can change without a repository diff. Revert it.
+2. Introduce a harmless formatting failure and observe the relevant job fail; fix it in a
+   second commit so the PR records diagnosis and recovery.
+3. In the published image, identify one package from the SBOM and connect the provenance
+   source revision to your merge commit.
 
 ## Checkpoint
 
-- ✅ A green CI run appears in the Actions tab.
-- ✅ `api` and `frontend` packages show up under the repo's Packages after a push to main.
-- ✅ On a PR, images are built + scanned but not pushed.
+- A PR runs all credential-free validation, builds images, and publishes nothing.
+- A merge publishes both images by immutable digest with SBOM, provenance, and keyless
+  signatures; manual `cosign verify` succeeds for the expected workflow identity.
+- An unexcepted CRITICAL finding fails CI.
+- Every third-party Action is full-SHA pinned and Dependabot covers GitHub Actions.
+- You can distinguish SBOM, provenance, and signature in one sentence each.
 
 ## Common failures
 
-- `denied: permission_denied` pushing to GHCR → the workflow needs `permissions: packages:
-  write` (it has it); also check that Actions are allowed to write packages in repo settings.
-- Go/Node version errors → the workflow pins Go 1.25 / Node 24 to match the app.
+- GHCR push denied → confirm job-level `packages: write` and repository package settings.
+- Cosign token error → the publishing job needs `id-token: write`; do not replace it with a
+  stored signing key for this GitHub path.
+- Identity mismatch → inspect the certificate identity, then tighten the expected expression
+  to your repository/workflow rather than accepting every signer.
+- Dependabot update changes a SHA without a version comment → verify the upstream release,
+  update the comment in the same review, and keep the SHA.
 
-➡️ Next: [Lab 16 — Infrastructure as Code (Terraform)](../16-terraform/)
+➡️ Next: [Lab 16 — Infrastructure as Code](../16-terraform/)

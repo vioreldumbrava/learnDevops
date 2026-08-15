@@ -7,7 +7,7 @@
 {"category": "factual", "question": "Where should Terraform state live when a team shares it?", "expect_source": "39-terraform-state", "expect_keyword": "s3"}
 {"category": "factual", "question": "How are container images signed in CI?", "expect_source": "41-supply-chain", "expect_keyword": "cosign"}
 {"category": "factual", "question": "How are database schema changes applied when the app starts?", "expect_source": "06-database-migrations", "expect_keyword": "migrat"}
-{"category": "factual", "question": "Which component ships container logs to Loki?", "expect_source": "11-logging", "expect_keyword": "promtail"}
+{"category": "factual", "question": "Which component ships container logs to Loki?", "expect_source": "11-logging", "expect_keyword": "alloy"}
 {"category": "paraphrase", "question": "My pods restart whenever the database is briefly slow - which probe is misconfigured?", "expect_source": "08-health-checks", "expect_keyword": "liveness"}
 {"category": "paraphrase", "question": "What stops two people from running terraform apply at the same time?", "expect_source": "39-terraform-state", "expect_keyword": "lock"}
 {"category": "paraphrase", "question": "The job queue keeps growing - how can worker replicas scale from queue depth instead of CPU?", "expect_source": "31-k8s-keda", "expect_keyword": "keda"}

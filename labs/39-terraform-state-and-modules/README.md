@@ -23,11 +23,12 @@ own sizing, five readable lines of difference.
 ## What you'll do
 
 Bootstrap a state bucket, migrate lab 16's state into it, watch locking reject a concurrent
-run, stand up directory-per-env on the shared module, and let CI enforce
-`fmt`/`validate`/`tflint`/`checkov` on every PR.
+run, stand up directory-per-env on the shared module, and take a real pull request through
+static Terraform checks plus a least-privilege AWS plan using GitHub OIDC.
 
-Prereqs: lab 16 done (AWS credentials configured; ideally its EC2 still applied so you can
-migrate real state — works with an empty state too). Terraform ≥ 1.10.
+Prereqs: lab 16 done (AWS IAM Identity Center/SSO configured; ideally its EC2 still applied
+so you can migrate real state—an empty state also works). Terraform ≥ 1.10. Do not create
+IAM-user access keys for this lab.
 
 ## Steps
 
@@ -105,6 +106,25 @@ terraform fmt -check -recursive -diff deploy/    # this is what CI runs
 terraform fmt -recursive deploy/                 # and this fixes it
 ```
 
+### 6. Required cloud plan through GitHub OIDC
+
+Configure the dedicated
+[`aws-terraform-plan.yml`](../../.github/workflows/aws-terraform-plan.yml) workflow by
+following [`deploy/terraform/README.md`](../../deploy/terraform/README.md):
+
+1. Register GitHub's OIDC provider in AWS.
+2. Create a read-only plan role whose trust policy restricts the audience, repository, and
+   protected `aws-plan` environment.
+3. Put only its ARN in the environment variable `AWS_TERRAFORM_PLAN_ROLE_ARN`; do not add
+   access-key secrets.
+4. Require approval for that environment and permit the cloud job on same-repository PRs
+   only. Fork PRs still receive the credential-free validation job.
+
+Open a PR that changes one safe input, approve the environment, and inspect the plan. Keep
+evidence of `aws sts get-caller-identity` and the expected Terraform diff in the run. The
+role is deliberately plan-only: it needs narrowly scoped reads and remote-state access, not
+permission to apply, mutate, or destroy infrastructure. Keep any future apply role separate.
+
 ## How it works
 
 - **What's in state:** every resource's real-world ID and attributes — including
@@ -132,10 +152,8 @@ terraform fmt -recursive deploy/                 # and this fixes it
    (`from = aws_instance.dojo`, `to = module.app_server.aws_instance.this`, one per
    resource), and prove it with a `terraform plan` that shows only moves, no
    destroy/create.
-3. Give CI a real `terraform plan` on PRs with **GitHub OIDC**: create an IAM role trusting
-   `token.actions.githubusercontent.com` for your repo, then use
-   `aws-actions/configure-aws-credentials` with `role-to-assume` — no long-lived AWS keys in
-   GitHub secrets. (IAM roles get real treatment in lab 40.)
+3. Tighten the plan role after its first successful run: use CloudTrail to identify the
+   actions it called, remove one unnecessary permission, and prove the plan still works.
 
 ## Checkpoint
 
@@ -144,6 +162,8 @@ terraform fmt -recursive deploy/                 # and this fixes it
   that's good.
 - ✅ `envs/dev` and `envs/prod` plan independently against the same module.
 - ✅ The CI `terraform` job goes red on an unformatted file and green after `terraform fmt`.
+- ✅ A same-repository PR assumes the protected AWS role through OIDC and produces a real
+  plan; the repository has no long-lived AWS credential secrets.
 - ✅ You can answer "what is Terraform state, where do you keep it, and how do you stop two
   people applying at once?" in under a minute.
 

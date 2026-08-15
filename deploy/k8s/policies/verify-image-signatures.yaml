@@ -1,7 +1,8 @@
 # Supply-chain verification at admission (lab 41): pods using images from OUR
 # registry are rejected unless the image carries a valid cosign KEYLESS signature
 # produced by OUR GitHub Actions workflow. Audit first, Enforce once it passes.
-# Requires Kyverno (lab 29) with egress to GHCR + Rekor. Edit OWNER/REPO (lowercase).
+# Requires Kyverno (lab 29) with egress to GHCR + Rekor. Replace lowercase
+# owner/repo in the image path and OWNER/REPO in the GitHub workflow identity.
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
@@ -19,7 +20,7 @@ spec:
               namespaces: ["devops-dojo", "dojo-dev", "dojo-staging", "dojo-prod"]
       verifyImages:
         - imageReferences:
-            - "ghcr.io/OWNER/REPO/*"
+            - "ghcr.io/owner/repo/*"
           # Resolve tags to digests at admission: tags can be re-pointed after
           # verification, digests cannot.
           mutateDigest: true

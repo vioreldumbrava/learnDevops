@@ -1,16 +1,17 @@
-# dev environment — tracks the newest CI build, minimal footprint, auto-synced (lab 36).
+# dev environment — minimal footprint and auto-synced (lab 36). CI updates the
+# immutable SHA tags below after publishing a build.
 # Layered on top of values.yaml: only the differences live here.
 # Edit OWNER/REPO to your fork (CI publishes there — lab 15).
 
 image:
   api:
     repository: ghcr.io/OWNER/REPO/api
-    tag: latest        # moving tag: dev always runs the last merge to main
-    pullPolicy: Always # moving tag => always re-pull
+    tag: sha-CHANGE_ME
+    pullPolicy: IfNotPresent
   frontend:
     repository: ghcr.io/OWNER/REPO/frontend
-    tag: latest
-    pullPolicy: Always
+    tag: sha-CHANGE_ME
+    pullPolicy: IfNotPresent
 
 api:
   replicas: 1
@@ -21,5 +22,5 @@ frontend:
 hpa:
   enabled: false # no autoscaling noise while iterating
 
-ingress:
+gateway:
   host: dev.dojo.localhost

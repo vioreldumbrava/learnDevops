@@ -1,179 +1,165 @@
-# DevOps Dojo — Curriculum
+# DevOps Dojo — curriculum
 
-Work the labs in order. Each `labs/NN-*/README.md` follows the same template:
+This curriculum targets a **generalist DevOps / Cloud role first**. The numbered folders are a
+library, not a requirement to finish 57 topics before applying. Start with the common core,
+apply from week 3, and select one specialization only after the core gates are demonstrated.
 
-> **Concept (what & why) → What you'll do → Steps → How it works → Exercise → Checkpoint → Common failures → Maps to**
+Every lab follows the same learning shape:
 
-For the narrative, teach-it-step-by-step version of this roadmap, read the guide:
-[DOCKER_LEARNING_PATH.md](DOCKER_LEARNING_PATH.md). "Maps to" notes which section of the
-legacy DBC-based path each lab corresponds to.
+> **Concept → What you'll do → Steps → How it works → Exercise → Checkpoint → Common failures**
+
+The machine-readable source of truth is [`curriculum/manifest.json`](../curriculum/manifest.json).
+It defines order, prerequisites, effort, tracks, cost class and drill requirements; the table
+below and dashboard metadata are generated from it. `✅ Authored` means the lab and its
+references pass repository integrity checks—not that the learner has mastered it. Personal
+progress remains `completed` and `drilled` in the dashboard.
+
+## Job-first common core
+
+> `00 → Git basics from 38 → 01–08 → 37 → 54 (local) → 10 → 13 → 15 → 16 → 39 →`
+> `40 Part A → 17 → 18 → 22 → 23 → 26 → 35 → 25 → 40 Part B`
+
+Lab 40 deliberately has two checkpoints: complete its standalone AWS fundamentals after lab
+39, then return to the EKS/IRSA portion after lab 25. Mark guided completion after Part A so
+the capstone prerequisite is visible; record Part B's restore/IRSA result in the existing
+notes and require it for the Delivery/cloud learner gate.
+The schedule and application cadence live in [WEEKLY.md](WEEKLY.md).
 
 ## Roadmap
 
-> ⚡ **Fast track (job ASAP):** `00–08 → 10 → 13 → 15 → 16 → 22 → 23 → 25 → 26 → 35 → 48`,
-> then [INTERVIEW_PREP.md](INTERVIEW_PREP.md) — book the CKA and **start applying**; the
-> remaining labs run in parallel with interviewing. Rationale in
-> [DOCKER_LEARNING_PATH.md](DOCKER_LEARNING_PATH.md#the-fast-track-interview-ready-as-soon-as-possible).
+<!-- BEGIN GENERATED CURRICULUM ROADMAP -->
+| Order | Lab | Tier | Track | Requires | Guided time | Shell | Account and tools | Cost | Teardown |
+|---:|---|---|---|---|---:|---|---|---|---|
+| 1 | [00 — Prerequisites and repo tour](../labs/00-prerequisites/) | Common core | Common core | — | 60 min | PowerShell + Bash/WSL | none; Git, Docker, curl | free | — |
+| 2 | [38 — Git workflows](../labs/38-git-workflows/) | Common core | Common core | 00 | 120 min | Bash/WSL | GitHub; Git, GitHub CLI | free | — |
+| 3 | [01 — Docker basics](../labs/01-docker-basics/) | Common core | Common core | 00, 38 | 60 min | PowerShell | none; Docker, Go | local | remove the practice containers and images |
+| 4 | [02 — Containerize the API](../labs/02-containerize-api/) | Common core | Common core | 01 | 90 min | PowerShell | none; Docker, Go | local | remove the practice image |
+| 5 | [03 — Containerize the frontend](../labs/03-containerize-frontend/) | Common core | Common core | 01 | 75 min | PowerShell | none; Docker, Node.js | local | remove the practice container and image |
+| 6 | [04 — Docker Compose](../labs/04-docker-compose/) | Common core | Common core | 02, 03 | 90 min | PowerShell | none; Docker Compose | local | docker compose down -v |
+| 7 | [05 — Development and production Compose](../labs/05-dev-prod-compose/) | Common core | Common core | 04 | 75 min | PowerShell | none; Docker Compose | local | docker compose down -v |
+| 8 | [06 — Database migrations](../labs/06-database-migrations/) | Common core | Common core | 04 | 90 min | PowerShell | none; Docker Compose, PostgreSQL, golang-migrate | local | docker compose down -v |
+| 9 | [07 — Backup and restore](../labs/07-backup-restore/) | Common core | Common core | 06 | 90 min | PowerShell | none; Docker Compose, PostgreSQL | local | docker compose down -v and remove scratch backups |
+| 10 | [08 — Health checks](../labs/08-health-checks/) | Common core | Common core | 04 | 75 min | PowerShell | none; Docker Compose, curl | local | docker compose down -v |
+| 11 | [37 — Scripting and automation](../labs/37-scripting-automation/) | Common core | Common core | 07 | 150 min | Bash/WSL | none; Bash, Python, jq, awk, shellcheck | local | stop the local stack and remove scratch files |
+| 12 | [54 — Linux server operations](../labs/54-linux-server-ops/) | Common core | Common core | 37 | 180 min | Bash/WSL | none; Linux VM, systemd, SSH | local | destroy the local VM or revert its snapshot |
+| 13 | [10 — Monitoring](../labs/10-monitoring/) | Common core | Common core | 08 | 120 min | PowerShell | none; Docker Compose, Prometheus, Grafana | local | docker compose down -v |
+| 14 | [13 — Image registry](../labs/13-image-registry/) | Common core | Common core | 02 | 90 min | PowerShell | GitHub; Docker, Syft | free | stop the local registry and remove practice packages if desired |
+| 15 | [15 — CI/CD with GitHub Actions](../labs/15-cicd/) | Common core | Common core | 13 | 180 min | PowerShell + Bash/WSL | GitHub; GitHub Actions, Docker, Trivy, Cosign | free | — |
+| 16 | [16 — Infrastructure as code](../labs/16-terraform/) | Common core | Common core | 00 | 180 min | PowerShell | AWS; Terraform, AWS CLI | cloud-low | terraform destroy and confirm tagged resources are gone |
+| 17 | [39 — Terraform state and modules](../labs/39-terraform-state-and-modules/) | Common core | Common core | 16 | 180 min | PowerShell | AWS; Terraform, AWS CLI, tflint | cloud-low | destroy workloads, then remove the state backend only when no longer needed |
+| 18 | [40 — AWS core services, Parts A and B](../labs/40-aws-core-services/) | Common core | Common core | 39 | 240 min | PowerShell | AWS; Terraform, AWS CLI | cloud-high | terraform destroy and run the tagged-resource cost check |
+| 19 | [17 — Configuration management](../labs/17-ansible/) | Common core | Common core | 16 | 150 min | Bash/WSL | AWS; Ansible, SSH, AWS CLI | cloud-low | destroy the Terraform-managed host |
+| 20 | [18 — Deploy with HTTPS](../labs/18-deploy-https/) | Common core | Common core | 17 | 180 min | Bash/WSL | AWS and a DNS provider; Ansible, dig, curl, openssl | cloud-low | terraform destroy and remove temporary DNS records |
+| 21 | [22 — Kubernetes on kind](../labs/22-kubernetes/) | Common core | Common core | 08 | 180 min | PowerShell | none; kind, kubectl, Envoy Gateway | local | kind delete cluster --name devops-dojo |
+| 22 | [23 — Helm packaging](../labs/23-helm/) | Common core | Common core | 22 | 150 min | PowerShell | none; Helm, kubectl, kind | local | helm uninstall and delete the kind cluster |
+| 23 | [26 — Production secrets](../labs/26-secrets-management/) | Common core | Common core | 23 | 120 min | PowerShell | none; kubectl, Helm, Sealed Secrets or External Secrets | local | remove controllers and delete the kind cluster |
+| 24 | [35 — Incident response](../labs/35-incident-response/) | Common core | Common core | 22 | 180 min | Bash/WSL | none; kubectl, kind, Bash | local | heal all injected faults and delete the kind cluster |
+| 25 | [25 — Capstone: EKS and GitOps](../labs/25-capstone-eks-gitops/) | Common core | Common core | 15, 23, 26, 39, 40 | 300 min | PowerShell + Bash/WSL | AWS and GitHub; Terraform, AWS CLI, kubectl, Helm, Argo CD | cloud-high | destroy EKS and verify no tagged billable resources remain |
+| 26 | [27 — Kubernetes RBAC](../labs/27-k8s-rbac/) | Specialization | Platform/CKA | 22 | 90 min | PowerShell | none; kubectl, kind | local | delete practice RBAC objects or the kind cluster |
+| 27 | [28 — Kubernetes NetworkPolicies](../labs/28-k8s-network-policies/) | Specialization | Platform/CKA | 22 | 120 min | PowerShell | none; kubectl, kind, Calico | local | delete the policy-enabled kind cluster |
+| 28 | [52 — Kubernetes storage](../labs/52-k8s-storage/) | Specialization | Platform/CKA | 22 | 120 min | Bash/WSL | none; kubectl, kind | local | delete PVCs, PVs, and the kind cluster |
+| 29 | [53 — Kubernetes scheduling](../labs/53-k8s-scheduling/) | Specialization | Platform/CKA | 22 | 150 min | Bash/WSL | none; kubectl, kind | local | delete the multi-node kind cluster |
+| 30 | [48 — CKA exam readiness](../labs/48-cka-exam-readiness/) | Specialization | Platform/CKA | 27, 28, 52, 53 | 240 min | Bash/WSL | CKA simulator when ready; kubectl, kubeadm-compatible lab cluster | local | destroy the disposable exam cluster |
+| 31 | [11 — Centralized logging](../labs/11-logging/) | Specialization | SRE | 10 | 120 min | PowerShell | none; Docker Compose, Grafana Alloy, Loki | local | docker compose down -v |
+| 32 | [12 — Tracing and alerting](../labs/12-tracing-and-alerting/) | Specialization | SRE | 10, 11 | 150 min | PowerShell | none; Docker Compose, OpenTelemetry, Tempo, Alertmanager | local | docker compose down -v |
+| 33 | [55 — PostgreSQL operations](../labs/55-postgres-operations/) | Specialization | SRE | 06 | 180 min | Bash/WSL | none; PostgreSQL, pgbench, PgBouncer | local | docker compose down -v |
+| 34 | [56 — SLOs and error budgets](../labs/56-slo-and-error-budgets/) | Specialization | SRE | 10, 12 | 180 min | Bash/WSL | none; Prometheus, Alertmanager, Grafana | local | docker compose down -v |
+| 35 | [29 — Kubernetes policy as code](../labs/29-k8s-kyverno/) | Specialization | Platform/CKA | 27 | 120 min | PowerShell | none; kubectl, Helm, Kyverno | local | uninstall Kyverno or delete the kind cluster |
+| 36 | [30 — cert-manager](../labs/30-k8s-cert-manager/) | Specialization | Platform/CKA | 22 | 90 min | PowerShell | none; kubectl, Helm, cert-manager | local | uninstall cert-manager or delete the kind cluster |
+| 37 | [31 — KEDA autoscaling](../labs/31-k8s-keda-autoscaling/) | Specialization | Platform/CKA | 22 | 90 min | PowerShell | none; kubectl, Helm, KEDA | local | uninstall KEDA or delete the kind cluster |
+| 38 | [32 — Argo Rollouts](../labs/32-k8s-argo-rollouts/) | Specialization | Platform/CKA | 23 | 120 min | PowerShell | none; kubectl, Helm, Argo Rollouts | local | uninstall Argo Rollouts or delete the kind cluster |
+| 39 | [33 — Velero backup and recovery](../labs/33-k8s-velero-backup/) | Specialization | Platform/CKA | 22 | 150 min | PowerShell | none; kubectl, Helm, Velero, MinIO | local | remove backups, uninstall Velero, and delete the kind cluster |
+| 40 | [34 — Kubernetes monitoring stack](../labs/34-k8s-kube-prometheus-stack/) | Specialization | Platform/CKA | 10, 22 | 150 min | PowerShell | none; kubectl, Helm, kube-prometheus-stack | local | helm uninstall the stack and delete the kind cluster |
+| 41 | [49 — Kubernetes networking deep dive](../labs/49-k8s-networking-deep-dive/) | Specialization | Platform/CKA | 22 | 180 min | Bash/WSL | none; kubectl, kind, iproute2, iptables | local | delete the instrumented kind cluster |
+| 42 | [41 — Admission-time supply-chain security](../labs/41-supply-chain-security/) | Specialization | Platform/CKA | 15, 29 | 120 min | PowerShell | GitHub; Cosign, Kyverno, kubectl | local | remove admission policies and delete the kind cluster |
+| 43 | [09 — Cache and background worker](../labs/09-cache-and-worker/) | Elective | Electives | 04 | 90 min | PowerShell | none; Docker Compose, Redis | local | docker compose down -v |
+| 44 | [14 — Artifact repository](../labs/14-artifact-repository/) | Elective | Electives | 13 | 120 min | PowerShell | none; Docker Compose, Nexus | local | docker compose down -v |
+| 45 | [19 — Security hardening](../labs/19-security/) | Elective | Electives | 15 | 120 min | PowerShell | none; Docker Compose, Trivy | local | docker compose down -v |
+| 46 | [20 — Load testing](../labs/20-load-testing/) | Elective | Electives | 10 | 90 min | PowerShell | none; k6, Docker Compose, Grafana | local | docker compose down -v |
+| 47 | [21 — Horizontal scaling](../labs/21-scaling/) | Elective | Electives | 20 | 75 min | PowerShell | none; Docker Compose, k6 | local | docker compose down -v |
+| 48 | [24 — Self-hosted CI/CD with Jenkins](../labs/24-jenkins/) | Elective | Electives | 15 | 150 min | PowerShell | GitHub; Docker Compose, Jenkins | local | docker compose down -v |
+| 49 | [36 — Multi-environment promotion](../labs/36-multi-env-promotion/) | Elective | Electives | 25 | 120 min | PowerShell | AWS and GitHub; Argo CD, Helm, kubectl | cloud-high | destroy all promoted cloud environments |
+| 50 | [42 — GitLab CI](../labs/42-gitlab-ci/) | Elective | Electives | 15 | 120 min | PowerShell | GitLab; GitLab CI, Docker | free | — |
+| 51 | [43 — Jenkins Shared Library](../labs/43-jenkins-shared-library/) | Elective | Electives | 24 | 150 min | PowerShell | GitHub; Jenkins, GitHub, smee | local | stop Jenkins and the webhook relay |
+| 52 | [44 — Ansible at scale](../labs/44-ansible-at-scale/) | Elective | Electives | 17 | 150 min | Bash/WSL | AWS; Ansible, AWS CLI | cloud-low | destroy all inventory hosts |
+| 53 | [45 — Boto3 operations automation](../labs/45-boto3-ops-automation/) | Elective | Electives | 40 | 120 min | Bash/WSL | AWS; Python, boto3, AWS CLI | cloud-low | remove practice snapshots and instances |
+| 54 | [46 — Helm library chart and Helmfile](../labs/46-helm-library-chart/) | Elective | Electives | 23 | 150 min | PowerShell | none; Helm, Helmfile, kind | local | helmfile destroy and delete the kind cluster |
+| 55 | [47 — Cloud portability with AKS](../labs/47-cloud-portability-aks/) | Elective | Electives | 25 | 180 min | PowerShell | Azure; Terraform, Azure CLI, kubectl, Helm | cloud-high | terraform destroy and verify the resource group is empty |
+| 56 | [50 — Go and Python API parity](../labs/50-go-vs-python-parity/) | Elective | Electives | 08 | 120 min | PowerShell | none; Go, Python, Docker Compose | local | docker compose down -v |
+| 57 | [51 — Cilium and eBPF](../labs/51-k8s-cilium-ebpf/) | Elective | Electives | 28, 49 | 240 min | Bash/WSL | none; kind, Cilium CLI, Hubble CLI | local | delete the Cilium kind cluster |
+<!-- END GENERATED CURRICULUM ROADMAP -->
 
-📊 **The ✅ in the *Authored* column means "this lab is written and runnable" — not "I can do
-it."** Personal progress lives in the running dashboard, which tracks two separate states per
-lab: **completed** (worked through it with the repo open) and **drilled** (passed its
-closed-book drill inside the time target — [DRILLS.md](DRILLS.md)). The schedule that turns the
-two into a habit is [WEEKLY.md](WEEKLY.md); tooling setup is [TOOLBOX.md](TOOLBOX.md).
+## Tracks and boundaries
 
-| Lab | Topic | Maps to original § | Milestone | Authored |
-|-----|-------|--------------------|-----------|--------|
-| [00](../labs/00-prerequisites/) | Prerequisites, tooling, repo tour, `git init` | — | 1 | ✅ |
-| [01](../labs/01-docker-basics/) | Docker basics: image vs container vs layer | §1 | 1 | ✅ |
-| [02](../labs/02-containerize-api/) | Containerize the API: multi-stage, distroless, non-root | §2–3 | 1 | ✅ |
-| [03](../labs/03-containerize-frontend/) | Containerize the frontend (multi-stage → Nginx) | §5 | 1 | ✅ |
-| [04](../labs/04-docker-compose/) | Docker Compose: multi-service, DNS, networks, volumes | §4 | 1 | ✅ |
-| [05](../labs/05-dev-prod-compose/) | Dev/prod Compose separation | §6 | 1 | ✅ |
-| [06](../labs/06-database-migrations/) | Postgres + migrations (golang-migrate) | §7 | 1 | ✅ |
-| [07](../labs/07-backup-restore/) | Backups & restore | §8 | 1 | ✅ |
-| [08](../labs/08-health-checks/) | Health checks: liveness vs readiness | §9 | 1 | ✅ |
-| [09](../labs/09-cache-and-worker/) | Redis cache + background worker (queue) | extra | 1 | ✅ |
-| [10](../labs/10-monitoring/) | Monitoring: Prometheus + Grafana | §10 | 1 | ✅ |
-| [11](../labs/11-logging/) | Logging: Loki + Promtail | §11 | 1 | ✅ |
-| [12](../labs/12-tracing-and-alerting/) | Tracing (OTel + Tempo) + Alerting (Alertmanager) | extra | 1 | ✅ |
-| [13](../labs/13-image-registry/) | Image registry: ghcr.io, tags, SBOM | §13 | 2 | ✅ |
-| [14](../labs/14-artifact-repository/) | Artifact repository (Nexus) | §14 | 2 | ✅ |
-| [15](../labs/15-cicd/) | CI/CD with GitHub Actions | §12 | 2 | ✅ |
-| [16](../labs/16-terraform/) | IaC: Terraform | extra | 2 | ✅ |
-| [17](../labs/17-ansible/) | Config mgmt: Ansible | extra | 2 | ✅ |
-| [18](../labs/18-deploy-https/) | Deploy to VPS/EC2 with HTTPS (Caddy) | §15–16 | 3 | ✅ |
-| [19](../labs/19-security/) | Security hardening | §17 | 3 | ✅ |
-| [20](../labs/20-load-testing/) | Load testing (k6) | §18 | 3 | ✅ |
-| [21](../labs/21-scaling/) | Horizontal scaling | §19 | 3 | ✅ |
-| [22](../labs/22-kubernetes/) | Kubernetes on kind | §20 | 3 | ✅ |
-| [23](../labs/23-helm/) | Helm packaging | extra | 3 | ✅ |
-| [24](../labs/24-jenkins/) | Self-hosted CI/CD with Jenkins (alternative to lab 15) | §12 | 2 | ✅ |
-| [25](../labs/25-capstone-eks-gitops/) | **Capstone:** DevOps Dojo on EKS via GitOps (ArgoCD) | all | 3 | ✅ |
-| [26](../labs/26-secrets-management/) | Production secrets (Sealed Secrets / External Secrets) | §17+ | 3 | ✅ |
+### Common core — Generalist / Cloud
 
-### Kubernetes deep-dive track (Platform/SRE · CKA/CKS-aligned)
+The core moves Linux, Git, Bash, network diagnosis and AWS fundamentals ahead of specialist
+Kubernetes add-ons. It ends in three portfolio proofs: a secure delivery pipeline, a blind
+incident/postmortem, and an EKS/GitOps capstone.
 
-| Lab | Topic | Cert | Authored |
-|-----|-------|------|--------|
-| [27](../labs/27-k8s-rbac/) | RBAC & least privilege | CKA/CKS | ✅ |
-| [28](../labs/28-k8s-network-policies/) | NetworkPolicies (zero-trust) + Calico | CKA/CKS | ✅ |
-| [29](../labs/29-k8s-kyverno/) | Policy-as-code (Kyverno) | CKS | ✅ |
-| [30](../labs/30-k8s-cert-manager/) | cert-manager (in-cluster TLS) | — | ✅ |
-| [31](../labs/31-k8s-keda-autoscaling/) | KEDA event-driven autoscaling | — | ✅ |
-| [32](../labs/32-k8s-argo-rollouts/) | Argo Rollouts (canary) | — | ✅ |
-| [33](../labs/33-k8s-velero-backup/) | Velero backup & DR | — | ✅ |
-| [34](../labs/34-k8s-kube-prometheus-stack/) | kube-prometheus-stack (cluster monitoring) | — | ✅ |
-| [49](../labs/49-k8s-networking-deep-dive/) | **Networking data plane**: pause/veth, ClusterIP + kube-proxy DNAT, CoreDNS, service types, Ingress path | CKA/CKS | ✅ |
-| [51](../labs/51-k8s-cilium-ebpf/) | **Cilium/eBPF**: kube-proxy-free Services, Hubble flows, L7 policy, Gateway API + LB-IPAM | CKA/CKS | ✅ |
-| [52](../labs/52-k8s-storage/) | **Storage**: StorageClass, dynamic vs static PV/PVC, WaitForFirstConsumer, reclaim policies, access modes | CKA | ✅ |
-| [53](../labs/53-k8s-scheduling/) | **Scheduling**: requests, taints/tolerations, node & pod (anti-)affinity, topology spread, preemption | CKA | ✅ |
-| [48](../labs/48-cka-exam-readiness/) | **CKA exam readiness**: etcd backup/restore, drain vs PDB, kubelet, static pods, mock exam | CKA | ✅ |
+Supply-chain essentials belong in the core CI lab: immutable action references, short-lived
+AWS authentication, vulnerability gating, SBOM, provenance and signing. Admission-time
+verification remains the advanced half of lab 41.
 
-### Milestone 4 — Operate, Automate & Prove It
+### Platform / CKA specialization
 
-The interview-readiness track: troubleshooting under pressure, scripting, IaC maturity,
-promotion flows, supply-chain proof. Labs 37–38 have no dependencies beyond the foundation —
-do them anytime.
+Required route: `27 → 28 → 52 → 53 → 48` after the core Kubernetes labs. It covers RBAC,
+network isolation, storage, scheduling and cluster operations. Labs 29–34, 49 and 51 add policy
+engines, controllers and data-plane depth, but do not block CKA booking.
 
-| Lab | Topic | Notes | Authored |
-|-----|-------|-------|--------|
-| [35](../labs/35-incident-response/) | Incident response: break-fix drills, runbooks, postmortems | interview centerpiece #2 | ✅ |
-| [36](../labs/36-multi-env-promotion/) | Multi-env promotion (Helm values-per-env + ArgoCD ApplicationSet) | — | ✅ |
-| [37](../labs/37-scripting-automation/) | Bash & Python automation (scripts/, jq/awk drills) | do anytime after lab 07 | ✅ |
-| [38](../labs/38-git-workflows/) | Git workflows: rebase, conflicts, bisect, protection | do anytime | ✅ |
-| [39](../labs/39-terraform-state-and-modules/) | Terraform remote state + locking, modules, IaC checks in CI | deepens lab 16 | ✅ |
-| [40](../labs/40-aws-core-services/) | AWS core: RDS, S3 lifecycle, IAM/IRSA, VPC tour | 💸 needs EKS (lab 25) | ✅ |
-| [41](../labs/41-supply-chain-security/) | Supply chain: cosign signing, admission verification, scan gates | deepens 13/15/29 | ✅ |
-| [42](../labs/42-gitlab-ci/) | GitLab CI: translate the pipeline | optional · EU market | ✅ |
-| [54](../labs/54-linux-server-ops/) | Linux server ops: systemd units & timers, journald, SSH hardening, disk triage | the generalist screening filter | ✅ |
-| [55](../labs/55-postgres-operations/) | Postgres under load: `EXPLAIN`, indexes, locks, pooling, vacuum | the most common real incident | ✅ |
-| [56](../labs/56-slo-and-error-budgets/) | SLOs & error budgets: recording rules, multi-window burn-rate alerts | deepens 10/12/34 | ✅ |
+Booking gate: pass lab 48's 10-task internal mock at 8/10 within 45 minutes on two different
+weeks. Book four to six weeks out, then pass one 120-minute full simulator using that
+simulator's scoring rule before the exam.
 
-### Polyglot extra
+### SRE specialization
 
-| Lab | Topic | Notes | Authored |
-|-----|-------|-------|--------|
-| [50](../labs/50-go-vs-python-parity/) | Same service, two languages: swap the Go API for its Python (FastAPI) twin | optional · do anytime after lab 09 | ✅ |
+Required route: `11 → 12 → 55 → 56`, alongside recurring blind incidents from lab 35. This
+adds centralized logs, tracing, Postgres diagnosis, SLOs and error-budget alerting after the
+common monitoring foundation.
 
-Day-2 artifacts that come with this milestone: [runbooks](runbooks/),
-[postmortem template](postmortem-template.md) (+ [worked example](postmortems/)), chaos
-injectors ([scripts/chaos](../scripts/chaos/)), automation scripts ([scripts](../scripts/)).
+### Electives
 
-### Milestone 5 — Ecosystem breadth & portability (TWN-inspired)
+Nexus, Jenkins/GitLab alternatives, advanced Kubernetes controllers, AKS portability,
+Cilium/eBPF, the polyglot API, the operator project and the LLMOps companion are portfolio
+specializations. Pick one because a target role asks for it—not to raise a completion count.
 
-The [TWN Bootcamp demo projects](../TWN_Demo_Projects_Overview.01.pdf) compared against this
-path left four genuinely additive patterns, plus the one-lab answer to "could you work in an
-Azure shop?". Breadth — deliberately *after* depth.
+## Mastery model
 
-| Lab | Topic | Notes | Authored |
-|-----|-------|-------|--------|
-| [43](../labs/43-jenkins-shared-library/) | Jenkins Shared Library, webhook triggers, dynamic versioning | deepens lab 24 | ✅ |
-| [44](../labs/44-ansible-at-scale/) | Ansible at scale: dynamic inventory, roles, Terraform handoff | 💸 deepens 16/17 | ✅ |
-| [45](../labs/45-boto3-ops-automation/) | Python + Boto3: snapshot lifecycle, self-healing monitor | 💸 deepens 37/40 | ✅ |
-| [46](../labs/46-helm-library-chart/) | Helm library chart + Helmfile (push-based multi-env) | deepens 23/36 | ✅ |
-| [47](../labs/47-cloud-portability-aks/) | Cloud portability: the same chart on Azure AKS (+ [provider map](CLOUD_PROVIDER_MAP.md)) | 💸 needs 22/23 | ✅ |
+Core and selected specialization labs use four stages:
 
-## Intentionally out of scope (and why)
+1. **Guided checkpoint** with the repository open.
+2. **Independent variation** with official documentation allowed.
+3. **Delayed timed drill** from [DRILLS.md](DRILLS.md); only this marks `drilled`.
+4. **Novel transfer** 21–42 days later through a changed scenario or mock interview.
 
-Being able to say *no* with reasons is stronger interview signal than shallow coverage:
+Optional labs may be reference-only. The manifest explicitly says whether a drill is required,
+so the repository no longer claims that every authored topic has a timed drill.
 
-- **Service mesh (Istio/Linkerd):** for this app, NetworkPolicies (28), cert-manager (30) and
-  Argo Rollouts (32) already deliver zero-trust, TLS, and traffic shifting; a mesh adds a
-  control plane to operate that the workload doesn't justify. Know what you'd gain (ambient
-  mTLS, L7 policy, traffic mirroring) and what it costs before reaching for one.
-- **Azure / GCP tracks:** one cloud deep (AWS — labs 16/25/40) beats three shallow. Managed
-  k8s, managed DB, IAM, VPC transfer almost one-to-one; AKS/GKE is mostly a syntax change.
-  Lab 47 is the deliberate, scoped exception: one AKS deploy of the unchanged chart to
-  *prove* the transfer, plus [CLOUD_PROVIDER_MAP.md](CLOUD_PROVIDER_MAP.md) as the interview
-  lookup table. Full Azure/GCP tracks stay out.
-- **HA everything:** single NAT gateway, single-AZ RDS, one-node Postgres are conscious cost
-  choices for learning — each lab names exactly what flips in production.
+## Learner gates
 
-> 🎯 **Landing a job:** the capstone (lab 25) is your interview centerpiece, the incident
-> drills (lab 35) are the second one, and [INTERVIEW_PREP.md](INTERVIEW_PREP.md) is the talk
-> track — likely questions with strong, project-grounded answers for every concept above.
+- **Foundation:** reconstruct Compose, migrate/restore data and diagnose readiness.
+- **Delivery / cloud:** take a PR through secure CI and complete a repeatable Terraform
+  apply/destroy using short-lived AWS credentials.
+- **Kubernetes:** deploy and roll back via Helm + Gateway API and repair an unseen incident.
+- **Portfolio-ready:** demonstrate the capstone, one runbook, one postmortem and two clean mock
+  interviews.
 
-## Companion project — AI Assistant (LLMOps)
+## Deliberately out of the common core
 
-A second, standalone example project lives in [`../ai-assistant/`](../ai-assistant/): a
-local/remote **RAG assistant** over these docs (Ollama / LM Studio, local or on another PC),
-with grounding, MMR re-ranking, memory, streaming, token/cost + per-stage metrics, a semantic
-cache, a **tool-calling agent** that operates the main Dojo API, an eval harness with
-prompt-injection tests, and Compose/CI/K8s. It adds Python + LLMOps to the portfolio.
-Its labs ([ai-assistant/labs](../ai-assistant/labs/)) run 01–08: foundations (01–05: local LLM,
-RAG, guardrails+observability, evaluation, deploy) then LLMOps depth (06 tokens/cost/telemetry,
-07 tool calling, 08 evaluation v2 + prompt versioning). The LLMOps interview Q&A is §7 of
-[INTERVIEW_PREP.md](INTERVIEW_PREP.md).
+- **Multiple clouds:** AWS remains the deep implementation. Lab 47 and
+  [CLOUD_PROVIDER_MAP.md](CLOUD_PROVIDER_MAP.md) prove transfer to AKS without duplicating the
+  whole path.
+- **Service mesh:** Gateway API, NetworkPolicies, certificate automation and progressive
+  delivery cover the current workload. Add a mesh only when workload identity, east-west mTLS
+  or traffic policy creates a concrete need.
+- **HA everywhere:** single-AZ or single-instance choices keep learning affordable. Each cloud
+  lab must state the production delta and end with tagged-resource teardown verification.
 
-## Companion project — Dojo Operator (build your own K8s operator)
+## Companion projects
 
-The third project, [`../dojo-operator/`](../dojo-operator/), flips you from operator *user*
-(cert-manager, KEDA, ArgoCD, Velero — labs 30–33) to operator *author*: a Go
-**CRD + controller** (`DojoBackup`) that manages scheduled `pg_dump` backups of the Dojo's
-own database. Six step-by-step labs ([dojo-operator/labs](../dojo-operator/labs/)):
+- [`ai-assistant/`](../ai-assistant/) is an optional LLMOps specialization: local/private RAG,
+  evaluation, guardrails, observability and deployment.
+- [`dojo-operator/`](../dojo-operator/) is an optional Platform specialization: CRD,
+  reconciliation, status, finalizers, RBAC and controller tests.
 
-| Lab | Topic | The "aha" |
-|-----|-------|-----------|
-| [01](../dojo-operator/labs/01-crd-the-api-half/) | CRDs: the API half | a CR with no controller does *nothing* |
-| [02](../dojo-operator/labs/02-reconcile-loop/) | The reconcile loop | delete its CronJob — it resurrects (level-based convergence) |
-| [03](../dojo-operator/labs/03-status-conditions-events/) | Status, conditions, events | `kubectl wait --for=condition=Ready` on *your* type |
-| [04](../dojo-operator/labs/04-ownership-gc-finalizers/) | OwnerRefs, GC, finalizers | manufacture & properly fix a stuck-Terminating object |
-| [05](../dojo-operator/labs/05-rbac-and-deploy/) | RBAC & in-cluster deploy | the backup operator *can't read the db password* |
-| [06](../dojo-operator/labs/06-testing-and-ci/) | Tests & CI | drift-convergence as a unit test (fake client) |
-
-Do it after lab 34 (or after 22/23 at a stretch). It reuses the lab-22 cluster and deepens
-Go, K8s API machinery, RBAC and testing — the strongest "Platform engineer" portfolio signal
-in the repo.
-
-## The three pillars of observability
-
-Labs 10–12 deliberately build all three: **metrics** (Prometheus), **logs** (Loki), and
-**traces** (Tempo), all viewed through one Grafana — plus **alerts** (Alertmanager). The
-API is instrumented for real, so these are not toy dashboards.
-
-## Stateless vs stateful (why it matters for scaling)
-
-- **Stateless:** `api`, `worker`, `frontend` → safe to run many replicas (labs 21–22).
-- **Stateful:** `db`, `redis` → need volumes, and special care to scale (StatefulSet, clustering).
-
-Keep this distinction in mind from lab 04 onward; it is the backbone of labs 19, 21, and 22.
+Neither project blocks applications or common-core completion.

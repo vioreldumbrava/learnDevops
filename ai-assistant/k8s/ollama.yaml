@@ -41,14 +41,32 @@ spec:
       labels:
         app: ollama
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: ollama
-          image: ollama/ollama:latest
+          image: ollama/ollama:0.32.5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          env:
+            - name: HOME
+              value: /home/ollama
           ports:
             - containerPort: 11434
           volumeMounts:
             - name: models
-              mountPath: /root/.ollama
+              mountPath: /home/ollama/.ollama
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests: { cpu: "1", memory: 4Gi }
             limits: { cpu: "4", memory: 8Gi }
@@ -59,3 +77,5 @@ spec:
         - name: models
           persistentVolumeClaim:
             claimName: ollama-models
+        - name: tmp
+          emptyDir: {}

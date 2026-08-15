@@ -1,0 +1,33 @@
+# Route API and health requests to the API Service; all other paths go to the
+# frontend. Gateway API defines deterministic precedence for overlapping paths.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dojo
+  namespace: devops-dojo
+spec:
+  parentRefs:
+    - name: dojo
+      sectionName: http
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: api
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /healthz
+      backendRefs:
+        - name: api
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend
+          port: 80

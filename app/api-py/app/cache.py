@@ -1,5 +1,5 @@
 """Redis: read cache + a list-based job queue — a port of the Go app's
-internal/cache/cache.go. Same keys (``steps:all``) and same queue (``dojo:jobs``),
+internal/cache/cache.go. Same versioned keys (``steps:v2:all``) and same queue (``dojo:jobs``),
 so the Go worker and this Python worker are interchangeable consumers of the
 exact same queue.
 """

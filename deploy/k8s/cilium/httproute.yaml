@@ -1,4 +1,5 @@
-# Lab 51, step 5 — the Gateway-API translation of deploy/k8s/base/ingress.yaml,
+# Lab 51, step 5 — compare Cilium with the Envoy-backed HTTPRoute in
+# deploy/k8s/base/httproute.yaml (the historical Ingress is under legacy/),
 # rule for rule: /api and /healthz to the api Service, everything else to the
 # frontend. Read them side by side. One upgrade you get for free: Gateway API
 # defines path-match precedence IN THE SPEC (longest prefix wins), so the rule

@@ -6,7 +6,7 @@
 
 ## Concept
 
-Real teams don't run one copy of an app — they run **dev** (latest build, cheap), **staging**
+Real teams don't run one copy of an app — they run **dev** (newest approved build, cheap), **staging**
 (pinned build, prod-shaped) and **prod** (reviewed, pinned, human-gated). The interview
 question is *"how does a change get to production?"* and the strong answer is: **the same
 chart everywhere, per-env values files, and promotion = a Git PR that bumps an image tag** —
@@ -21,7 +21,7 @@ Deploy three environments of DevOps Dojo onto your kind cluster from one Helm ch
 promote a build dev → staging → prod using only Git commits (plus one deliberate manual sync
 for prod). Everything works identically on EKS (lab 25) — kind just makes it free.
 
-Prereqs: lab 22 (kind + ingress-nginx), lab 15 (CI publishing images to your GHCR), lab 25's
+Prereqs: lab 22 (kind + Envoy Gateway), lab 15 (CI publishing images to your GHCR), lab 25's
 ArgoCD install ([deploy/gitops/README.md](../../deploy/gitops/README.md)) — ArgoCD itself
 runs fine on kind.
 
@@ -35,8 +35,8 @@ in the three overlays
 ([values-dev.yaml](../../deploy/k8s/helm/devops-dojo/values-dev.yaml),
 [values-staging.yaml](../../deploy/k8s/helm/devops-dojo/values-staging.yaml),
 [values-prod.yaml](../../deploy/k8s/helm/devops-dojo/values-prod.yaml)). Then open your GHCR
-packages page and set the **staging and prod tags to builds that actually exist** (e.g. a
-`sha-…` tag CI printed, or a `v*` tag you've pushed). Commit and **push** — ArgoCD deploys
+packages page and set the **dev, staging and prod tags to builds that actually exist** (e.g.
+the `sha-…` tag CI printed, or a `v*` tag you've pushed). Commit and **push** — ArgoCD deploys
 what's in Git, not what's on your disk.
 
 ### 2. Bootstrap what GitOps doesn't own
@@ -47,6 +47,11 @@ externally managed (`secrets.create=false` — the lab 26 pattern), so create bo
 ```powershell
 foreach ($e in "dev","staging","prod") {
   kubectl create namespace dojo-$e
+  kubectl label namespace dojo-$e gateway-access=dojo `
+    pod-security.kubernetes.io/enforce=restricted `
+    pod-security.kubernetes.io/enforce-version=v1.35 `
+    pod-security.kubernetes.io/audit=restricted `
+    pod-security.kubernetes.io/warn=restricted --overwrite
   kubectl create configmap dojo-migrations -n dojo-$e --from-file=db/migrations/
 }
 
@@ -70,7 +75,10 @@ Expect: `dojo-dev` and `dojo-staging` go **Synced/Healthy** on their own; `dojo-
 argocd app sync dojo-prod        # or press Sync in the UI
 ```
 
-Each env answers on its own host through the one ingress controller:
+The ApplicationSet disables per-release Gateways and attaches each chart's HTTPRoute to the
+platform-owned `devops-dojo/dojo` Gateway from lab 22. The namespace label is the explicit
+opt-in matched by that Gateway's `allowedRoutes` selector. This role split—platform owns
+listeners/data plane, application teams own routes—is a central Gateway API improvement.
 
 ```powershell
 curl -H "Host: dev.dojo.localhost"     http://localhost/api/steps
@@ -80,9 +88,10 @@ curl -H "Host: dojo.localhost"         http://localhost/api/steps
 
 ### 4. Promote a build
 
-1. Merge something to `main`; CI publishes new images → **dev picks it up automatically**
-   (moving `latest` tag).
-2. **Promote to staging:** edit the two `tag:` lines in `values-staging.yaml` to the new
+1. Merge something to `main`; CI publishes new images. Open a PR that updates the two
+   `values-dev.yaml` tags to that build's immutable `sha-…` tag; after merge, Argo syncs dev.
+   A real platform may automate this Git update, but it should still leave an auditable commit.
+2. **Promote to staging:** edit the two `tag:` lines in `values-staging.yaml` to the same
    build's `sha-…` tag, commit, push. Watch `dojo-staging` sync itself.
 3. **Promote to prod:** open a PR bumping `values-prod.yaml` to the tag staging validated.
    After merge, `dojo-prod` shows OutOfSync with a visible diff — review it, then
@@ -102,8 +111,9 @@ Rollback is the same move in reverse: `git revert` the bump and sync.
 - **Promotion is data, not process.** The "pipeline" is a one-line diff in a values file.
   That makes every promotion reviewed, auditable (`git log values-prod.yaml` *is* the deploy
   history), and revertible.
-- **Why prod pins tags:** `latest` in prod means you can't say what's running or roll back to
-  "the previous one". Pinned tags (or better, digests — lab 13) make deploys reproducible.
+- **Why every environment pins:** a moving tag means you cannot prove what was tested or roll
+  back to "the previous one". The exercise uses CI's commit-derived `sha-…` tags; production
+  charts commonly go further and render image digests (lab 13).
 
 ## Exercise
 
@@ -120,15 +130,16 @@ Rollback is the same move in reverse: `git revert` the bump and sync.
 - ✅ `kubectl -n argocd get applications` shows `dojo-dev`/`dojo-staging` Synced and Healthy
   without manual action, `dojo-prod` only after an explicit sync.
 - ✅ A one-line tag bump in `values-staging.yaml` redeploys staging by itself.
-- ✅ All three hosts answer with the app, from one ingress controller.
+- ✅ All three hosts answer through their Gateway/HTTPRoute; you can explain the production
+  shared-Gateway alternative and its namespace attachment policy.
 - ✅ You can explain why prod is manual-sync + pinned-tag in two sentences.
 
 ## Common failures
 
 - Applications stuck `Unknown`/`ComparisonError` → `OWNER/REPO` still unreplaced, or you
   edited files locally but didn't push (ArgoCD reads Git).
-- staging/prod pods `ImagePullBackOff` → the pinned tag doesn't exist in your GHCR; pin one
-  that does (check the package page). dev works because `latest` always exists.
+- Pods `ImagePullBackOff` → the pinned tag doesn't exist in your GHCR, or a
+  `sha-CHANGE_ME` placeholder remains. Select a tag the CI run actually published.
 - `migrate` Job failing in one env → that namespace is missing its `dojo-migrations`
   ConfigMap (step 2 creates one **per env**).
 - prod pods `CreateContainerConfigError` → `dojo-secrets` missing: `secrets.create=false`

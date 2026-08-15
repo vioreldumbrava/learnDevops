@@ -33,12 +33,30 @@ spec:
           valueFiles:
             - values.yaml
             - "values-{{ .env }}.yaml"
+          parameters:
+            # All environments attach routes to the one platform-owned local
+            # Gateway from lab 22 instead of competing for fixed NodePorts.
+            - name: gateway.create
+              value: "false"
+            - name: gateway.localEnvoyProxy.enabled
+              value: "false"
+            - name: gateway.parentNamespace
+              value: devops-dojo
       destination:
         server: https://kubernetes.default.svc
         namespace: "dojo-{{ .env }}"
       syncPolicy:
         syncOptions:
           - CreateNamespace=true
+        managedNamespaceMetadata:
+          labels:
+            gateway-access: dojo
+            pod-security.kubernetes.io/enforce: restricted
+            pod-security.kubernetes.io/enforce-version: v1.35
+            pod-security.kubernetes.io/audit: restricted
+            pod-security.kubernetes.io/audit-version: v1.35
+            pod-security.kubernetes.io/warn: restricted
+            pod-security.kubernetes.io/warn-version: v1.35
   # syncPolicy.automated only for envs that opted in — prod stays manual.
   templatePatch: |
     {{- if .autosync }}

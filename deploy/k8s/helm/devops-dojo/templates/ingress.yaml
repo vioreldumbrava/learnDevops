@@ -1,4 +1,5 @@
 {{- if .Values.ingress.enabled }}
+# Historical migration option. Gateway API is the supported default.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

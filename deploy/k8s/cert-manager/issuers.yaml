@@ -1,6 +1,6 @@
 # cert-manager Issuers. `selfsigned` works offline (local/kind). `letsencrypt-staging`
 # issues real (staging) certs for a public domain via an HTTP-01 challenge through
-# the ingress. Requires cert-manager installed in the cluster.
+# the local Gateway. Requires cert-manager with Gateway API support enabled.
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -20,5 +20,8 @@ spec:
       name: letsencrypt-staging-account
     solvers:
       - http01:
-          ingress:
-            ingressClassName: nginx
+          gatewayHTTPRoute:
+            parentRefs:
+              - name: dojo
+                namespace: devops-dojo
+                kind: Gateway

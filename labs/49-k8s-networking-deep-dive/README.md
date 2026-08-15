@@ -6,12 +6,12 @@
 
 > ℹ️ **Order note:** the folder number is out of sequence on purpose (appended later, like
 > lab 48). This belongs in the **Kubernetes deep-dive** and is best done right after
-> [lab 22](../22-kubernetes/) (Services & Ingress) and alongside [lab 28](../28-k8s-network-policies/)
+> [lab 22](../22-kubernetes/) (Services and Gateway API) and alongside [lab 28](../28-k8s-network-policies/)
 > (NetworkPolicies). [CURRICULUM.md](../../docs/CURRICULUM.md) shows the intended order.
 
 ## Concept
 
-You've *used* Kubernetes networking since lab 22 — Services, DNS names, an Ingress — but it's
+You've *used* Kubernetes networking since lab 22 — Services, DNS names, and Gateway API — but it's
 been a black box: you type `api:8080` and it works. This lab opens the box. Kubernetes
 networking rests on three rules and a lot of kernel plumbing:
 
@@ -30,7 +30,7 @@ reaches a pod" is a question you'll be able to answer from memory *and* from hav
 ## What you'll do
 
 On the lab-22 kind cluster, trace a packet through all five layers — pod sandbox → flat pod
-network → ClusterIP/kube-proxy → CoreDNS → Ingress — inspecting the real kernel state at each
+network → ClusterIP/kube-proxy → CoreDNS → Gateway/HTTPRoute — inspecting the real state at each
 hop, then run the "the Service returns nothing" troubleshooting decision tree.
 
 ## Setup
@@ -40,8 +40,10 @@ The lab-22 stack running on kind (namespace `devops-dojo`, api/frontend/db up). 
 ```powershell
 # See deploy/k8s/README.md for the full walkthrough. In short:
 kind create cluster --config deploy/k8s/kind/kind-cluster.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-kubectl wait -n ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s
+helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.8.3 `
+  --namespace envoy-gateway-system --create-namespace
+kubectl wait -n envoy-gateway-system --for=condition=Available deployment/envoy-gateway --timeout=300s
+kubectl apply -f deploy/k8s/gateway/gatewayclass.yaml
 docker build -t devops-dojo/api:dev ./app/api; docker build -t devops-dojo/frontend:dev ./app/frontend
 kind load docker-image devops-dojo/api:dev devops-dojo/frontend:dev
 kubectl apply -f deploy/k8s/base/namespace.yaml
@@ -178,14 +180,15 @@ kubectl -n devops-dojo get svc -l demo=service-types
 | Type | What it adds | Reach it | Use when |
 |------|--------------|----------|----------|
 | **ClusterIP** (default) | a virtual IP + kube-proxy DNAT (step 3) | in-cluster only | service-to-service (the norm) |
-| **NodePort** | ClusterIP **+ a static port on every node** | `<nodeIP>:30080` | bare-metal / behind your own LB |
+| **NodePort** | ClusterIP **+ a static port on every node** | `<nodeIP>:30081` | bare-metal / behind your own LB |
 | **LoadBalancer** | NodePort **+ a cloud LB** provisioned for it | external IP | cloud (EKS/AKS); **stays `<pending>` on kind** — no cloud to call |
 | **ExternalName** | *nothing in the data plane* — a CNAME in CoreDNS | in-cluster name → external host | point in-cluster code at RDS etc. (lab 40) |
 | **headless** (`clusterIP: None`) | **removes** the VIP — DNS returns pod IPs | per-pod DNS | StatefulSets, client-side LB |
 
 ```powershell
-# NodePort — kube-proxy added a rule catching the node port; kind maps 30080 out:
-docker exec kind-control-plane sh -c "iptables-save -t nat | grep 30080"
+# NodePort — kube-proxy added a rule catching the node port (30080 is reserved
+# by the local Envoy Gateway, so this comparison service uses 30081):
+docker exec kind-control-plane sh -c "iptables-save -t nat | grep 30081"
 # ExternalName is pure DNS — a CNAME, no endpoints:
 kubectl -n devops-dojo exec $fe -- nslookup external-db.devops-dojo.svc.cluster.local | findstr -i "canonical name"
 kubectl -n devops-dojo get endpointslices -l kubernetes.io/service-name=external-db   # none — nothing to proxy
@@ -196,28 +199,28 @@ kubectl -n devops-dojo get svc | findstr pending
 *Aha:* NodePort and LoadBalancer are **built on** ClusterIP — each type adds one layer of reach,
 it doesn't replace the mechanism underneath.
 
-### 6. The Ingress data path, end to end
+### 6. The Gateway API data path, end to end
 
 Now trace the *real* request you make in a browser — `http://localhost/api/steps`:
 
 ```powershell
-# localhost:80 -> kind extraPortMapping -> the ingress-nginx controller POD:
-kubectl -n ingress-nginx get pods -o wide
-kubectl -n ingress-nginx get svc ingress-nginx-controller
+# Confirm the controller accepted the class, Gateway and route before tracing traffic.
+kubectl get gatewayclass eg -o yaml
+kubectl -n devops-dojo get gateway dojo -o yaml
+kubectl -n devops-dojo get httproute dojo -o yaml
 
-# The controller turns your Ingress object into an nginx upstream config —
-# read it: the upstream is the api Service's ENDPOINTS (pod IPs), not the VIP:
-$ic = kubectl -n ingress-nginx get pod -l app.kubernetes.io/component=controller -o jsonpath="{.items[0].metadata.name}"
-kubectl -n ingress-nginx exec $ic -- sh -c "cat /etc/nginx/nginx.conf | grep -A8 'devops-dojo-api'"
+# Find the generated Envoy data-plane pod/service and compare its endpoints to the app's.
+kubectl get deploy,svc,pod -A | Select-String envoy
+kubectl -n devops-dojo get endpointslices -l kubernetes.io/service-name=api -o wide
 
 # Follow the whole path with one request:
-curl -s http://localhost/api/steps | head -c 120
+curl.exe --fail http://localhost/api/steps
 ```
 
-The full chain: **client → localhost:80 (kind port map) → ingress-nginx pod → (it load-balances
-straight to) api pod IPs from the EndpointSlice → your Go app → Postgres.** ingress-nginx
-deliberately talks to pod IPs directly (it watches EndpointSlices itself) rather than through the
-ClusterIP, so it can do its own load balancing and session affinity.
+The full chain is **client → localhost:80 → kind port map → Envoy NodePort/data plane →
+HTTPRoute match → API Service/backend endpoints → Go app → Postgres**. Separate the roles:
+Envoy Gateway reconciles configuration; the generated Envoy deployment carries traffic; the
+Gateway/HTTPRoute express ownership and routing intent.
 
 *Aha:* this is the **in-cluster second half** of the "what happens when you type a URL" story in
 [INTERVIEW_PREP.md](../../docs/INTERVIEW_PREP.md) §8. You can now narrate a packet from the
@@ -230,9 +233,19 @@ that the **endpoint controller** (which writes EndpointSlices from ready pods) a
 (which writes kernel DNAT rules from those slices) keep pointed at live pods (step 3).
 **CoreDNS** maps names to those virtual IPs, with search domains making short names work (step
 4). **Service types** stack extra reach on top of ClusterIP; headless opts out of the VIP (step
-5). An **Ingress controller** is just a reverse proxy that watches EndpointSlices and forwards to
-pod IPs (step 6). Every layer is *desired state → a controller → kernel/DNS state*, the same
+5). A **Gateway controller** reconciles Gateway/HTTPRoute intent into a data plane that forwards
+to Service backends (step 6). Every layer is *desired state → a controller → kernel/DNS state*, the same
 reconcile pattern as everything else in Kubernetes.
+
+## Historical migration exercise (no unsupported controller required)
+
+Kubernetes retired ingress-nginx in March 2026. Do not add it back to the supported cluster.
+Instead, compare [`deploy/k8s/legacy/ingress-nginx.yaml`](../../deploy/k8s/legacy/ingress-nginx.yaml)
+with the current Gateway and HTTPRoute. Map the former annotations/class/rules to listener,
+parentRef, match, and backendRef fields; list which responsibilities move from an application
+team to a platform-owned Gateway; then write a migration/rollback checklist. This retains the
+history needed to migrate an employer's estate without teaching the retired controller as a
+new deployment.
 
 ## Exercise — the "Service returns nothing" decision tree
 
@@ -276,7 +289,7 @@ to "a Service isn't responding, what do you check?" and it mirrors lab 35's meth
 - ✅ You resolved a Service name to its ClusterIP via CoreDNS, and a headless name to pod IPs;
   scaling CoreDNS to 0 broke name resolution.
 - ✅ You demonstrated ClusterIP vs NodePort vs LoadBalancer(pending) vs ExternalName vs headless.
-- ✅ You traced a browser request through ingress-nginx to a pod, and ran the "no endpoints"
+- ✅ You traced a request through Envoy Gateway and an HTTPRoute to a pod, and ran the "no endpoints"
   decision tree.
 
 ## Common failures

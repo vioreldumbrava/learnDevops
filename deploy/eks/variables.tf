@@ -13,7 +13,12 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "Kubernetes version for the EKS control plane."
   type        = string
-  default     = "1.30"
+  default     = "1.35"
+
+  validation {
+    condition     = var.cluster_version == "1.35"
+    error_message = "This capstone is tested against EKS/Kubernetes 1.35."
+  }
 }
 
 variable "node_instance_type" {

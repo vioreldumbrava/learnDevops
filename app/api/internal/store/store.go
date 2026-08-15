@@ -26,6 +26,12 @@ type Step struct {
 	Milestone       int        `json:"milestone"`
 	DocPath         string     `json:"doc_path"`
 	Summary         string     `json:"summary"`
+	Tier            string     `json:"tier"`
+	Tracks          []string   `json:"tracks"`
+	Requires        []string   `json:"requires"`
+	EffortMinutes   int        `json:"effort_minutes"`
+	CostClass       string     `json:"cost_class"`
+	DrillRequired   bool       `json:"drill_required"`
 	Completed       bool       `json:"completed"`
 	Drilled         bool       `json:"drilled"`
 	LastPracticedAt *time.Time `json:"last_practiced_at"`
@@ -69,6 +75,7 @@ func (s *Store) ListSteps(ctx context.Context) ([]Step, error) {
 
 	rows, err := s.pool.Query(ctx, `
 		SELECT s.id, s.lab_no, s.title, s.topic, s.maps_to, s.milestone, s.doc_path, s.summary,
+		       s.tier, s.tracks, s."requires", s.effort_minutes, s.cost_class, s.drill_required,
 		       COALESCE(p.completed, false), COALESCE(p.drilled, false), p.last_practiced_at
 		FROM steps s
 		LEFT JOIN progress p ON p.step_id = s.id
@@ -82,8 +89,9 @@ func (s *Store) ListSteps(ctx context.Context) ([]Step, error) {
 	for rows.Next() {
 		var st Step
 		if err := rows.Scan(&st.ID, &st.LabNo, &st.Title, &st.Topic, &st.MapsTo,
-			&st.Milestone, &st.DocPath, &st.Summary, &st.Completed, &st.Drilled,
-			&st.LastPracticedAt); err != nil {
+			&st.Milestone, &st.DocPath, &st.Summary, &st.Tier, &st.Tracks, &st.Requires,
+			&st.EffortMinutes, &st.CostClass, &st.DrillRequired, &st.Completed,
+			&st.Drilled, &st.LastPracticedAt); err != nil {
 			return nil, err
 		}
 		steps = append(steps, st)

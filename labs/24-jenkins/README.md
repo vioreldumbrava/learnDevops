@@ -26,7 +26,7 @@ Key differences to feel:
 
 Run Jenkins locally, point a Pipeline job at this repo's `Jenkinsfile`, and watch it build.
 
-> ⚠️ Heavy, and it mounts the Docker socket (root-equivalent — same caveat as Promtail in
+> ⚠️ Heavy, and it mounts the Docker socket (root-equivalent — same caveat as Alloy in
 > lab 11; see lab 19). Local learning only.
 
 ## Steps

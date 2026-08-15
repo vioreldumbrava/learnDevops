@@ -7,6 +7,13 @@ export interface Step {
   milestone: number
   doc_path: string
   summary: string
+  tier: 'core' | 'specialization' | 'elective'
+  tracks: Array<'common-core' | 'platform-cka' | 'sre' | 'elective'>
+  requires: string[]
+  effort_minutes: number
+  cost_class: 'free' | 'local' | 'cloud-low' | 'cloud-high'
+  /** True only when the manifest points to a timed drill with an explicit pass rule. */
+  drill_required: boolean
   /** Worked through the lab with the repo open — recognition. */
   completed: boolean
   /** Passed the lab's closed-book drill inside its time target — recall. See docs/DRILLS.md. */

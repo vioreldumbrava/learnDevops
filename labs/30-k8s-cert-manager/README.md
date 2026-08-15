@@ -1,59 +1,107 @@
-# Lab 30 — cert-manager (in-cluster TLS)
+# Lab 30 — cert-manager with Gateway API
 
-**Maps to:** deepens §16 · **Milestone:** K8s deep-dive
+**Tier:** elective · **Track:** Platform · **Milestone:** Kubernetes depth
 
-**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+**Run from:** the **repo root** (`learnDevops/`). Complete lab 22 first.
 
 ## Concept
 
-**cert-manager** automates X.509 certificates in Kubernetes. You declare a `Certificate`; it
-talks to an `Issuer` (self-signed, a private CA, or Let's Encrypt via ACME) and stores the
-result in a Secret that your Ingress consumes — issuing *and renewing* automatically. It's the
-in-cluster equivalent of what Caddy did for you in Compose (lab 18).
+cert-manager reconciles a declared `Certificate`, obtains or creates the certificate through
+an Issuer, stores it in a Secret, and renews it before expiry. Gateway API terminates TLS by
+referencing that Secret from an HTTPS listener.
 
 ## What you'll do
 
-Install cert-manager, issue a certificate, and serve the app over HTTPS through the Ingress.
+Enable cert-manager's Gateway API integration, issue a local self-signed certificate, attach
+it to the existing Gateway, and prove HTTPS works. The HTTP listener remains available for
+ACME HTTP-01 challenges when you later use a public domain.
 
 ## Steps
 
+The Gateway API CRDs already exist because Envoy Gateway was installed in lab 22. Install
+cert-manager with its Gateway integration enabled:
+
 ```powershell
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
-kubectl -n cert-manager rollout status deploy/cert-manager-webhook --timeout=180s
+helm upgrade --install cert-manager `
+  oci://quay.io/jetstack/charts/cert-manager `
+  --namespace cert-manager --create-namespace `
+  --set crds.enabled=true `
+  --set config.gatewayAPI.enabled=true
+kubectl -n cert-manager rollout status deployment/cert-manager --timeout=180s
 
 kubectl apply -f deploy/k8s/cert-manager/issuers.yaml
 kubectl apply -f deploy/k8s/cert-manager/certificate.yaml
-
-# cert-manager creates/populates the Secret:
-kubectl -n devops-dojo get certificate,secret dojo-tls
-
-# Attach the cert to the Ingress (TLS termination at ingress-nginx):
-kubectl -n devops-dojo patch ingress dojo --type=merge -p '{\"spec\":{\"tls\":[{\"hosts\":[\"dojo.local\"],\"secretName\":\"dojo-tls\"}]}}'
+kubectl -n devops-dojo wait certificate/dojo-tls --for=condition=Ready --timeout=120s
 ```
+
+Add an HTTPS listener and attach the existing route to it:
+
+```powershell
+$listenerPatch = @'
+[
+  {
+    "op": "add",
+    "path": "/spec/listeners/-",
+    "value": {
+      "name": "https",
+      "protocol": "HTTPS",
+      "port": 443,
+      "tls": {
+        "mode": "Terminate",
+        "certificateRefs": [{"kind": "Secret", "name": "dojo-tls"}]
+      },
+      "allowedRoutes": {"namespaces": {"from": "Same"}}
+    }
+  }
+]
+'@
+kubectl -n devops-dojo patch gateway dojo --type=json -p $listenerPatch
+
+$routePatch = @'
+[
+  {
+    "op": "add",
+    "path": "/spec/parentRefs/-",
+    "value": {"name": "dojo", "sectionName": "https"}
+  }
+]
+'@
+kubectl -n devops-dojo patch httproute dojo --type=json -p $routePatch
+
+kubectl -n devops-dojo wait gateway/dojo --for=condition=Programmed --timeout=180s
+curl.exe --fail --insecure --resolve dojo.local:443:127.0.0.1 https://dojo.local/api/steps
+```
+
+`--insecure` is appropriate only because this exercise intentionally uses a self-signed
+issuer. Do not normalize it as the fix for a production trust failure.
 
 ## How it works
 
-[issuers.yaml](../../deploy/k8s/cert-manager/issuers.yaml) defines a `selfsigned` ClusterIssuer
-(works offline) and a `letsencrypt-staging` one (real ACME via an HTTP-01 challenge through the
-ingress). [certificate.yaml](../../deploy/k8s/cert-manager/certificate.yaml) requests a cert for
-`dojo.local` into the `dojo-tls` Secret; the Ingress references that Secret for TLS. For a real
-public domain, switch `issuerRef` to `letsencrypt-staging` (then production) and use the domain.
+[`certificate.yaml`](../../deploy/k8s/cert-manager/certificate.yaml) requests `dojo.local`
+and stores the result in `dojo-tls`. The Gateway HTTPS listener terminates TLS using that
+Secret. [`issuers.yaml`](../../deploy/k8s/cert-manager/issuers.yaml) also contains a staging
+ACME issuer whose HTTP-01 solver creates a temporary HTTPRoute; use that only with a real,
+publicly resolvable domain.
 
 ## Exercise
 
-Delete the `dojo-tls` Secret and watch cert-manager **re-issue** it automatically within
-seconds — the same reconciliation loop that handles renewals before expiry.
+Record the current Secret resource version, delete `dojo-tls`, and watch cert-manager reissue
+it. Then use `openssl s_client -connect localhost:443 -servername dojo.local` to inspect the
+served subject, issuer, and expiry rather than trusting a browser icon.
 
 ## Checkpoint
 
-- ✅ `kubectl get certificate dojo-tls` shows `READY=True`.
-- ✅ The `dojo-tls` Secret exists and is referenced by the Ingress `tls` block.
-- ✅ Deleting the Secret triggers automatic re-issue.
+- `Certificate/dojo-tls` reports `Ready=True`.
+- `Gateway/dojo` has an HTTPS listener referencing `dojo-tls` and remains Programmed.
+- The HTTPRoute is accepted by both listeners and the HTTPS API request succeeds.
+- Deleting the Secret triggers reconciliation and reissuance.
 
 ## Common failures
 
-- Certificate stuck `False` → describe it and the `CertificateRequest`/`Order`; for Let's
-  Encrypt the HTTP-01 challenge needs a reachable public domain on port 80.
-- Webhook errors right after install → give cert-manager's webhook a moment to become ready.
+- Certificate remains unready → inspect the CertificateRequest and cert-manager events.
+- HTTPS listener has `ResolvedRefs=False` → Secret name/namespace does not match the Gateway.
+- Port 443 refuses connections → recreate kind with the current config, which maps host 443
+  to Envoy's fixed NodePort 30443.
+- Public ACME challenge fails → DNS must resolve to a publicly reachable listener on port 80.
 
 ➡️ Next: [Lab 31 — KEDA event-driven autoscaling](../31-k8s-keda-autoscaling/)

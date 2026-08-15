@@ -1,0 +1,50 @@
+# EnvoyProxy makes the generated data-plane Service reachable through kind's
+# fixed host-to-node port mapping. The Gateway references it locally; other
+# environments can omit infrastructure.parametersRef and use their own class.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: dojo-local-proxy
+  namespace: devops-dojo
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: NodePort
+        externalTrafficPolicy: Cluster
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - port: 80
+                  nodePort: 30080
+                # Reserved for the lab 30 HTTPS listener. Envoy fills in the
+                # listener-specific targetPort when that listener is added.
+                - name: https-443
+                  port: 443
+                  nodePort: 30443
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: dojo
+  namespace: devops-dojo
+spec:
+  gatewayClassName: eg
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: dojo-local-proxy
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              gateway-access: dojo

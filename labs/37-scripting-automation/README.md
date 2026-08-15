@@ -52,9 +52,12 @@ Rotation checked the file *looks* like a dump. Now prove it *restores* — into 
 container, never your real DB:
 
 ```bash
-python scripts/verify_backup.py backups/dojo_<newest>.sql --min-steps 24
+python scripts/verify_backup.py backups/dojo_<newest>.sql
 echo $?     # 0 — this is what a pipeline would gate on
 ```
+
+The verifier loads `curriculum/manifest.json` and compares the exact restored step-ID set;
+a stale partial backup cannot pass just because it crossed an old row-count threshold.
 
 Break it on purpose: truncate a copy (`head -c 10000 backups/dojo_x.sql > /tmp/bad.sql`) and
 verify that the script fails with exit 1 and a readable error. A verifier you've never seen
@@ -161,4 +164,4 @@ for a human *and* a gate for CI.
 - `jq: parse error` → prefix lines aren't JSON; use `--no-log-prefix` and the `fromjson?`
   armor above.
 
-➡️ Next: [Lab 38 — Git workflows](../38-git-workflows/)
+➡️ Next: [Lab 54 — Linux server operations (local option)](../54-linux-server-ops/)

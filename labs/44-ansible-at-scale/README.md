@@ -117,7 +117,8 @@ When done: `terraform destroy` (💸).
 1. Bring up a **second** instance (copy the `aws_instance` block with a new name, same tags —
    or `terraform apply -var instance_type=t3.micro` a scratch copy in the console with the
    same `Project` tag). Re-run `ansible-inventory --graph`: it appears with no inventory edit.
-   Run `site.yml` and watch Ansible configure **both**. Delete the extra instance after (💸).
+   Run `site.yml` and watch Ansible configure **both**. Delete the extra instance, its EBS
+   volume and any Elastic IP before continuing.
 2. In one sentence each, note where you'd draw the line: what belongs in Terraform
    (`user_data`?), what in Ansible, what in the image (Packer)? There's no single right
    answer — having *an* answer with reasons is the interview signal.
@@ -131,6 +132,8 @@ When done: `terraform destroy` (💸).
 - ✅ A clean `terraform apply -var run_ansible=true ...` ends with the app answering on
   `http://<public_ip>`.
 - ✅ You can give the two-sentence "why provisioners are a last resort" answer.
+- ✅ `terraform destroy` completed and the Project-tag inventory contains no exercise instance,
+  EBS volume, snapshot or Elastic IP.
 
 ## Common failures
 

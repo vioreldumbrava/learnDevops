@@ -1,128 +1,124 @@
-# Terraform — provision the DevOps Dojo server (step by step)
+# Terraform — provision the DevOps Dojo server
 
-This creates one Ubuntu EC2 server with a locked-down firewall and a stable IP. It only
-creates the **infrastructure**; installing Docker and deploying the app happens next, with
-Ansible.
+This root creates one Ubuntu EC2 server with a restricted firewall and stable public IP.
+Ansible installs Docker and deploys the app in the next lab.
 
-### Where this fits (the whole journey)
-
-```
-[deploy/terraform]  ->  [deploy/ansible]        ->  [lab 18]
- create the server      install Docker + deploy      add a domain + HTTPS
- (this folder, lab 16)  (lab 17)                      (optional)
+```text
+deploy/terraform  ->  deploy/ansible  ->  lab 18 HTTPS
+lab 16 server         lab 17 config       public service
 ```
 
-> Not the same as `deploy/eks/`. That's the separate **Kubernetes** path used by the capstone
-> (lab 25). This folder is the simple single-server path (labs 16 → 18).
+The EKS capstone is a separate root under [../eks/](../eks/). The inexpensive AWS
+operational baseline that follows this server is under [aws-baseline/](aws-baseline/).
 
----
+## Authenticate without long-lived keys
 
-## Step 0 — Install the tools & connect AWS (one time)
-
-1. **Install** [Terraform](https://developer.hashicorp.com/terraform/install) (≥ 1.6) and the
-   [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
-   Check: `terraform version` and `aws --version`.
-2. **Get AWS access keys.** In the AWS Console → IAM → Users → your user → *Security
-   credentials* → **Create access key** (type: CLI). For learning, the user needs permission to
-   manage EC2/VPC (the broad `AdministratorAccess` policy is simplest; tighten later).
-3. **Configure the CLI** and confirm it works:
-   ```powershell
-   aws configure                 # paste Access Key ID + Secret, region (e.g. eu-north-1), json
-   aws sts get-caller-identity   # should print your account/user — creds work
-   ```
-
-## Step 1 — Configure this deployment
+Install Terraform 1.10+, AWS CLI v2, and configure AWS IAM Identity Center for local
+work. Do not create IAM-user access keys just to complete the labs.
 
 ```powershell
-cd deploy/terraform
-copy terraform.tfvars.example terraform.tfvars
+aws configure sso
+aws sso login --profile devops-dojo
+$env:AWS_PROFILE = "devops-dojo"
+aws sts get-caller-identity
 ```
 
-Edit `terraform.tfvars`:
+GitHub cloud plans use [aws-terraform-plan.yml](../../.github/workflows/aws-terraform-plan.yml)
+and short-lived credentials from GitHub OIDC. Configure it once:
 
-- `region` — e.g. `eu-north-1` (match what you'll use).
-- `allowed_ssh_cidr` — **your** IP so only you can SSH. Get it from
-  <https://checkip.amazonaws.com> and add `/32`, e.g. `203.0.113.4/32`.
+1. In AWS IAM, create or reuse the GitHub OIDC provider
+   `https://token.actions.githubusercontent.com` with audience `sts.amazonaws.com`.
+2. Create a read-only Terraform plan role whose trust policy restricts `sub` to
+   `repo:OWNER/REPO:environment:aws-plan` and `aud` to `sts.amazonaws.com`.
+3. Create the protected GitHub environment `aws-plan` and set its variable
+   `AWS_TERRAFORM_PLAN_ROLE_ARN` to that role ARN.
+4. Never add `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` as GitHub secrets.
 
-## Step 2 — The SSH key (pick one)
+Use this trust-policy shape, replacing the account, owner, and repository. The
+environment-bound `sub` prevents workflows outside `aws-plan` from assuming the role:
 
-**Option A — let Terraform make it (default, nothing to do).**
-`terraform apply` generates the key pair and writes the private key to `dojo-key.pem` in the
-repo root. Skip to Step 3.
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+        "token.actions.githubusercontent.com:sub": "repo:<OWNER>/<REPO>:environment:aws-plan"
+      }
+    }
+  }]
+}
+```
 
-**Option B — create the key yourself.** From the repo root:
+The role also needs read access to the configured remote-state S3 object if you enable
+the backend. Environment approval plus this tightly scoped, read-only role is the trust
+boundary for same-repository pull-request plans; fork pull requests are skipped. Keep
+apply permissions in a different, approval-protected role. Remote state with S3 locking
+also needs `PutObject`/`DeleteObject` on the state key's `.tflock` object; that is the
+only write permission the plan role should receive.
+
+## Configure and create the server
 
 ```powershell
-ssh-keygen -t ed25519 -f dojo-key.pem          # creates dojo-key.pem (+ dojo-key.pem.pub)
+Set-Location deploy/terraform
+Copy-Item terraform.tfvars.example terraform.tfvars
 ```
 
-Then in `terraform.tfvars` set:
+Set `allowed_ssh_cidr` to your public IP plus `/32` (for example,
+`203.0.113.4/32`). Retrieve it from <https://checkip.amazonaws.com>. The default region
+is `eu-north-1`.
+
+By default Terraform creates an Ed25519 key and stores `dojo-key.pem` in the repository
+root. To bring your own key, generate one and update `terraform.tfvars`:
+
+```powershell
+ssh-keygen -t ed25519 -f ../../dojo-key.pem
+```
 
 ```hcl
 generate_ssh_key = false
 public_key_path  = "../../dojo-key.pem.pub"
 ```
 
-*(Alternative: create a key pair in the AWS Console → EC2 → Key Pairs and download the `.pem`;
-save it as `dojo-key.pem` at the repo root and point `public_key_path` at its public half.)*
-
-Either way the private key is **`dojo-key.pem`**, so every later step (Ansible, SSH) is the same.
-
-## Step 3 — Create the server
+Provision and inspect the outputs:
 
 ```powershell
-terraform init      # downloads the providers (first time only)
-terraform plan      # preview — nothing is created yet
-terraform apply     # type "yes"; ~1 minute
-terraform output    # public_ip, ssh_command, ansible_inventory_line, ...
+terraform init
+terraform plan -out tfplan
+terraform apply tfplan
+terraform output
 ```
 
-## Step 4 — Connect
-
-Run the `ssh_command` from the output, **from the repo root** (where `dojo-key.pem` is):
-
-```powershell
-ssh -i dojo-key.pem ubuntu@<public_ip>
-```
-
-On Windows, if SSH complains the key is too open, lock its permissions once:
+Run the printed SSH command from the repository root. On Windows, restrict the private
+key if OpenSSH reports that its permissions are too broad:
 
 ```powershell
 icacls dojo-key.pem /inheritance:r
 icacls dojo-key.pem /grant:r "$($env:USERNAME):R"
+ssh -i dojo-key.pem ubuntu@<public_ip>
 ```
 
-## Step 5 — Hand off to Ansible (install + deploy)
+Pass `terraform output -raw ansible_inventory_line` to the inventory described in
+[../ansible/README.md](../ansible/README.md).
 
-Terraform made the box; Ansible configures it. Copy the `ansible_inventory_line` output into
-the inventory, then run the playbook — see [../ansible/README.md](../ansible/README.md):
-
-```powershell
-terraform output -raw ansible_inventory_line   # -> dojo ansible_host=<ip> ansible_user=ubuntu
-```
-
-## Tear down (stop paying)
+## Tear down and troubleshoot
 
 ```powershell
 terraform destroy
 ```
 
-## Cost & safety
-
-- Roughly a few dollars/day for a `t3.small` + EIP while running — **destroy when done**.
-- Only ports 22 (you), 80, and 443 are open; database/app ports stay private.
-- `terraform.tfstate` and `dojo-key.pem` are gitignored (`*.tfstate`, `*.pem`). When Terraform
-  generates the key, the private key is also stored in state — fine for local learning; real
-  setups keep keys and state in a managed backend/secret store.
-
-## Troubleshooting
-
-- **`Unable to locate credentials` / `AccessDenied`** → run `aws sts get-caller-identity`; if it
-  fails, redo `aws configure`; if it succeeds but apply is denied, the IAM user lacks EC2/VPC
-  permissions.
-- **SSH times out** → `allowed_ssh_cidr` isn't your current IP (it changes); update it and
-  `terraform apply` again.
-- **`Permission denied (publickey)`** → you used the wrong key; SSH with `-i dojo-key.pem` and
-  user `ubuntu`.
-- **`VPCIdNotSpecified` / no default VPC** → this config uses your account's default VPC; if the
-  region has none, create one (AWS Console → VPC → *Create default VPC*) or add a `subnet_id`.
+- A `t3.small` and unattached Elastic IP cost money; destroy them after practice.
+- Ports 22 (your CIDR), 80, and 443 are exposed. Database and application ports are not.
+- State and the generated key are gitignored, but the private key also exists inside
+  state. Use the encrypted remote-state root for shared work.
+- If AWS authentication fails, run `aws sso login --profile devops-dojo`, restore
+  `AWS_PROFILE`, and retry `aws sts get-caller-identity`.
+- If SSH times out, refresh `allowed_ssh_cidr`; residential public IPs often change.
+- `VPCIdNotSpecified` means the chosen region lacks a default VPC. Create a default VPC
+  or extend this learning root with an explicit VPC/subnet.

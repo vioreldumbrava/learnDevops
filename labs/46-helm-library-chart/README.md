@@ -27,7 +27,7 @@ cluster.
 
 ## Steps
 
-Prereqs: kind cluster with ingress + images loaded (lab 22 steps 1–3), Helm (lab 23), and
+Prereqs: kind cluster with Envoy Gateway + images loaded (lab 22 steps 1–3), Helm (lab 23), and
 [helmfile](https://github.com/helmfile/helmfile/releases) (single binary; also needs the
 diff plugin: `helm plugin install https://github.com/databus23/helm-diff`).
 

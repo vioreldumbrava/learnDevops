@@ -14,17 +14,39 @@ spec:
         app: ingest # NetworkPolicies select pods by label (networkpolicy.yaml)
     spec:
       restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: clone
-          image: alpine/git:latest
+          image: alpine/git:2.54.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          env:
+            - name: HOME
+              value: /tmp
           args: ["clone", "--depth", "1", "https://github.com/OWNER/REPO.git", "/repo"]
           volumeMounts:
             - name: repo
               mountPath: /repo
+            - name: tmp
+              mountPath: /tmp
       containers:
         - name: ingest
           image: dojo-ai/rag-api:dev
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
           command: ["python", "-m", "app.ingest"]
           env:
             - name: DOCS_PATHS
@@ -35,6 +57,10 @@ spec:
           volumeMounts:
             - name: repo
               mountPath: /repo
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: repo
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}

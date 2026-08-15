@@ -119,6 +119,9 @@ password> ALERT_TO=you@gmail.com` first (Gmail needs an app password, not your l
    managed one instead.
 2. Extend the monitor to check **content**, not just status: fail if the response body
    doesn't contain a marker string (a 200 from a broken app is the sneakiest outage).
+3. Cleanup rehearsal: detach and delete the restored volume, prune every exercise snapshot,
+   and confirm the `CreatedBy=devops-dojo-script` inventory is empty. Retaining two snapshots
+   is useful during the drill but is not the final teardown state.
 
 ## Checkpoint
 
@@ -126,11 +129,12 @@ password> ALERT_TO=you@gmail.com` first (Gmail needs an app password, not your l
 - ✅ A restored volume mounts on the instance and shows real data.
 - ✅ The monitor emails (or prints) exactly one alert per outage and heals the app via SSH.
 - ✅ You can explain the CreatedBy-tag guard and the AZ constraint on volumes.
+- ✅ No exercise snapshot or restored EBS volume remains after the final inventory check.
 
 ## Common failures
 
-- `Unable to locate credentials` → same fix as labs 16/40: `aws configure` or env vars;
-  check with `aws sts get-caller-identity`.
+- `Unable to locate credentials` → refresh the short-lived SSO session used in labs 16/40;
+  check with `aws sts get-caller-identity --profile dojo`.
 - `backup` finds nothing → instance down, or its volume lost the `Project` tag (root volumes
   get tags only if Terraform set them — check `aws ec2 describe-volumes`).
 - Restore attach fails with `InvalidParameterValue: ... availability zone` → volume created

@@ -63,6 +63,8 @@ When pasting the IP into `inventory.ini` gets old: lab 44 replaces it with a tag
 - ✅ `ansible dojo -m ping` returns `pong`.
 - ✅ `ansible-playbook` completes with `failed=0`.
 - ✅ `http://<server-ip>` serves the app; toggling a lab persists.
+- ✅ The same instance remains tagged and is either carried directly into lab 18 or destroyed
+  from `deploy/terraform` before you stop for the day.
 
 ## Common failures
 
@@ -72,5 +74,5 @@ When pasting the IP into `inventory.ini` gets old: lab 44 replaces it with a tag
   images instead of building on the box.
 
 Milestone 2 complete — you can now build, test, publish, provision, and deploy automatically.
-Milestone 3 (HTTPS, hardening, load testing, scaling, Kubernetes) is next; see
-[docs/CURRICULUM.md](../../docs/CURRICULUM.md).
+
+➡️ Next: [Lab 18 — HTTPS deployment](../18-deploy-https/)

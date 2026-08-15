@@ -107,6 +107,7 @@ distroless vs an interpreter image). In Kubernetes the swap is one line, because
 not the code — is what the cluster wires together:
 
 ```powershell
+# The pod keeps the chart's numeric UID/GID 65532; both implementations are UID-agnostic.
 kubectl -n devops-dojo set image deploy/api api=devops-dojo/api-py:dev   # after `kind load`
 ```
 
@@ -122,8 +123,8 @@ monitoring stack.
 
 - ✅ The frontend and DB behave identically on both backends; progress ticked under Go is still
   present under Python (state lives in Postgres).
-- ✅ `/api/steps` returns the same 24-step JSON with the same field names; `/metrics` exposes the
-  same `dojo_http_*` names on both.
+- ✅ `/api/steps` returns the same number of entries as the numbered `labs/` directories, with
+  the same field names on both backends; `/metrics` exposes the same `dojo_http_*` names.
 - ✅ The Python worker drains the `dojo:jobs` queue the API enqueues to.
 - ✅ You can state, with the size/concurrency numbers to back it, when you'd choose Go vs Python
   for a service.

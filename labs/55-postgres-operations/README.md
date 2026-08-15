@@ -117,8 +117,11 @@ it were milliseconds.
 [`db/migrations/`](../../db/migrations/) (lab 06), including performance ones, because an index
 that exists only on your laptop is the classic "it was fast in staging" incident.
 
-Write `db/migrations/000005_notes_created_at_index.up.sql` and its `.down.sql`, apply with
-`& $dc run --rm migrate`, then re-run the `EXPLAIN` from step 1.
+Allocate the next migration sequence exactly as in lab 06, then write
+`${migration}_notes_created_at_index.up.sql` and its `.down.sql`. Apply with
+`& $dc run --rm migrate`, verify `schema_migrations.dirty` is false, then re-run the
+`EXPLAIN` from step 1. Do not assume `000005` is free: completed exercises and future baseline
+migrations legitimately consume sequence numbers.
 
 Three things to decide while writing it, each of which is an interview answer:
 

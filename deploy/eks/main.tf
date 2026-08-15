@@ -26,8 +26,14 @@ module "vpc" {
   single_nat_gateway = true # one NAT to keep cost down (learning)
 
   # Tags that let the AWS load balancer controller place ELBs in the right subnets.
-  public_subnet_tags  = { "kubernetes.io/role/elb" = 1 }
-  private_subnet_tags = { "kubernetes.io/role/internal-elb" = 1 }
+  public_subnet_tags = {
+    "kubernetes.io/role/elb"                    = 1
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+  }
+  private_subnet_tags = {
+    "kubernetes.io/role/internal-elb"           = 1
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+  }
 
   tags = local.tags
 }
@@ -42,6 +48,7 @@ module "eks" {
 
   cluster_endpoint_public_access           = true
   enable_cluster_creator_admin_permissions = true
+  enable_irsa                              = true
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -56,4 +63,49 @@ module "eks" {
   }
 
   tags = local.tags
+}
+
+# The AWS Load Balancer Controller uses IRSA: the pod receives short-lived AWS
+# credentials for this role from its projected service-account token. No access
+# key is stored in Terraform, Kubernetes, or GitHub.
+data "aws_iam_policy_document" "load_balancer_controller_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:aws-load-balancer-controller"]
+    }
+  }
+}
+
+resource "aws_iam_policy" "load_balancer_controller" {
+  name_prefix = "${var.cluster_name}-lbc-"
+  description = "AWS Load Balancer Controller v2.14.1 permissions."
+  policy      = file("${path.module}/aws-load-balancer-controller-iam-policy.json")
+  tags        = local.tags
+}
+
+resource "aws_iam_role" "load_balancer_controller" {
+  name_prefix        = "${var.cluster_name}-lbc-"
+  assume_role_policy = data.aws_iam_policy_document.load_balancer_controller_assume_role.json
+  tags               = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "load_balancer_controller" {
+  role       = aws_iam_role.load_balancer_controller.name
+  policy_arn = aws_iam_policy.load_balancer_controller.arn
 }

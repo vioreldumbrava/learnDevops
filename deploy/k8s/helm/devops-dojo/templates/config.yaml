@@ -18,7 +18,7 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: dojo-secrets
+  name: {{ .Values.secrets.name }}
 type: Opaque
 stringData:
   POSTGRES_PASSWORD: {{ .Values.secrets.postgresPassword | quote }}

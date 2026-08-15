@@ -1,0 +1,8 @@
+# Envoy Gateway v1.8.3 watches this class. Install the pinned controller chart
+# before applying the application resources (see deploy/k8s/README.md).
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller

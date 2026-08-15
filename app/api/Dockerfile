@@ -17,7 +17,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/api ./cmd/api \
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/api /api
 COPY --from=build /out/worker /worker
-USER nonroot:nonroot
+# Use the distroless nonroot account's numeric UID/GID. Kubernetes can enforce
+# runAsNonRoot from image metadata only when the configured user is numeric.
+USER 65532:65532
 EXPOSE 8080
 # Default entrypoint is the API; the worker service overrides this to ["/worker"].
 ENTRYPOINT ["/api"]

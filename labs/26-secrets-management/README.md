@@ -33,12 +33,12 @@ helm upgrade --install dojo deploy/k8s/helm/devops-dojo -n devops-dojo --set sec
 
 **Sealed Secrets (recommended for this repo):**
 ```bash
-kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/controller.yaml
+kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.38.4/controller.yaml
 kubectl create secret generic dojo-secrets -n devops-dojo \
   --from-literal=POSTGRES_PASSWORD='S3cure!' \
   --from-literal=DATABASE_URL='postgres://dojo:S3cure!@db:5432/dojo?sslmode=disable' \
-  --dry-run=client -o yaml | kubeseal --format yaml > sealed-dojo-secrets.yaml
-kubectl apply -f sealed-dojo-secrets.yaml   # controller creates the real dojo-secrets
+  --dry-run=client -o yaml | kubeseal --format yaml > deploy/secrets/capstone/sealed-dojo-secrets.yaml
+kubectl apply -f deploy/secrets/capstone/sealed-dojo-secrets.yaml
 ```
 
 **External Secrets + AWS (pairs with the EKS capstone):** install ESO, create the AWS secret,
@@ -55,9 +55,12 @@ the cloud store), never in Git.
 
 ## Exercise
 
-Wire it into GitOps (lab 25): commit `sealed-dojo-secrets.yaml` to the repo and let **ArgoCD**
-apply it alongside the chart (with `secrets.create=false` in the Application values). Now even
-your secret is delivered by GitOps — encrypted, auditable, and safe in Git.
+Wire it into GitOps (lab 25): generate the encrypted resource at
+`deploy/secrets/capstone/sealed-dojo-secrets.yaml`, commit it, and let **Argo CD** apply it
+as the Application's encrypted second source. The checked-in Application already sets
+`secrets.create=false`. A SealedSecret is bound to its controller key, name, and namespace,
+so regenerate it against the EKS target cluster before the capstone rather than copying the
+kind-cluster ciphertext. Now the desired state is encrypted, auditable, and safe in Git.
 
 ## Checkpoint
 
@@ -76,4 +79,4 @@ Interview line: *"Secrets are never in Git — the chart references a Secret by 
 produced in-cluster by Sealed Secrets (or synced from AWS Secrets Manager via the External
 Secrets Operator), so rotation and least-privilege live outside the codebase."*
 
-➡️ Back to the map: [docs/CURRICULUM.md](../../docs/CURRICULUM.md)
+➡️ Next: [Lab 35 — Incident response](../35-incident-response/)

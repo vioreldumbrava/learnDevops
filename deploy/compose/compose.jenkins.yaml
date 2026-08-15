@@ -13,7 +13,7 @@ services:
       context: ../jenkins
     image: devops-dojo/jenkins:lts
     # Local-learning shortcut so Jenkins can use the mounted Docker socket. The
-    # socket is root-equivalent access to the host — the same caveat as Promtail
+    # socket is root-equivalent access to the host — the same caveat as local Alloy
     # in lab 11; see lab 19 for why you'd avoid this in production.
     user: root
     ports:

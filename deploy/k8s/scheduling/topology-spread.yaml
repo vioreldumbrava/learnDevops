@@ -25,6 +25,13 @@ spec:
       labels:
         app: balanced
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+        sysctls:
+          - { name: net.ipv4.ip_unprivileged_port_start, value: "0" }
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
@@ -36,6 +43,9 @@ spec:
       containers:
         - name: app
           image: nginx:1.27-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
           resources:
             requests:
               cpu: "50m"

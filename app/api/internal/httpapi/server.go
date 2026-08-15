@@ -21,7 +21,9 @@ import (
 // JobQueue is the Redis list the worker consumes.
 const JobQueue = "dojo:jobs"
 
-const stepsCacheKey = "steps:all"
+// Version the cache key when the additive response schema changes so a rolling
+// deployment cannot serve pre-metadata JSON from an older API instance.
+const stepsCacheKey = "steps:v2:all"
 
 type Server struct {
 	store  *store.Store

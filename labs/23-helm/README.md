@@ -1,50 +1,56 @@
 # Lab 23 — Helm packaging
 
-**Maps to:** extra (completes the K8s story) · **Milestone:** 3
+**Tier:** core · **Milestone:** delivery
 
-**Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
+**Run from:** the **repo root** (`learnDevops/`). Every command and path below is relative to it.
 
 ## Concept
 
-Applying a folder of raw manifests doesn't scale across environments — you'd copy-paste and
-hand-edit image tags, replica counts, and domains. **Helm** packages the manifests as a
-**chart** with a `values.yaml` you override per environment, and manages install/upgrade/
-rollback as one versioned release.
+Copying raw manifests for each environment creates drift. Helm packages resources as a chart,
+renders environment-specific values, and records releases so upgrades and rollbacks are
+repeatable.
 
 ## What you'll do
 
-Install the same stack via the chart, override values, and upgrade/roll back.
+Replace lab 22's raw deployment with the same stack managed by Helm, then perform and verify
+an upgrade and rollback through Gateway API.
 
 ## Steps
 
-Prereqs: a kind cluster with ingress-nginx and the images loaded (lab 22, steps 1–3), plus
-Helm installed.
+Prerequisites: lab 22's kind cluster, the `eg` GatewayClass, locally loaded images, and Helm.
+Start with a clean namespace so Helm does not try to adopt resources created by `kubectl`:
 
 ```powershell
-# The migrations ConfigMap is still supplied from the SQL files
-kubectl create namespace devops-dojo
+kubectl delete namespace devops-dojo --wait=true
+kubectl apply -f deploy/k8s/base/namespace.yaml
 kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
 
-# See what the chart renders (no cluster changes)
-helm template dojo deploy/k8s/helm/devops-dojo
+# Render first: this changes nothing in the cluster.
+helm lint deploy/k8s/helm/devops-dojo
+helm template dojo deploy/k8s/helm/devops-dojo --namespace devops-dojo > $null
 
-# Install
 helm install dojo deploy/k8s/helm/devops-dojo -n devops-dojo
-
-kubectl -n devops-dojo get pods,svc,ingress
+kubectl -n devops-dojo wait --for=condition=Programmed gateway/dojo --timeout=180s
+kubectl -n devops-dojo get pods,svc,gateway,httproute
+curl.exe --fail http://localhost/api/steps
 ```
 
-Open <http://localhost/>. Then override and upgrade:
+Upgrade and roll back:
 
 ```powershell
+$firstRevision = helm history dojo -n devops-dojo -o json |
+  ConvertFrom-Json | Select-Object -First 1 -ExpandProperty revision
+
 helm upgrade dojo deploy/k8s/helm/devops-dojo -n devops-dojo `
   --set api.replicas=4 --set frontend.replicas=3
+kubectl -n devops-dojo rollout status deployment/api --timeout=180s
 
 helm history dojo -n devops-dojo
-helm rollback dojo 1 -n devops-dojo      # back to the first revision
+helm rollback dojo $firstRevision -n devops-dojo
+kubectl -n devops-dojo rollout status deployment/api --timeout=180s
 ```
 
-Uninstall:
+When finished, uninstall only the release; retain the cluster for later core labs:
 
 ```powershell
 helm uninstall dojo -n devops-dojo
@@ -52,30 +58,31 @@ helm uninstall dojo -n devops-dojo
 
 ## How it works
 
-The chart under [deploy/k8s/helm/devops-dojo/](../../deploy/k8s/helm/devops-dojo/) has the
-same resources as `k8s/base/`, but templated: images, replica counts, resources, ingress, and
-HPA all come from [values.yaml](../../deploy/k8s/helm/devops-dojo/values.yaml). The Secret's
-`DATABASE_URL` is assembled from the config/secret values. Migrations run as a Helm
-**post-install/post-upgrade hook** (recreated each release, since Jobs are immutable).
+The chart at [`deploy/k8s/helm/devops-dojo`](../../deploy/k8s/helm/devops-dojo/) templates
+images, replicas, resources, Gateway/HTTPRoute, security contexts, and HPA. Migrations run as
+a post-install/post-upgrade hook because Jobs are immutable. Gateway API is the default;
+`ingress.enabled` is an explicitly historical migration option and requires a controller the
+learner supplies separately.
 
 ## Exercise
 
-Create a `prod-values.yaml` that sets `secrets.postgresPassword`, `api.replicas: 3`, and
-`hpa.enabled: false`, then `helm upgrade dojo ... -f prod-values.yaml`. One chart, many
-environments — that's the whole point of Helm.
+Create a local values file that sets a non-default database password, three API replicas, and
+`hpa.enabled: false`. Upgrade with `-f`, inspect `helm get values`, then roll back without
+reading the walkthrough.
 
 ## Checkpoint
 
-- ✅ `helm template` renders all resources without error.
-- ✅ `helm install` brings the app up; it serves at <http://localhost/>.
-- ✅ `helm upgrade --set api.replicas=4` scales the API; `helm rollback` reverts it.
+- `helm lint` and `helm template` succeed.
+- The release serves `/api/steps` through a `Programmed=True` Gateway.
+- The upgrade changes live replica counts and `helm rollback` restores the earlier values.
+- Restricted workload-security settings are still present in rendered Deployments/Pods.
 
 ## Common failures
 
-- `Error: INSTALLATION FAILED ... configmaps "dojo-migrations" not found` → create the
-  ConfigMap from `db/migrations/` before installing.
-- Image pull errors → load images into kind first (`kind load docker-image ...`).
+- Existing-resource ownership error → the lab 22 namespace was not removed before install.
+- Missing `dojo-migrations` → recreate it from `db/migrations/` before installing.
+- Image pull error → load the images into the kind nodes with the tags in `values.yaml`.
+- Gateway unprogrammed → lab 22's Envoy Gateway installation or `eg` class is missing.
 
-🎉 That's the full path: from `docker build` to a Helm-managed Kubernetes deployment. See
-[docs/CURRICULUM.md](../../docs/CURRICULUM.md) for the whole map and ideas to go further
-(GitOps/ArgoCD, service mesh, multi-env promotion).
+➡️ Next: [Lab 26 — Secrets management](../26-secrets-management/), with labs 35 and 25
+scheduled later in the common core.

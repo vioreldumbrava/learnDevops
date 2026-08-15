@@ -34,7 +34,7 @@ deploying, and operating a small but real web application — and the applicatio
 | `db` | PostgreSQL | Progress, notes, curriculum — teaches migrations & backups |
 | `redis` | Redis | Cache + job queue |
 | `caddy` | Caddy | Reverse proxy + automatic HTTPS (prod) |
-| observability | Prometheus, Grafana, Loki, Promtail, Tempo, Alertmanager | metrics, logs, traces, alerts |
+| observability | Prometheus, Grafana, Loki, Grafana Alloy, Tempo, Alertmanager | metrics, logs, traces, alerts |
 
 ## Prerequisites
 
@@ -44,6 +44,8 @@ deploying, and operating a small but real web application — and the applicatio
   `kubectl` + `kind`, `helm`, `terraform`, `ansible`, `k6`
 
 New to the Linux side of containers? Read [docs/LINUX_FOR_CONTAINERS.md](docs/LINUX_FOR_CONTAINERS.md).
+The common core also starts network diagnosis early: DNS → TCP → TLS → HTTP, using
+`Resolve-DnsName`/`nslookup`, `ss`, `curl -v`, `openssl s_client`, and `tcpdump`.
 
 ## Quick start (development)
 
@@ -77,14 +79,10 @@ docker compose -f deploy/compose/compose.yaml down -v
 
 ## How to use the labs
 
-Work through `labs/00..26` in order, then pick up the Kubernetes deep-dive (`27..34` + the
-CKA exam-ops drills in `48`, the networking deep dives in `49`/`51`, and storage/scheduling
-in `52`/`53`), the
-operate-and-automate track (`35..42` plus `54..56` — Linux server ops, Postgres under load,
-SLOs & burn-rate alerting; labs 37–38 can be done anytime after the foundation),
-and the ecosystem-breadth track (`43..47`, TWN-inspired).
-In a hurry to interview? Follow the ⚡ **fast track** in
-[docs/CURRICULUM.md](docs/CURRICULUM.md) instead and do the rest in parallel with applying.
+Start with the **job-first common core** in [docs/CURRICULUM.md](docs/CURRICULUM.md): it moves
+Git, Bash, Linux, network diagnosis and AWS fundamentals ahead of specialist Kubernetes
+add-ons. Applications begin in week 3; finishing the library is not a prerequisite. After the
+core, choose the Platform/CKA or SRE branch and treat the rest as role-driven electives.
 Every lab follows the same shape:
 
 > **Concept (what & why) → What you'll do → Steps → How it works → Exercise → Checkpoint → Common failures → Maps to**
@@ -98,18 +96,17 @@ strand you for hours. Labs build on each other's artifacts — lab 02 reuses lab
 lab 18 deploys the server from labs 16–17, lab 35 breaks the cluster from lab 22.
 
 **Then close the book.** That model trains recognition; interviews and the CKA test recall
-from a blank terminal on a clock. So each lab also has a **closed-book drill** in
-[docs/DRILLS.md](docs/DRILLS.md) — a from-scratch task with a time target and a pass test —
-and the dashboard tracks *completed* (read it) and *drilled* (can do it) as two separate
-states, with a **Drill next** panel that picks the stalest one for you.
-[docs/WEEKLY.md](docs/WEEKLY.md) is the repeating week and the dated calendar;
+from a blank terminal on a clock. Required core and specialization labs have a
+**closed-book drill** in [docs/DRILLS.md](docs/DRILLS.md), with a time target and pass test;
+optional labs can remain reference-only. The dashboard tracks *completed* (guided) and
+*drilled* (timed recall) separately, with a **Drill next** panel that picks the stalest one.
+[docs/WEEKLY.md](docs/WEEKLY.md) is the five-hour job-search-compatible cadence;
 [docs/TOOLBOX.md](docs/TOOLBOX.md) is the one-time setup (`kind` and `helm` still need
 installing).
 
-A couple of labs sort out of numeric order on purpose (they were added later): **lab 24**
-(Jenkins) is a Milestone 2 lab, and **lab 48** (CKA drills) belongs in the Kubernetes
-deep-dive. Each says so at the top; [docs/CURRICULUM.md](docs/CURRICULUM.md) is the source of
-truth for sequence.
+Labs sort by the selected learning route rather than folder number. The machine-readable
+[`curriculum/manifest.json`](curriculum/manifest.json) is the source of truth; the curriculum
+table, API metadata and dashboard filters are checked against it.
 
 Each lab states **where to run its commands** in the *Run from* line under the title — for
 most labs that's the **repo root** (`learnDevops/`), not the lab's own folder; labs that need
@@ -129,7 +126,7 @@ db/seed          throwaway drill data (lab 55) — deliberately NOT migrations
 deploy/compose   base + dev + prod + observability Compose files
 deploy/systemd   systemd unit, backup timer, logrotate config       (lab 54)
 deploy/caddy      Caddyfile (reverse proxy / HTTPS)
-deploy/monitoring Prometheus, Grafana, Loki, Promtail, Tempo, Alertmanager, blackbox
+deploy/monitoring Prometheus, Grafana, Loki, Alloy, Tempo, Alertmanager, blackbox
 deploy/k8s       Kubernetes manifests, Helm chart, kind config   (milestone 3)
 deploy/terraform Terraform to provision a VPS/EC2               (milestone 2)
 deploy/ansible   Ansible to configure + deploy                  (milestone 2)
@@ -158,7 +155,7 @@ dojo-operator/   Third project: build a Kubernetes operator in Go — see its ow
   cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack — plus **lab 48**, the
   CKA cluster-ops drills (etcd backup/restore, drain vs PDB, kubelet break-fix, timed mock
   exam), **lab 49**, the networking **data plane** deep dive (pause/veth, ClusterIP +
-  kube-proxy DNAT, CoreDNS, service types, the Ingress path), and **lab 51**, the same data
+  kube-proxy DNAT, CoreDNS, service types, the Gateway API path), and **lab 51**, the same data
   plane re-implemented in **Cilium/eBPF** (kube-proxy-free Services, Hubble, L7 policy,
   Gateway API with a real LoadBalancer IP on kind), **lab 52** (storage: StorageClass,
   PV/PVC lifecycle, reclaim policies, access modes) and **lab 53** (scheduling: requests,
@@ -183,4 +180,4 @@ tracks.
 > 🎯 **Aiming for a DevOps job?** The capstone is your interview centerpiece; see
 > [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md) for a full talk track (likely questions +
 > project-grounded answers, troubleshooting scenarios, and a gap-closing study plan) — and
-> [docs/WEEKLY.md](docs/WEEKLY.md) for the dated plan that gets you from here to applying.
+> [docs/WEEKLY.md](docs/WEEKLY.md) for the relative plan that begins applications in week 3.

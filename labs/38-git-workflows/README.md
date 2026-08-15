@@ -148,4 +148,4 @@ Remove-Item drill.txt, conflict.txt, bisect.txt -ErrorAction SilentlyContinue
 - Conflict markers committed by accident → CI/lint should catch `<<<<<<<`; fix, amend,
   re-push (pre-commit's merge-conflict hook does this — see `.pre-commit-config.yaml`).
 
-➡️ Next: [Lab 39 — Terraform remote state, modules & CI](../39-terraform-state-and-modules/)
+➡️ Next: [Lab 01 — Docker basics](../01-docker-basics/)

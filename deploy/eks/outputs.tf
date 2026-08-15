@@ -15,6 +15,16 @@ output "cluster_endpoint" {
   value = module.eks.cluster_endpoint
 }
 
+output "cluster_version" {
+  description = "Kubernetes control-plane version."
+  value       = module.eks.cluster_version
+}
+
+output "load_balancer_controller_role_arn" {
+  description = "IRSA role used by the aws-load-balancer-controller service account."
+  value       = aws_iam_role.load_balancer_controller.arn
+}
+
 # Consumed by other root modules via terraform_remote_state (lab 40: RDS + IRSA).
 output "vpc_id" {
   value = module.vpc.vpc_id

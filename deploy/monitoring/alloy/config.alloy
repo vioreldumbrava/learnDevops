@@ -1,0 +1,42 @@
+// Discover Compose containers from the local Docker Engine. Mounting the Docker
+// socket is intentionally limited to this learning environment.
+discovery.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
+}
+
+// Docker metadata labels are internal (prefixed with __meta_) and would be
+// discarded. Promote the useful Compose identity before forwarding log entries.
+discovery.relabel "docker_logs" {
+	targets = []
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "compose_service"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		target_label  = "compose_project"
+	}
+}
+
+loki.source.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	targets          = discovery.docker.containers.targets
+	relabel_rules    = discovery.relabel.docker_logs.rules
+	forward_to       = [loki.write.local.receiver]
+	refresh_interval = "5s"
+}
+
+loki.write "local" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

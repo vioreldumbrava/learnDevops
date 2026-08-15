@@ -25,7 +25,9 @@ from .config import cfg
 from .store import Store
 
 JOB_QUEUE = "dojo:jobs"
-STEPS_CACHE_KEY = "steps:all"
+# Versioned because /api/steps gained additive curriculum metadata. This avoids
+# serving an old response shape during a rolling Go/Python deployment.
+STEPS_CACHE_KEY = "steps:v2:all"
 STEPS_CACHE_TTL = 30  # seconds — matches the Go handler
 
 

@@ -14,7 +14,7 @@
 # NODEPORT — ClusterIP PLUS a static port on every node (30000–32767). Same
 # kube-proxy DNAT as ClusterIP, with an extra rule catching the node port. The
 # oldest way to reach a Service from outside; blunt (one port per service, the
-# client must know a node IP) — real clusters put an Ingress/LB in front instead.
+# client must know a node IP) — real clusters put a Gateway/LB in front instead.
 apiVersion: v1
 kind: Service
 metadata:
@@ -28,7 +28,8 @@ spec:
   ports:
     - port: 8080        # the ClusterIP port
       targetPort: 8080  # the container port
-      nodePort: 30080   # the node-wide port (omit to get a random one)
+      # 30080/30443 are reserved by the local Envoy Gateway path.
+      nodePort: 30081   # the node-wide port (omit to get a random one)
 ---
 # EXTERNALNAME — no proxying, no selector, no endpoints at all: CoreDNS just
 # returns a CNAME to an out-of-cluster hostname. Lets in-cluster code say

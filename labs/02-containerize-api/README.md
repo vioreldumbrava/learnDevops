@@ -28,6 +28,7 @@ docker build -t devops-dojo/api ./app/api
 docker images devops-dojo/api
 
 # 2. It's non-root and has no shell: this MUST fail
+docker image inspect --format '{{.Config.User}}' devops-dojo/api
 docker run --rm --entrypoint sh devops-dojo/api -c "whoami"
 
 # 3. Rebuild after a no-op change and watch dependency layers come from cache
@@ -38,7 +39,8 @@ docker build -t devops-dojo/api ./app/api
 
 The final stage is `gcr.io/distroless/static-debian12:nonroot`. There is no `/bin/sh`, so
 step 2 errors — that's the point: an attacker who lands in the container can't spawn a
-shell. `USER nonroot` means the process can't write outside what it's given. Because
+shell. `USER 65532:65532` selects distroless's numeric non-root identity. The numeric form
+also lets Kubernetes verify `runAsNonRoot` before starting the container. Because
 `COPY go.mod go.sum` + `go mod download` happen before `COPY . .`, editing a `.go` file
 only rebuilds the compile layer, not the dependency download (step 3 is fast).
 
@@ -60,6 +62,7 @@ docker inspect --format '{{ index .Config.Labels \"org.opencontainers.image.sour
 
 ## Checkpoint
 
+- ✅ Image inspection reports `65532:65532`, not root or a named user.
 - ✅ The image is a few tens of MB, not hundreds.
 - ✅ `--entrypoint sh ...` fails (no shell) — distroless confirmed.
 - ✅ A second build reuses cached dependency layers.

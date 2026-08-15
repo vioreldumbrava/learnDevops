@@ -63,4 +63,4 @@ the `unmatched`/`404` series appear.
 - Target DOWN → the `api` service isn't running, or you forgot the observability overlay.
 - Grafana "no data" → generate traffic first; check the time range is "last 15 minutes".
 
-➡️ Next: [Lab 11 — Logging](../11-logging/)
+➡️ Next: [Lab 13 — Image registry](../13-image-registry/)

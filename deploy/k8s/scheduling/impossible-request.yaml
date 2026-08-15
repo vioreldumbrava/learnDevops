@@ -7,9 +7,19 @@ kind: Pod
 metadata:
   name: greedy
 spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    seccompProfile: { type: RuntimeDefault }
+    sysctls:
+      - { name: net.ipv4.ip_unprivileged_port_start, value: "0" }
   containers:
     - name: app
       image: nginx:1.27-alpine
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities: { drop: ["ALL"] }
       resources:
         requests:
           cpu: "64"          # <- more than any node's allocatable
@@ -19,9 +29,19 @@ kind: Pod
 metadata:
   name: modest
 spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    seccompProfile: { type: RuntimeDefault }
+    sysctls:
+      - { name: net.ipv4.ip_unprivileged_port_start, value: "0" }
   containers:
     - name: app
       image: nginx:1.27-alpine
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities: { drop: ["ALL"] }
       resources:
         requests:
           cpu: "100m"

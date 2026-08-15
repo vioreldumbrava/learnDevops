@@ -59,16 +59,20 @@ kubectl get nodes           # 2 nodes, Ready — from here on it's lab 22
 kubectl config get-contexts # dojo-aks joined your kind/EKS contexts
 ```
 
-### 3. Ingress controller
+### 3. Install the maintained Gateway controller
 
 ```powershell
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-kubectl -n ingress-nginx get svc ingress-nginx-controller -w   # EXTERNAL-IP: pending -> a real IP
+helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.8.3 `
+  --namespace envoy-gateway-system --create-namespace
+kubectl wait -n envoy-gateway-system --for=condition=Available `
+  deployment/envoy-gateway --timeout=300s
+kubectl apply -f deploy/k8s/gateway/gatewayclass.yaml
 ```
 
-Same controller as labs 22/25; the `LoadBalancer` Service materializes as an **Azure Load
-Balancer with a public IP** this time (on EKS it was an ELB hostname) — the cloud provider
-integration is the part that swapped, not your manifests.
+This is the same Envoy Gateway version as local lab 22. Its data-plane `LoadBalancer` Service
+materializes as an **Azure Load Balancer with a public IP**; on EKS, lab 25 deliberately uses
+the AWS Load Balancer Controller instead. The standard Gateway/HTTPRoute application API is
+portable even though controllers and cloud integrations differ.
 
 ### 4. Deploy the chart — unchanged
 
@@ -78,18 +82,20 @@ kubectl create namespace devops-dojo
 kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
 
 helm install dojo deploy/k8s/helm/devops-dojo -n devops-dojo `
-  -f deploy/k8s/helm/devops-dojo/values-dev.yaml --set ingress.host=""
+  -f deploy/k8s/helm/devops-dojo/values-dev.yaml `
+  --set gateway.host="" --set gateway.localEnvoyProxy.enabled=false
 
-kubectl -n devops-dojo get pods,svc,ingress
+kubectl -n devops-dojo wait --for=condition=Programmed gateway/dojo --timeout=300s
+kubectl -n devops-dojo get pods,svc,gateway,httproute
 ```
 
-The same chart, the same values overlay you used on kind and EKS. (`ingress.host=""` just
+The same chart, the same values overlay you used on kind and EKS. (`gateway.host=""` just
 means "answer on any host" — you're hitting a bare IP, not a domain.)
 
 ### 5. Open it
 
 ```powershell
-kubectl -n ingress-nginx get svc ingress-nginx-controller   # note EXTERNAL-IP
+kubectl -n devops-dojo get gateway dojo -o wide              # note ADDRESS
 ```
 
 Open `http://<external-ip>/` — the dashboard, on Azure. Count what you changed to get here:
@@ -132,7 +138,7 @@ orphaned. (Compare with hunting stray EIPs/volumes after AWS labs.)
 ## Checkpoint
 
 - ✅ `kubectl get nodes` shows the AKS pool — provisioned by Terraform, authenticated via az.
-- ✅ The app answers on the ingress public IP with **zero chart changes**.
+- ✅ The app answers on the Gateway public address with **zero template changes**.
 - ✅ `az group list` is clean after teardown.
 - ✅ You can name the four things that would actually change in a real AWS→Azure move.
 
@@ -144,7 +150,7 @@ orphaned. (Compare with hunting stray EIPs/volumes after AWS labs.)
 - `az login` picked the wrong subscription → `az account set --subscription <id>` before
   applying; Terraform inherits the CLI's active subscription.
 - `EXTERNAL-IP` stuck on `<pending>` → the cloud LB takes a couple of minutes; if it persists,
-  `kubectl -n ingress-nginx describe svc ingress-nginx-controller` (quota again, usually
+  `kubectl -n devops-dojo describe gateway dojo` and inspect the controller logs (quota or
   public IPs).
 - `ImagePullBackOff` → GHCR packages are private (make them public, lab 25 step 1) or the
   `OWNER/REPO` placeholders in `values-dev.yaml` still point at nobody's registry.

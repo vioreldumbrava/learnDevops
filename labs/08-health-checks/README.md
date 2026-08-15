@@ -68,4 +68,4 @@ it name? Confirm `/healthz` is still 200.
   Compose project and running.
 - Curl shows no status → add `-i` to see headers including the HTTP code.
 
-➡️ Next: [Lab 09 — Cache + background worker](../09-cache-and-worker/)
+➡️ Next: [Lab 37 — Scripting & automation](../37-scripting-automation/)

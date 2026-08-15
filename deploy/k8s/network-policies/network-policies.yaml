@@ -31,7 +31,7 @@ spec:
         - { protocol: UDP, port: 53 }
         - { protocol: TCP, port: 53 }
 ---
-# 3) API: accept from frontend + the ingress controller (8080); reach db + redis.
+# 3) API: accept from frontend + the Envoy Gateway data plane (8080); reach db + redis.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -47,7 +47,7 @@ spec:
         - podSelector: { matchLabels: { app: frontend } }
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ingress-nginx
+              kubernetes.io/metadata.name: envoy-gateway-system
       ports:
         - { protocol: TCP, port: 8080 }
   egress:
@@ -60,7 +60,7 @@ spec:
       ports:
         - { protocol: TCP, port: 6379 }
 ---
-# 4) Frontend: accept from the ingress controller (80); reach the API.
+# 4) Frontend: accept from the Envoy Gateway data plane (80); reach the API.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -75,7 +75,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ingress-nginx
+              kubernetes.io/metadata.name: envoy-gateway-system
       ports:
         - { protocol: TCP, port: 80 }
   egress:

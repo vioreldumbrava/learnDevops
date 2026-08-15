@@ -18,5 +18,5 @@ hpa:
   minReplicas: 2
   maxReplicas: 4
 
-ingress:
+gateway:
   host: staging.dojo.localhost

@@ -26,6 +26,9 @@ worker:
     limits: { cpu: 250m, memory: 128Mi }
 
 postgres:
+  # Disable this when a GitOps release uses managed RDS. The stable `db`
+  # Service name is omitted with the StatefulSet; workloads use DATABASE_URL.
+  enabled: true
   image: postgres:16-alpine
   storage: 1Gi
 
@@ -41,10 +44,14 @@ config:
   otelEndpoint: ""
 
 secrets:
+  # Workloads reference this name. Lab 40 changes it to `dojo-rds-secrets`
+  # during the GitOps handoff so Argo can prune its old local Secret without
+  # deleting the independently owned RDS Secret.
+  name: dojo-secrets
   # true  -> the chart renders the `dojo-secrets` Secret from postgresPassword below
   #          (fine for local/dev/CI).
   # false -> you manage `dojo-secrets` externally (Sealed Secrets or the External
-  #          Secrets Operator). The workloads reference it by name either way.
+  #          Secrets Operator). Set `name` to that independently owned Secret.
   #          See deploy/secrets/ and lab 26.
   create: true
   # Demo value only. For real installs pass --set secrets.postgresPassword=... ,
@@ -56,11 +63,28 @@ migrate:
   # Create it first: kubectl create configmap dojo-migrations -n <ns> --from-file=db/migrations/
   migrationsConfigMap: dojo-migrations
 
-ingress:
+gateway:
   enabled: true
+  # The default single-release kind path creates both the Gateway and a local
+  # EnvoyProxy with deterministic NodePorts. Cloud or shared-Gateway releases
+  # override these switches without changing the HTTPRoute template.
+  create: true
+  className: eg
+  parentName: dojo
+  parentNamespace: ""
+  localEnvoyProxy:
+    enabled: true
+    httpNodePort: 30080
+    httpsNodePort: 30443
+  # Optional hostname so several releases can share one Gateway implementation.
+  # Empty matches every host, which is convenient for a single local environment.
+  host: ""
+
+# Historical migration option only. To compare the retired Ingress API path,
+# set gateway.enabled=false and ingress.enabled=true with a controller you manage.
+ingress:
+  enabled: false
   className: nginx
-  # Optional host rule so several releases (dev/staging/prod, lab 36) can share one
-  # ingress controller. Empty = match any host (single-env behavior, unchanged).
   host: ""
 
 hpa:

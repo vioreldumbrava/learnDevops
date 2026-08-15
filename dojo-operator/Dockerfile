@@ -12,5 +12,5 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /operator ./cmd
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /operator /operator
-USER nonroot:nonroot
+USER 65532:65532
 ENTRYPOINT ["/operator"]

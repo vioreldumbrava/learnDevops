@@ -4,8 +4,9 @@ Every lab in this repo hands you a working reference. That's deliberate — it m
 strand you for hours. It also means the labs train **recognition**: you can read a Dockerfile and
 nod. Interviews and the CKA test **recall**: you get a blank terminal and a clock.
 
-This file is the other half. Each drill is a from-scratch task with a **time target** and a
-**pass test**. The rule is one line long:
+This file is the other half. Every lab marked `drill_required` in the curriculum manifest has
+a from-scratch task with a **time target** and a **pass test**. Electives may remain
+reference-only. The rule is one line long:
 
 > **The repo's answer files stay closed.** Work in a scratch directory. `man`, `--help`,
 > `kubectl explain` and the official docs are allowed — that's what you get in the exam and at
@@ -24,10 +25,30 @@ mkdir -p ~/drills/$(date +%F) && cd ~/drills/$(date +%F)   # today's scratch dir
 
 ---
 
-## Fast-track drills
+## Common-core drills
 
-These cover the [fast track](DOCKER_LEARNING_PATH.md#the-fast-track-interview-ready-as-soon-as-possible).
+These cover the [job-first common core](DOCKER_LEARNING_PATH.md#the-job-first-common-core).
 Times assume you've done the lab at least once.
+
+### Lab 00 — host and network diagnostic · target 12 min
+
+From a WSL Bash terminal, prove the path to any HTTPS service in order: DNS (`dig` or
+`nslookup`), listening/client sockets (`ss`), TCP+HTTP (`curl -v`), then certificate/SNI
+(`openssl s_client`). For the local Dojo, identify the process listening on its published port
+and repeat the HTTP step against `/healthz`.
+
+**Pass:** you show evidence at each layer, name exactly where a fabricated bad hostname or
+closed port fails, and explain DNS → TCP → TLS → HTTP without notes. Tool installation and
+Docker startup are outside the timer.
+
+### Lab 38 — Git recovery and diagnosis · target 15 min
+
+In a disposable clone, create two branches with a real conflict, resolve it during rebase,
+then use `git bisect` to locate a deliberately bad commit. Finish by recovering the pre-rebase
+state from `git reflog` on a new safety branch.
+
+**Pass:** history is clean, `bisect` names the injected commit, the safety branch points to the
+old state, and you can explain why force-pushing a shared branch would be unsafe.
 
 ### Lab 01/02 — build a production image · target 8 min
 
@@ -145,13 +166,71 @@ an output for the public IP, and a variable with a validation rule.
 **Pass:** `terraform validate` and `plan` are clean; a second `plan` after `apply` shows no
 changes. Explain what's in state, why it's sensitive, and what `plan` can't detect.
 
+### Lab 37 — production-safe glue script · target 15 min
+
+From an empty file, write a Bash health waiter with strict mode, validated arguments, a bounded
+retry loop, meaningful exit codes and an `EXIT` trap. Run ShellCheck, then demonstrate both a
+successful endpoint and a timeout. Parse its JSON result once with `jq`.
+
+**Pass:** ShellCheck is clean, success returns 0, timeout is non-zero inside the configured
+bound, cleanup runs on both paths, and no unquoted user-controlled variable remains.
+
+### Lab 54 — Linux service and disk triage · target 15 min
+
+On the local systemd container, diagnose a stopped unit from status+journal, prove which
+process owns its port, then identify a deleted-but-open file that makes `df` and `du`
+disagree. Restore the unit without rebooting the container.
+
+**Pass:** the service is active, its endpoint responds, `lsof +L1` (or `/proc/*/fd`) identifies
+the open inode, disk space returns after the owning process releases it, and you narrate each
+hypothesis before changing state.
+
+### Lab 39 — remote state, locking and OIDC plan · target 18 min
+
+From a small Terraform root, configure an S3 backend with native lockfiles, initialize it,
+show a second writer being rejected, and run a read-only CI plan using GitHub OIDC rather than
+stored AWS keys. Extract one reusable resource into a module with a typed input and output.
+
+**Pass:** state is remote and encrypted, locking is observed, the workflow has
+`id-token: write` plus a scoped `role-to-assume`, no AWS access key secret is referenced, and
+`fmt`, `validate`, `tflint` and the plan succeed.
+
+### Lab 40 — AWS identity, audit and operations · target 20 min
+
+Using the resources from lab 40, identify the caller, explain one IAM policy and its trust
+policy, trace a private subnet's default route, retrieve one relevant CloudTrail event and one
+CloudWatch alarm, then prove the backup workload accesses S3 through workload identity with no
+static AWS key in a Secret.
+
+**Pass:** every claim is backed by CLI output, the budget/cost allocation tag exists, the pod's
+ServiceAccount maps to the intended role, an out-of-scope S3 action is denied, and you state
+which Part A resources can be destroyed before the EKS-only Part B.
+
+### Lab 17 — idempotent configuration · target 12 min
+
+Write a minimal Ansible role that installs a package, renders a validated configuration,
+notifies a handler and starts/enables a service. Run it twice against a disposable Linux host.
+
+**Pass:** the first run changes the intended resources, the second reports `changed=0`, the
+service answers its health check, and deliberately invalid template data fails before restart.
+
+### Lab 18 — DNS-to-HTTPS deployment diagnosis · target 15 min
+
+Against the lab server, prove DNS, TCP/443, TLS/SNI and HTTP in order with `dig`, `nc`/`ss`,
+`openssl s_client` and `curl -v`. Temporarily stop the upstream app, distinguish the resulting
+proxy error from a certificate or security-group failure, then restore it.
+
+**Pass:** HTTPS returns successfully after recovery, ports 8080 and 5432 remain non-public,
+the certificate matches the hostname, and the failure is localized to the correct layer before
+you fix it.
+
 ### Lab 22 — Kubernetes, kubectl only · target 6 min
 
-**No editing YAML files.** Using `kubectl create ... --dry-run=client -o yaml`, generators, and
-at most `kubectl patch`/`edit`, produce: a Deployment with 2 replicas, a Service, an Ingress, and
-liveness + readiness probes.
+**No editing repository YAML files.** Using generators plus `kubectl apply -f -` and at most
+`kubectl patch`/`edit`, produce a two-replica Deployment, Service, Gateway, HTTPRoute, and
+liveness/readiness probes against a preinstalled GatewayClass.
 
-**Pass:** traffic works through the Ingress; `kubectl delete pod` self-heals; `kubectl rollout
+**Pass:** traffic works through the Gateway/HTTPRoute; `kubectl delete pod` self-heals; `kubectl rollout
 undo` reverts a bad image. Time starts when the cluster is up.
 
 **This is the CKA drill.** If it takes more than 6 minutes, your generator reflexes are the
@@ -160,7 +239,7 @@ bottleneck, not your Kubernetes knowledge — see [TOOLBOX.md](TOOLBOX.md).
 ### Lab 23 — a chart from `helm create` · target 12 min
 
 Scaffold a chart, strip it to what you actually need, and template: image repo/tag, replica
-count, an optional Ingress behind a boolean, and resources from values.
+count, an optional HTTPRoute behind a boolean, and resources from values.
 
 **Pass:** `helm template` renders clean YAML; `helm install` serves the app;
 `helm upgrade --set replicas=4` scales it; `helm rollback` reverts. Explain what `helm rollback`
@@ -199,46 +278,121 @@ watching your screen, and a three-line postmortem written afterwards
 This is the only drill that gets *harder* as you get better at it — once the eight scripted
 faults are familiar, combine two, or have the injector run while you're away from the keyboard.
 
-### Lab 48 — CKA mock · target 120 min
+### Lab 48 — CKA internal mock · target 45 min
 
-The lab's timed 10-task mock exam, on a cluster you created that morning. No repo access.
+The lab's timed 10-task internal mock, on a cluster you created that morning. No repo access.
 
-**Pass:** 8/10 inside the time limit, twice, on different weeks.
+**Pass:** 8/10 inside 45 minutes, twice, on different weeks. That is the **booking gate**:
+schedule the exam four to six weeks after the second pass.
+
+### Lab 48 — CKA full simulator · target 120 min
+
+Use the full simulator under its exam-like rules, including its allowed documentation and
+scoring system. Do not substitute the shorter internal task set for this endurance check.
+
+**Pass:** finish the 120-minute simulation and meet the simulator's published passing rule
+before sitting the real exam.
 
 ---
 
-## Beyond the fast track
+## Required specialization drills
 
-These have no time target yet — write one the first time you run each, based on how long it
-actually took, then hold yourself to it next time.
+### Lab 11 — central log diagnosis · target 10 min
 
-| Lab | The from-scratch task |
-|-----|----------------------|
-| 09 | A cache-aside read path and a queue producer/consumer, from an empty file. Prove the invalidation is correct on write. |
-| 11 | Ship container logs to an aggregator and write three queries: by service, by status class, by latency threshold. |
-| 12 | Instrument one handler with a nested span; explain what a trace shows that a log can't. |
-| 17 | A playbook that installs a package, renders a templated config, and restarts a unit — idempotently. Prove `changed=0` on re-run. |
-| 19 | Harden a container from memory: read-only rootfs, dropped capabilities, no-new-privileges, and the tmpfs mounts that keeps it working. |
-| 20 | A load script with pass/fail thresholds, then find the VU count where p95 breaches. |
-| 21 | Scale a stateless service behind a proxy; explain in one sentence why the database can't follow. |
-| 27 | A ServiceAccount + Role + RoleBinding scoped to exactly three verbs; prove it with `auth can-i`. |
-| 28 | Default-deny, then the minimum allows to make the app work again. |
-| 36 | Promote an image tag from staging to prod as a PR; show the deploy history as `git log`. |
-| 37 | A Bash script with strict mode, a trap, and argument validation; shellcheck-clean first try. |
-| 39 | Remote state with locking, from a blank backend block. Then a module with inputs and outputs. |
+With Alloy, Loki and the app running, generate one success, one 4xx and one 5xx. Without opening
+the supplied dashboard, write LogQL queries that isolate by service, status class and latency,
+then pivot from one request ID to all related lines.
+
+**Pass:** all three queries return only the intended records, the request-ID query reconstructs
+the event, and you explain why high-cardinality values belong in log fields rather than labels.
+
+### Lab 12 — trace an unknown slow handler · target 12 min
+
+Instrument a small HTTP handler with a server span and nested dependency span, export it through
+OTLP, then introduce a delay and locate it in Tempo without consulting the reference config.
+
+**Pass:** one trace shows the parent/child relationship and delay in the correct span, trace ID
+appears in the matching structured log, and you explain what the trace revealed that the log
+alone did not.
+
+### Lab 27 — least-privilege RBAC · target 8 min
+
+Create a ServiceAccount, Role and RoleBinding that allow exactly `get`, `list` and `watch` on
+pods in one namespace. Prove both allowed and denied operations with impersonation.
+
+**Pass:** the three intended verbs are yes; deleting pods, reading Secrets and the same read in
+another namespace are no; no ClusterRoleBinding was used.
+
+### Lab 28 — default-deny recovery · target 10 min
+
+Apply ingress+egress default-deny to the application namespace, observe the failure, then add
+only the DNS, Gateway-to-frontend/API, API-to-Postgres/Redis and required return paths.
+
+**Pass:** the app and readiness checks work, an unrelated test pod remains blocked, policy
+selectors contain no accidental empty match, and each allow rule is justified aloud.
+
+### Lab 52 — recover persistent data · target 12 min
+
+Create a dynamically provisioned PVC, write a sentinel through a pod, delete/recreate the pod,
+then demonstrate the effect of both `Delete` and `Retain` reclaim policies using disposable
+claims.
+
+**Pass:** the sentinel survives pod replacement, you recover the retained volume through a new
+claim, the delete-policy volume is removed, and access mode versus actual multi-node capability
+is explained correctly.
+
+### Lab 53 — scheduling from events · target 10 min
+
+Repair a pod with three independent scheduling faults: an impossible request, an unmatched
+taint and an unsatisfied affinity rule. Use scheduler events before editing each fault, then
+spread three replicas across available nodes.
+
+**Pass:** the pod schedules, replicas satisfy the requested spread, no control-plane taint was
+removed as a shortcut, and every change maps to the event that justified it.
+
+### Lab 55 — prove a database performance fix · target 15 min
+
+Given the seeded slow query, identify it through `pg_stat_statements`, explain its actual plan
+and buffers, add the next available reversible index migration, then repeat the same measurement.
+
+**Pass:** the migration is clean and reversible, the new plan uses the intended index, measured
+latency or buffer work improves, and you name the index's write/storage cost.
+
+### Lab 56 — SLO burn-rate rule · target 15 min
+
+From a blank Prometheus rules file, define availability SLI/error-ratio recording rules and one
+fast/slow multi-window burn-rate alert pair. Route the fast alert to paging and the slow alert
+to a ticket receiver.
+
+**Pass:** `promtool check rules` succeeds, a controlled failure fires the fast alert, recovery
+clears the short window, and your arithmetic connects the SLO, error budget and burn rate.
+
+## Optional reference tasks
+
+These are useful transfer exercises, but the corresponding elective cards do not require a
+timed drill unless you select them for a target role.
+
+| Lab | From-scratch task |
+|-----|-------------------|
+| 09 | Build a cache-aside read path and queue producer/consumer; prove write invalidation. |
+| 19 | Harden a container with read-only rootfs, dropped capabilities and no-new-privileges. |
+| 20 | Write a load test with thresholds and find the VU count where p95 breaches. |
+| 21 | Scale a stateless service behind a proxy and explain why the database cannot follow. |
+| 29–34 | Reproduce only the controller/policy relevant to a role you are targeting. |
+| 36 | Promote an image from staging to production as a PR and show history in Git. |
 | 41 | Sign an image and make admission reject the unsigned one. |
-| 54 | A systemd unit + timer from memory; `systemd-analyze verify` clean. |
-| 55 | Find the slow query, prove why with `EXPLAIN`, fix it, prove the fix. |
-| 56 | A burn-rate alert from a blank rules file: recording rule, fast window, slow window. |
+| 42–47 | Translate the core outcome into the selected enterprise/cloud tool. |
+| 49–51 | Trace or replace the data plane when a Platform role calls for that depth. |
 
 ---
 
 ## How to use this file
 
-1. The dashboard's **Drill next** panel tells you which lab is stalest.
+1. Filter the dashboard to your route; **Drill next** tells you which required lab is stalest.
 2. Set a timer. Actually set it — an untimed drill is just reading.
-3. Pass → tick **drilled closed-book** on the card. Fail → leave it, note *why* it failed in the
-   lab's notes on the card, and re-run it in the same week.
+3. Pass → tick **drilled closed-book** on the card. Fail → leave it, add
+   `date | mode | duration | pass/fail | assistance | specific gap` to the card notes, and
+   re-run the missed portion in the same week.
 4. Anything you had to look up twice belongs in your own notes, not in a re-read of the lab.
 
 The measure of progress here isn't the number of labs completed — it's how many are **drilled**

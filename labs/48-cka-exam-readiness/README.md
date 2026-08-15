@@ -5,13 +5,13 @@
 **Run from:** the **repo root** (`learnDevops/`) — every command and path in this lab is relative to it, *not* to this lab folder.
 
 > ℹ️ **Order note:** the folder number is out of sequence on purpose. This belongs to the
-> **Kubernetes deep-dive** and is best done right after [lab 34](../34-k8s-kube-prometheus-stack/)
-> — it was added later, so it sorts last. [CURRICULUM.md](../../docs/CURRICULUM.md) shows the
-> intended order.
+> **Platform/CKA branch**, after labs 27, 28, 52, and 53. Labs 29–34 remain
+> role-dependent depth rather than prerequisites. [CURRICULUM.md](../../docs/CURRICULUM.md)
+> shows the intended order.
 
 ## Concept
 
-Labs 22–34 cover the *workloads-and-policy* half of the CKA: Deployments, Services, Ingress,
+Labs 22–34 cover the *workloads-and-policy* half of the CKA: Deployments, Services, Gateway API,
 RBAC, NetworkPolicies, autoscaling, observability. The exam's other half is **cluster
 administration** — and it's the half people fail on, because you can't learn it by deploying
 apps: **etcd backup and restore**, **node operations** (cordon/drain against a
@@ -193,9 +193,10 @@ hosted terminal:
   #   apt-get install kubeadm=X.(Y+1).*  → kubeadm upgrade plan → kubeadm upgrade apply vX.(Y+1)
   #   kubectl drain <node> → upgrade kubelet+kubectl → systemctl restart kubelet → uncordon
   ```
-- **Booking the exam buys practice:** CKA registration currently includes **two killer.sh
-  exam simulator sessions** (36h each) — harder than the real thing, the best calibration
-  you can get. Book the exam *first*; a date beats an intention.
+- **Earn the booking date:** first pass the internal mock below twice on different weeks.
+  Then book the exam four to six weeks out and use the official full-length simulator included
+  with the current registration as the final calibration. Verify the current registration
+  benefits before purchase; they can change independently of this repository.
 
 ## Mock exam — 10 tasks, 45 minutes, timer on
 
@@ -213,8 +214,10 @@ skip and return like on the real thing. Answers at the bottom — no peeking mid
 9. ServiceAccount `deployer` in `drill` that can `create`/`get` deployments **only** in `drill`; prove both the allow and a deny with `kubectl auth can-i`. *(7 min)*
 10. Set deployment `api` to image `nginx:doesnotexist`, diagnose what you see, then roll back to the working revision. *(3 min)*
 
-**Scoring:** 8+/10 inside 45 minutes → book the exam this week. 6–7 → redo labs 27/28 + steps
-1–5 above and re-sit. ≤5 → work back through labs 22–34, this lab last.
+**Scoring:** 8+/10 inside 45 minutes, **twice on different weeks**, is the booking gate. After
+the second pass, book the exam four to six weeks out. A 6–7 means redo the missed domains and
+re-sit; ≤5 means work back through the required Platform/CKA route (22, 27, 28, 52, 53), then
+return here. Vendor add-on labs are useful depth, not prerequisites for booking.
 
 <details>
 <summary>Answers (open after the timer stops)</summary>
@@ -266,8 +269,10 @@ k rollout undo deploy/api && k rollout status deploy/api
 ## Exercise
 
 Delete the cluster, recreate it, and re-run steps 1–5 **against the clock** — under 20
-minutes total is exam-ready. Then do one full killercoda upgrade scenario so `kubeadm upgrade
-plan/apply` isn't a first-time experience on exam day.
+minutes total is exam-ready. Then do one full cluster-upgrade scenario so `kubeadm upgrade
+plan/apply` isn't a first-time experience on exam day. After booking, complete one
+**120-minute full simulator** and meet that simulator's published pass rule before sitting the
+real exam; the 45-minute Dojo mock and the full simulation are separate assessments.
 
 ## Checkpoint
 
@@ -275,7 +280,9 @@ plan/apply` isn't a first-time experience on exam day.
   `after-snapshot` ConfigMap is **gone**.
 - ✅ You saw `Cannot evict pod ... disruption budget`, fixed the PDB, and the drain completed.
 - ✅ You diagnosed NotReady via `systemctl`/`journalctl` (not by guessing) and fixed it.
-- ✅ Mock exam: 8+/10 in 45 minutes — and the exam is **booked**.
+- ✅ Internal mock: 8+/10 in 45 minutes on two different weeks, then the exam is booked four
+  to six weeks out.
+- ✅ Before the exam: one 120-minute full simulation passes by the simulator's own scoring rule.
 
 ## Common failures
 

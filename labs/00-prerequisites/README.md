@@ -72,4 +72,4 @@ it won't be committed.)
 - "Cannot connect to the Docker daemon" → Docker Desktop isn't running.
 - You're on Windows containers → switch to Linux containers in the Docker Desktop tray menu.
 
-➡️ Next: [Lab 01 — Docker basics](../01-docker-basics/)
+➡️ Next: [Git basics from Lab 38](../38-git-workflows/)

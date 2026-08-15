@@ -49,7 +49,8 @@ kubectl -n devops-dojo port-forward deploy/api 8080:8080  # can the pod serve di
 ```
 
 Empty endpoints → fix the Service selector to match pod labels (`app: api`). Pod serves on
-port-forward but not via Ingress → work outward: Service → Ingress → ingress-nginx controller.
+port-forward but not via the public endpoint → work outward: Service → HTTPRoute conditions →
+Gateway conditions → Gateway controller and its data-plane Service/load balancer.
 
 ## Known causes seen before
 

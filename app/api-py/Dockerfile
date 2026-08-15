@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
-# Non-root (matches the Go image's USER nonroot).
+# Non-root; the Python image uses its own numeric application identity.
 RUN useradd -u 10001 -m appuser
 USER appuser
 

@@ -4,7 +4,7 @@ output "rds_endpoint" {
 }
 
 output "database_url" {
-  description = "Drop-in DATABASE_URL for the dojo-secrets Secret."
+  description = "Drop-in DATABASE_URL. db_password validation limits credentials to URI-safe characters."
   value       = "postgres://dojo:${var.db_password}@${aws_db_instance.dojo.endpoint}/dojo?sslmode=require"
   sensitive   = true
 }

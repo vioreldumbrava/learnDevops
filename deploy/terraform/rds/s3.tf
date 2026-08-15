@@ -3,8 +3,9 @@
 # retention as code instead of a cron job someone forgets.
 
 resource "aws_s3_bucket" "backups" {
-  bucket = var.backup_bucket_name
-  tags   = local.tags
+  bucket        = var.backup_bucket_name
+  force_destroy = var.force_destroy_backup_bucket
+  tags          = local.tags
 }
 
 resource "aws_s3_bucket_versioning" "backups" {

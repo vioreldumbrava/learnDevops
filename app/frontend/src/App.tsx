@@ -2,22 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Step } from './types'
 import { fetchSteps, setProgress } from './api'
 import { StepCard, daysSince, staleness } from './StepCard'
+import { belongsToView, curriculumViews, type CurriculumView } from './curriculum'
 
-const milestoneNames: Record<number, string> = {
-  1: 'Milestone 1 · Runnable foundation',
-  2: 'Milestone 2 · Delivery & infrastructure',
-  3: 'Milestone 3 · Cloud, scale & Kubernetes',
-  4: 'Milestone 4 · Operate, automate & prove it',
-  5: 'Milestone 5 · Ecosystem breadth & portability',
-  6: 'Kubernetes deep-dive · Platform/SRE · CKA/CKS',
-  7: 'Polyglot extra',
-}
-
-/** How many labs the weekly cadence asks you to re-drill (docs/WEEKLY.md). */
+/** How many required labs the weekly cadence asks you to re-drill. */
 const STALEST_COUNT = 5
 
 export default function App() {
   const [steps, setSteps] = useState<Step[]>([])
+  const [view, setView] = useState<CurriculumView>('common-core')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -36,35 +28,44 @@ export default function App() {
     load()
   }, [])
 
-  // One writer for both flags: send only the one that changed, then trust the API's
-  // response (it also stamps last_practiced_at, which we can't compute client-side).
+  // Send only the flag that changed. The response supplies both flags and the
+  // server timestamp, so progress writes remain backward compatible.
   async function toggle(step: Step, field: 'completed' | 'drilled') {
     const patch = { [field]: !step[field] } as { completed: boolean } | { drilled: boolean }
     setSteps((prev) => prev.map((s) => (s.id === step.id ? { ...s, [field]: !s[field] } : s)))
     try {
-      const p = await setProgress(step.id, patch)
+      const progress = await setProgress(step.id, patch)
       setSteps((prev) =>
         prev.map((s) =>
           s.id === step.id
-            ? { ...s, completed: p.completed, drilled: p.drilled, last_practiced_at: p.last_practiced_at }
+            ? {
+                ...s,
+                completed: progress.completed,
+                drilled: progress.drilled,
+                last_practiced_at: progress.last_practiced_at,
+              }
             : s,
         ),
       )
     } catch (e) {
       setError(String(e))
-      load() // revert the optimistic update
+      load()
     }
   }
 
-  const done = steps.filter((s) => s.completed).length
-  const drilled = steps.filter((s) => s.drilled).length
-  const pct = steps.length ? Math.round((done / steps.length) * 100) : 0
-  const drilledPct = steps.length ? Math.round((drilled / steps.length) * 100) : 0
+  // Array.filter is stable, so this preserves the manifest's job-first sort order.
+  const visibleSteps = useMemo(() => steps.filter((step) => belongsToView(step, view)), [steps, view])
+  const activeView = curriculumViews.find((item) => item.id === view) ?? curriculumViews[0]
 
-  // What to practise next: labs you've completed but never drilled come first (the gap
-  // between "I read it" and "I can do it"), then the ones you drilled longest ago.
+  const done = steps.filter((step) => step.completed).length
+  const requiredDrills = steps.filter((step) => step.drill_required)
+  const drilled = requiredDrills.filter((step) => step.drilled).length
+  const pct = steps.length ? Math.round((done / steps.length) * 100) : 0
+  const drilledPct = requiredDrills.length ? Math.round((drilled / requiredDrills.length) * 100) : 0
+
+  // Only labs with a documented timed drill and pass rule enter spaced repetition.
   const stalest = useMemo(() => {
-    const candidates = steps.filter((s) => s.completed || s.drilled)
+    const candidates = steps.filter((step) => step.drill_required && (step.completed || step.drilled))
     return [...candidates]
       .sort((a, b) => {
         if (a.drilled !== b.drilled) return a.drilled ? 1 : -1
@@ -73,30 +74,18 @@ export default function App() {
       .slice(0, STALEST_COUNT)
   }, [steps])
 
-  // Group in the order the API returns (ORDER BY sort_order = the curriculum's own
-  // sequence), NOT by milestone number — the K8s deep-dive sits between 3 and 4.
-  const byMilestone = useMemo(() => {
-    const m = new Map<number, Step[]>()
-    for (const s of steps) {
-      const list = m.get(s.milestone) ?? []
-      list.push(s)
-      m.set(s.milestone, list)
-    }
-    return [...m.entries()]
-  }, [steps])
-
   return (
     <div className="app">
       <header>
         <h1>🥋 DevOps Dojo</h1>
-        <p className="tagline">Learn DevOps by deploying the very app that tracks your progress.</p>
+        <p className="tagline">Learn DevOps by deploying the application that tracks your progress.</p>
         <div className="progress">
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${pct}%` }} />
             <div className="progress-fill drilled" style={{ width: `${drilledPct}%` }} />
           </div>
           <span className="progress-label">
-            {done} / {steps.length} completed · <strong>{drilled} drilled closed-book</strong>
+            {done} / {steps.length} completed · <strong>{drilled} / {requiredDrills.length} required drills</strong>
           </span>
         </div>
       </header>
@@ -104,43 +93,61 @@ export default function App() {
       {loading && <p className="muted">Loading curriculum…</p>}
       {error && <p className="error">Couldn’t reach the API: {error}</p>}
 
+      {!loading && (
+        <nav className="curriculum-filters" aria-label="Curriculum track">
+          {curriculumViews.map((item) => {
+            const count = steps.filter((step) => belongsToView(step, item.id)).length
+            return (
+              <button
+                className={view === item.id ? 'active' : ''}
+                key={item.id}
+                onClick={() => setView(item.id)}
+                type="button"
+              >
+                {item.label} <span>{count}</span>
+              </button>
+            )
+          })}
+        </nav>
+      )}
+
       {stalest.length > 0 && (
         <section className="stalest">
           <h2>🔁 Drill next</h2>
           <p className="muted">
-            Completed but not yet drilled first, then longest since practised — this is the
-            Mon/Wed/Thu slot in <code>docs/WEEKLY.md</code>.
+            Required drills only: completed but not yet drilled first, then longest since practiced.
           </p>
           <ol>
-            {stalest.map((s) => (
-              <li key={s.id}>
-                <span className="lab-no">{String(s.lab_no).padStart(2, '0')}</span> {s.title}
-                <span className="muted"> — {s.drilled ? staleness(s.last_practiced_at) : 'never drilled'}</span>
+            {stalest.map((step) => (
+              <li key={step.id}>
+                <span className="lab-no">{String(step.lab_no).padStart(2, '0')}</span> {step.title}
+                <span className="muted"> — {step.drilled ? staleness(step.last_practiced_at) : 'never drilled'}</span>
               </li>
             ))}
           </ol>
         </section>
       )}
 
-      {byMilestone.map(([m, items]) => (
-        <section key={m}>
-          <h2>{milestoneNames[m] ?? `Milestone ${m}`}</h2>
+      {!loading && (
+        <section className="curriculum-view">
+          <h2>{activeView.label}</h2>
+          <p className="view-description">{activeView.description}</p>
           <div className="grid">
-            {items.map((s) => (
+            {visibleSteps.map((step) => (
               <StepCard
-                key={s.id}
-                step={s}
-                onToggleCompleted={() => toggle(s, 'completed')}
-                onToggleDrilled={() => toggle(s, 'drilled')}
+                key={step.id}
+                step={step}
+                onToggleCompleted={() => toggle(step, 'completed')}
+                onToggleDrilled={() => toggle(step, 'drilled')}
               />
             ))}
           </div>
         </section>
-      ))}
+      )}
 
       <footer className="muted">
         API health: <code>/healthz</code> · metrics: <code>/metrics</code> · curriculum:{' '}
-        <code>docs/CURRICULUM.md</code> · drills: <code>docs/DRILLS.md</code>
+        <code>curriculum/manifest.json</code> · drills: <code>docs/DRILLS.md</code>
       </footer>
     </div>
   )

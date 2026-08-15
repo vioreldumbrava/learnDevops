@@ -5,6 +5,11 @@
       "image"            (printf "%s:%s" .Values.image.api.repository .Values.image.api.tag)
       "pullPolicy"       .Values.image.api.pullPolicy
       "command"          (list "/worker")
+      "podSecurityContext" (dict
+        "runAsNonRoot" true
+        "runAsUser" 65532
+        "runAsGroup" 65532
+        "seccompProfile" (dict "type" "RuntimeDefault"))
       "envFromConfigMap" "dojo-config"
-      "env" (list (dict "name" "DATABASE_URL" "valueFrom" (dict "secretKeyRef" (dict "name" "dojo-secrets" "key" "DATABASE_URL"))))
+      "env" (list (dict "name" "DATABASE_URL" "valueFrom" (dict "secretKeyRef" (dict "name" .Values.secrets.name "key" "DATABASE_URL"))))
       "resources"        .Values.worker.resources) }}

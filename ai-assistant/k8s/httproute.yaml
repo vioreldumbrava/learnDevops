@@ -1,0 +1,22 @@
+# Attach the AI API to the shared local Envoy Gateway. The dojo-ai namespace is
+# explicitly labelled so the Gateway's allowedRoutes selector accepts this route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dojo-ai
+  namespace: dojo-ai
+spec:
+  parentRefs:
+    - name: dojo
+      namespace: devops-dojo
+      sectionName: http
+  hostnames:
+    - ai.dojo.localhost
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rag-api
+          port: 8000

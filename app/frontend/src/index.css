@@ -75,6 +75,48 @@ header h1 {
   white-space: nowrap;
 }
 
+.curriculum-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1.5rem 0 0;
+}
+
+.curriculum-filters button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.8rem;
+}
+
+.curriculum-filters button:hover,
+.curriculum-filters button.active {
+  border-color: var(--accent);
+}
+
+.curriculum-filters button.active {
+  background: var(--surface-2);
+  color: var(--accent);
+}
+
+.curriculum-filters button span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.25rem;
+}
+
+.curriculum-view h2 {
+  margin-bottom: 0.25rem;
+}
+
+.view-description {
+  color: var(--muted);
+  margin: 0 0 0.9rem;
+}
+
 h2 {
   margin: 2rem 0 0.75rem;
   font-size: 1.1rem;
@@ -198,6 +240,24 @@ h2 {
   color: var(--text);
 }
 
+.curriculum-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+}
+
+.requirements,
+.drill-optional {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 0.45rem 0 0;
+}
+
+.drill-optional {
+  font-style: italic;
+}
+
 .meta {
   display: flex;
   align-items: center;
@@ -288,4 +348,15 @@ footer {
   border-top: 1px solid var(--border);
   padding-top: 1rem;
   font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .progress {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .progress-label {
+    white-space: normal;
+  }
 }

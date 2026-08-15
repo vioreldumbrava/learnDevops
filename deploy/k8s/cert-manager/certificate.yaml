@@ -1,5 +1,5 @@
 # cert-manager watches this Certificate and creates/renews the `dojo-tls` Secret.
-# Reference that Secret from the Ingress (tls.secretName: dojo-tls) to serve HTTPS.
+# Reference that Secret from a Gateway HTTPS listener's certificateRefs field.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

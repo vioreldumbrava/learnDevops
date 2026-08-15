@@ -35,8 +35,8 @@ timer, harden SSH, then break the disk in the nastiest way and find it.
 
 | Option | Cost | Get it |
 |--------|------|--------|
-| **EC2** (recommended — it's a real machine) | 💸 a few cents/hour | Labs [16](../16-terraform/) + [17](../17-ansible/), then `ssh ubuntu@<ip>` |
-| **Local systemd container** | free | Step 0 below |
+| **Local systemd container** (common-core default) | free | Step 0 below |
+| **EC2** (optional transfer check) | 💸 a few cents/hour | Labs [16](../16-terraform/) + [17](../17-ansible/), then `ssh ubuntu@<ip>` |
 
 ```powershell
 # Option B — a throwaway box with real systemd, no cloud bill.
@@ -45,6 +45,10 @@ docker run -d --name dojo-box --privileged --cgroupns=host `
 docker exec -it dojo-box bash
 # inside: apt update && apt install -y systemd-cron logrotate lsof curl util-linux
 ```
+
+> ⚠️ `--privileged` plus a read-write host cgroup mount is intentionally powerful. Use only
+> the named throwaway `dojo-box`, never add host filesystem mounts, and remove it with
+> `docker rm -f dojo-box` after the lab. Do not reuse this pattern for an application container.
 
 > The container gets you `systemctl`, `journalctl`, timers and logrotate — everything except
 > a genuine `reboot`. For the reboot checkpoint use `docker restart dojo-box`, or do this lab
@@ -149,6 +153,11 @@ sudo ufw --force enable && sudo ufw status verbose
 ### 5. The disk-full drill (Run from: the server)
 
 This is the part to time yourself on.
+
+> ⚠️ Run the 2 GiB injection only inside `dojo-box` or on an explicitly disposable lab
+> server after checking `df -h`. Never point `TARGET_DIR` at a host/workspace mount. If less
+> than 3 GiB is free, lower `SIZE_MB`; the learning outcome is `df` versus `du`, not an outage
+> on your workstation.
 
 ```bash
 sudo TARGET_DIR=/var/tmp SIZE_MB=2048 ./scripts/chaos/fill-disk.sh
@@ -259,4 +268,4 @@ Interview §8's Linux triage table (turns those one-liners into reflexes), lab
 container-level versions of the same drills), and lab [37](../37-scripting-automation/) (whose
 `backup_rotate.sh` the timer runs).
 
-➡️ Next: [Lab 55 — Postgres under load](../55-postgres-operations/)
+➡️ Next: [Lab 10 — Metrics monitoring](../10-monitoring/)

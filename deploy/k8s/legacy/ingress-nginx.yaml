@@ -1,0 +1,35 @@
+# Historical migration exercise only. ingress-nginx is retired and is not part
+# of the supported local path. Apply this only when comparing Ingress with the
+# Gateway/HTTPRoute resources in deploy/k8s/base/. Apply this directory so the
+# companion NetworkPolicies also admit the legacy controller data plane.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dojo-legacy
+  namespace: devops-dojo
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+          - path: /healthz
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

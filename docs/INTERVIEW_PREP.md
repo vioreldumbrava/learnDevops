@@ -56,7 +56,7 @@ attacker to use, and no libc surprises since the binary is static. Downside: har
 > multiple hosts, self-healing, rolling updates, and autoscaling. In my project the mapping is
 > explicit: a Compose service becomes a Deployment+Service, a named volume becomes a PVC (a
 > StatefulSet for Postgres), env becomes ConfigMap+Secret, the one-shot migrate becomes a Job,
-> and Caddy becomes an Ingress.
+> and Caddy becomes a Gateway plus HTTPRoute.
 
 ### Liveness vs readiness (a favorite)
 
@@ -315,8 +315,8 @@ lab 28 closed it with default-deny + explicit allows on Calico — say so, it sh
 4. Reproduce locally with the same image if needed.
 State the *method*, not a guess — that's what they're testing.
 
-**"The site is up but returns 502."** Work the path: client → LB/Ingress → Service →
-Pod/readiness. Is the ingress controller healthy? Do Service endpoints exist (readiness
+**"The site is up but returns 502."** Work the path: client → LB/Gateway/HTTPRoute → Service →
+Pod/readiness. Is the Gateway controller/data plane healthy? Do Service endpoints exist (readiness
 passing)? Can the pod serve directly (`kubectl port-forward`)?
 
 **"Deploys are slow / images huge."** Multi-stage builds, smaller base (distroless/alpine),
@@ -374,33 +374,27 @@ Then pivot to how you're closing the gap (below).
 
 ## 6. Close the gaps (study plan)
 
-> 📅 **This section says *what*. [WEEKLY.md](WEEKLY.md) says *when*** — the CKA booking date,
-> the lab-authoring freeze, and the fixed day applications start regardless of how ready it
-> feels. Preparation expands to fill the time you give it; the dates are the constraint.
+> 📅 **This section says *what*. [WEEKLY.md](WEEKLY.md) says *when*** — an exact five-hour
+> cadence, applications from week 3, and an evidence-based CKA booking gate.
 
 Highest leverage next steps to become clearly hireable, in order:
-0. **Drill what you've already built.** Fifty-seven authored labs and a handful you could
-   reproduce from a blank terminal is a worse position than fifteen of each. [DRILLS.md](DRILLS.md)
-   is the from-scratch, timed version of each lab; the dashboard tracks *drilled* separately
-   from *completed* and shows you the stalest. This outranks every item below — it's the one
-   that changes interview outcomes, and it's the one that feels least like progress.
-1. **CKA first.** Labs 22–34 cover the workloads-and-policy half of the exam;
-   [lab 48](../labs/48-cka-exam-readiness/) drills the cluster-operations half — etcd
-   backup/restore, drains vs PDBs, kubelet break-fix, static pods, kubeadm — and ends in a
-   timed 10-task mock exam. It's the cheapest high-recognition credential from where you
-   stand and the strongest CV filter-pass for Platform/DevOps roles in Europe. Book the exam
-   date now; a deadline beats an intention. Add **CKS** later if you're targeting
-   security-leaning roles.
-2. **One cloud, deep:** AWS — VPC/subnets/IAM, RDS, S3, ELB, autoscaling. Labs 16/25/**40**
-   are the hands-on base; target the **AWS Solutions Architect Associate** cert after CKA.
-3. **Scripting:** covered in lab **37** (Bash strict mode, Python, boto3, jq/awk) — keep
-   every new piece of glue in `scripts/`, shellcheck-clean, so the habit shows.
-4. **Secrets management:** done in lab 26 (Sealed Secrets / External Secrets Operator) — go
-   further with Vault dynamic secrets and automatic rotation.
-5. **Stop extending this repo.** The breadth is done; from 2026-08-14 the labs are frozen
-   until the CKA is passed and applications are out ([WEEKLY.md](WEEKLY.md)). Adding a lab
-   always feels productive and never ends — that's exactly why it's the comfortable work.
-   Resume only when a specific interview exposes a specific gap.
+0. **Start the job loop immediately.** Week 1 produces a CV outline, week 2 an honest GitHub
+   project page and learner-owned changelog, and week 3 starts two targeted applications per
+   week. The capstone improves later applications; it does not grant permission to begin.
+1. **Finish the common operating core.** Git, Bash, Linux and DNS/TCP/TLS/HTTP diagnosis come
+   before specialist controllers. Follow the Common core dashboard filter and pass each
+   milestone gate in [CURRICULUM.md](CURRICULUM.md).
+2. **One cloud, deep: AWS.** Labs 16/39/40 Part A establish Terraform state, IAM, VPC, S3,
+   audit and cost controls; labs 25/40 Part B add EKS, workload identity, RDS and GitOps.
+   Use GitHub OIDC rather than stored access keys.
+3. **Drill required outcomes.** A library of authored labs with little recall is weaker than
+   a smaller core you can reproduce. [DRILLS.md](DRILLS.md) covers required core and selected
+   specialization labs; electives can remain reference-only.
+4. **Choose, then certify.** Select Platform/CKA only when target roles support it. Pass
+   [lab 48](../labs/48-cka-exam-readiness/) at 8/10 inside 45 minutes twice on different weeks,
+   then book four to six weeks out and pass a full 120-minute simulator before the exam.
+5. **Stop extending this repo.** The subject-area breadth is done. Resume authoring only when
+   repeated job-description or interview evidence exposes a specific gap.
 
 ---
 
@@ -482,7 +476,7 @@ can always continue with "…and in my project that's exactly the X hop."
 >    container serving the React build and `/api` to the **Go API**, which queries
 >    **Postgres** (through a Redis cache) and returns JSON.
 > Naming each hop matters because that's the 502-debugging path in reverse (§3). *(The
-> in-cluster continuation of this story — ClusterIP, kube-proxy, CoreDNS, the Ingress path —
+> in-cluster continuation of this story — ClusterIP, kube-proxy, CoreDNS, the Gateway path —
 > is drilled hands-on in [lab 49](../labs/49-k8s-networking-deep-dive/).)*
 
 **Q: TCP vs UDP?**
@@ -579,7 +573,7 @@ you've built the small version of each.
 > **The boring version (mine, scaled):** the three pillars, one UI. **Metrics**: every service
 > exposes Prometheus histograms; RED (rate/errors/duration) per service — that's my
 > `dojo_http_*` metrics generalized; collected by the Prometheus Operator via ServiceMonitors
-> (lab 34). **Logs**: structured JSON to stdout, shipped by an agent (Promtail) to Loki —
+> (lab 34). **Logs**: structured JSON to stdout, shipped by Grafana Alloy to Loki —
 > never `exec` into pods to read files. **Traces**: OpenTelemetry SDK, context propagated on
 > every hop, sent to Tempo — trace-ID in the logs links all three. **Alerting**: SLO
 > burn-rate alerts (§2) to Alertmanager, which groups, dedupes, and routes — page only on
@@ -610,12 +604,10 @@ Record yourself once; it's uncomfortable and worth it.
 3. **Design — 10 min.** One question from §9, sketched on paper while talking. Pass: you named
    at least two trade-offs *without being prompted*.
 
-This is the Saturday slot in [WEEKLY.md](WEEKLY.md). The Mon/Wed/Thu slots are the closed-book
-drills in [DRILLS.md](DRILLS.md) — the mock loop tests whether you can *talk*; the drills test
-whether you can *produce*. Interviews ask for both.
+This consumes the weekly recall block in [WEEKLY.md](WEEKLY.md). The mock loop tests whether
+you can *talk*; the drills test whether you can *produce*. Interviews ask for both.
 
-**Exit criterion:** two consecutive clean loops → you're not "still preparing", you're ready —
-start applying and keep the weekly loop running *during* the search (fresh drills feed fresh
-interview stories). Pair this with the [fast track](DOCKER_LEARNING_PATH.md#the-fast-track-interview-ready-as-soon-as-possible)
-ordering and the CKA booking (§6): interviews, applications, and the remaining depth labs run
-in parallel, not in sequence.
+**Interview-loop criterion:** two consecutive clean loops mean the rehearsal is working; keep
+applying and keep the loop running during the search. Pair this with the
+[common core](DOCKER_LEARNING_PATH.md#the-job-first-common-core): interviews, applications and
+remaining depth run in parallel, not in sequence.

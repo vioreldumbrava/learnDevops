@@ -10,6 +10,7 @@ concurrent access, the concurrency *model* differs (that's lab 50's comparison).
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 import asyncpg
 from opentelemetry import trace
@@ -34,6 +35,12 @@ class Step(BaseModel):
     milestone: int
     doc_path: str
     summary: str
+    tier: Literal["core", "specialization", "elective"]
+    tracks: list[Literal["common-core", "platform-cka", "sre", "elective"]]
+    requires: list[str]
+    effort_minutes: int
+    cost_class: Literal["free", "local", "cloud-low", "cloud-high"]
+    drill_required: bool
     completed: bool
     drilled: bool
     last_practiced_at: datetime | None
@@ -79,7 +86,9 @@ class Store:
             rows = await self._pool.fetch(
                 """
                 SELECT s.id, s.lab_no, s.title, s.topic, s.maps_to, s.milestone,
-                       s.doc_path, s.summary, COALESCE(p.completed, false) AS completed,
+                       s.doc_path, s.summary, s.tier, s.tracks, s."requires",
+                       s.effort_minutes, s.cost_class, s.drill_required,
+                       COALESCE(p.completed, false) AS completed,
                        COALESCE(p.drilled, false) AS drilled, p.last_practiced_at
                 FROM steps s
                 LEFT JOIN progress p ON p.step_id = s.id

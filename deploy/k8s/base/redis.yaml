@@ -25,9 +25,21 @@ spec:
       labels:
         app: redis
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: redis
           image: redis:7-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
           args: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
           ports:
             - containerPort: 6379
@@ -36,6 +48,12 @@ spec:
               command: ["redis-cli", "ping"]
             initialDelaySeconds: 3
             periodSeconds: 5
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { cpu: 300m, memory: 256Mi }
+      volumes:
+        - name: redis-data
+          emptyDir: {}

@@ -1,0 +1,113 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /app/api
+    schedule: &weekly
+      interval: weekly
+    groups: &all_dependencies
+      dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /dojo-operator
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: npm
+    directory: /app/frontend
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: pip
+    directory: /app/api-py
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: pip
+    directory: /ai-assistant/api
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: pip
+    directory: /scripts/ci
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: terraform
+    directory: /deploy/terraform
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: terraform
+    directory: /deploy/terraform/aws-baseline
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: terraform
+    directory: /deploy/terraform/state-backend
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: terraform
+    directory: /deploy/terraform/rds
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: terraform
+    directory: /deploy/terraform/envs/dev
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: terraform
+    directory: /deploy/terraform/envs/prod
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: terraform
+    directory: /deploy/terraform/modules/ec2-app
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: terraform
+    directory: /deploy/eks
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: docker
+    directory: /app/api
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: docker
+    directory: /app/api-py
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: docker
+    directory: /app/frontend
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: docker
+    directory: /ai-assistant/api
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: docker
+    directory: /dojo-operator
+    schedule: *weekly
+    groups: *all_dependencies
+
+  - package-ecosystem: docker
+    directory: /deploy/jenkins
+    schedule: *weekly
+    groups: *all_dependencies

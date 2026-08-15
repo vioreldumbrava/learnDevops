@@ -1,178 +1,270 @@
-# Lab 40 — AWS core services: RDS, S3, IAM/IRSA, VPC
+# Lab 40 — AWS core services and day-two operations
 
-**Maps to:** deepens labs 16/25 · **Milestone:** 4 — Operate & Automate · **Cloud**
+**Tier:** core · **Track:** AWS · **Milestone:** cloud
 
-**Run from:** the **repo root** — the RDS Terraform steps `cd deploy/terraform/rds` first; everything else (aws/kubectl) runs from the repo root.
+This lab has two independently scheduled parts. Complete **Part A immediately after lab 39**;
+it uses the inexpensive EC2 host from lab 16 and does not require Kubernetes. Return for
+**Part B after the EKS capstone (lab 25)**.
 
-> 💸 **Cost:** this lab assumes the lab 25 EKS cluster is up (~$5–10/day) and adds RDS
-> `db.t4g.micro` (~$0.40/day) + pennies of S3. Do it in one or two sittings and
-> **`terraform destroy` everything after** — the checkpoint includes proving you did.
+**Authentication:** use AWS IAM Identity Center/SSO locally and GitHub OIDC in CI. Do not
+create IAM-user access keys for either part.
 
-## Concept
+## Part A — IAM, VPC, S3, RDS concepts, operations, and cost
 
-Every JD lists the same four AWS services, and this lab touches each with a real job to do:
+**Cost class:** low, but not zero. Keep the existing lab 16 EC2 instance only if you continue
+directly into labs 17/18; otherwise destroy it. Confirm any budget-notification email.
 
-- **RDS** — the database leaves the cluster. A managed Postgres brings automated backups,
-  point-in-time recovery, patching, and optional multi-AZ failover — the trade-off
-  conversation ("what do you gain/lose vs self-hosted in K8s?") is a guaranteed question.
-- **S3 + lifecycle** — backups go off-site, and retention becomes *policy on the bucket*
-  instead of a cron job someone forgets.
-- **IAM + IRSA** — the backup job gets AWS permissions **without any stored keys**: a
-  ServiceAccount token exchanged for a role via the cluster's OIDC provider, scoped to one
-  bucket. IAM's model (principal → policy → resource + trust policies) is the deepest of the
-  four; IRSA is the flavor K8s people are asked about.
-- **VPC** — you already *built* one in lab 25 (the EKS module); now you'll *read* it —
-  subnets, route tables, the NAT gateway — until the "private subnet" answer is yours.
-
-## What you'll do
-
-Provision RDS/S3/IAM with the [deploy/terraform/rds/](../../deploy/terraform/rds/) root
-(which reads the EKS root's outputs via **remote state** — lab 39 pays off immediately),
-point the app at RDS, run a nightly S3 backup through IRSA, and tour the VPC.
-
-Prereqs: lab 25 cluster running, lab 39 done **including migrating the EKS root's state to
-S3** (this lab reads it from there; also `cd deploy/eks && terraform apply` once to publish
-its new outputs).
-
-## Steps
-
-### 1. Provision
+### 1. Establish identity and region
 
 ```powershell
-cd deploy/terraform/rds
-terraform init
-$env:TF_VAR_db_password = "pick-a-strong-one"
-terraform apply -var state_bucket=<your-tfstate-bucket> -var backup_bucket_name=devops-dojo-backups-<yourname>
+aws sso login --profile devops-dojo
+$env:AWS_PROFILE = "devops-dojo"
+$env:AWS_REGION = "eu-north-1"
+aws sts get-caller-identity
+aws configure list
 ```
 
-While it builds (~10 min for RDS), read the four files — each is an interview topic:
-[main.tf](../../deploy/terraform/rds/main.tf) (remote state consumption),
-[rds.tf](../../deploy/terraform/rds/rds.tf) (subnet group, SG-to-SG rule, the
-learning-vs-prod flags), [s3.tf](../../deploy/terraform/rds/s3.tf) (lifecycle policy),
-[iam.tf](../../deploy/terraform/rds/iam.tf) (permission policy vs **trust** policy).
+Identify the principal, its permission boundary, and how it obtained a short-lived session.
+IAM has two separate questions: a trust policy controls **who can assume** a role; permission
+policies control **what that assumed role can do** to which resources.
 
-### 2. Point the app at RDS
+### 2. Read the VPC path used by your EC2 host
 
-The app doesn't know or care where Postgres lives — that's what 12-factor config buys you.
-Swap the secret, re-run migrations, restart:
+```powershell
+$instanceId = aws ec2 describe-instances `
+  --filters "Name=tag:Project,Values=devops-dojo" `
+            "Name=instance-state-name,Values=pending,running,stopping,stopped" `
+  --query "Reservations[0].Instances[0].InstanceId" --output text
+
+aws ec2 describe-instances --instance-ids $instanceId `
+  --query "Reservations[0].Instances[0].{Vpc:VpcId,Subnet:SubnetId,Private:PrivateIpAddress,Public:PublicIpAddress,SGs:SecurityGroups[*].GroupId}" `
+  --output json
+aws ec2 describe-route-tables --filters "Name=association.subnet-id,Values=<subnet-id>" `
+  --query "RouteTables[].Routes" --output table
+```
+
+Trace the request path: route table → internet/NAT gateway → security group → instance. Say
+which controls routing and which controls stateful filtering. In a production design, public
+load balancers belong in public subnets; application nodes and databases belong in private
+subnets. The lab 16 default-VPC host is intentionally simpler and its production delta must
+be explicit.
+
+### 3. Apply the operational baseline
+
+The small Terraform root discovers exactly one live lab 16 instance by its `Project` tag and
+adds an encrypted/versioned private S3 bucket, lifecycle policy, EC2 status-check alarm, and
+project-tagged monthly budget:
+
+```powershell
+Set-Location deploy/terraform/aws-baseline
+Copy-Item terraform.tfvars.example terraform.tfvars
+# Set budget_email in terraform.tfvars if you want forecast and actual alerts.
+terraform init
+terraform plan -out tfplan
+terraform apply tfplan
+
+$bucket = terraform output -raw operations_bucket
+"curriculum integrity $(Get-Date -Format o)" | Set-Content "$env:TEMP\dojo-audit.txt"
+aws s3 cp "$env:TEMP\dojo-audit.txt" "s3://$bucket/audit/dojo-audit.txt"
+aws s3api get-object-attributes --bucket $bucket --key audit/dojo-audit.txt `
+  --object-attributes StorageClass,Checksum,ObjectSize
+```
+
+Inspect the S3 public-access block, encryption, versioning, lifecycle, and tags. A bucket
+being private today is not a retention strategy; versioning and lifecycle make recovery and
+expiry explicit.
+
+### 4. Observe and audit
+
+```powershell
+$alarm = terraform output -raw status_alarm_name
+aws cloudwatch describe-alarms --alarm-names $alarm `
+  --query "MetricAlarms[0].{State:StateValue,Metric:MetricName,Period:Period,Threshold:Threshold}"
+
+aws cloudtrail lookup-events --max-results 20 `
+  --query "Events[].{When:EventTime,Who:Username,Action:EventName}" --output table
+
+aws budgets describe-budget --account-id (aws sts get-caller-identity --query Account --output text) `
+  --budget-name (terraform output -raw budget_name)
+```
+
+CloudWatch answers “what is the system doing?”; CloudTrail management-event history answers
+“who changed what?”; the budget answers “what cost boundary did we set?” Cost allocation tags
+must be activated in Billing before they appear in cost reports, so verify that separately.
+
+### 5. RDS decision before provisioning it
+
+Draw the production delta for this application: Postgres in private subnets, a DB subnet
+group spanning Availability Zones, TLS, security-group access only from the application,
+automated backups/PITR, and Secrets Manager rotation. Be able to distinguish:
+
+- Multi-AZ standby: synchronous availability/failover, not read capacity.
+- Read replica: asynchronous read scaling, not the primary HA mechanism.
+- RPO: acceptable data loss; RTO: acceptable recovery time. Both must be tested.
+
+Do not provision RDS yet. Part B integrates it with the capstone VPC and workload identity.
+
+### Part A checkpoint and teardown
+
+- The caller is an SSO session, not a static access key.
+- You can narrate the VPC route and security-group boundary for your real EC2 instance.
+- The S3 object is encrypted/versioned, the alarm exists, CloudTrail shows your operation,
+  and the budget is filtered by `Project=devops-dojo`.
+- You can explain the RDS topology, Multi-AZ/read-replica distinction, and RPO/RTO.
+
+Mark the dashboard's guided completion after this checkpoint so lab 25 sees AWS Part A as
+done. Add a note `Part A | date | duration | teardown result`; Part B is the later transfer
+task and remains mandatory for the Delivery/cloud learner gate.
+
+```powershell
+$teardownCheck = terraform output -raw teardown_tag_check_command
+terraform destroy
+Invoke-Expression $teardownCheck
+Set-Location ../../..
+```
+
+The EC2 instance is owned by lab 16, not this root. Continue immediately to labs 17/18 or
+destroy it from `deploy/terraform`. After teardown, use Resource Groups Tagging API and the
+Billing console to verify no **unexpected** tagged billable resources remain.
+
+---
+
+## Part B — RDS, IRSA, backup/restore, and EKS operations
+
+**Prerequisites:** lab 25 EKS cluster running; lab 39 remote state configured. **Cost class:**
+high while EKS/RDS/NAT are alive. Use one focused session and destroy everything afterward.
+
+### 1. Provision the EKS-integrated data layer
+
+```powershell
+Set-Location deploy/terraform/rds
+terraform init
+$env:TF_VAR_db_password = "pick-a-strong-one!42" # 16+ URI-safe characters; see variables.tf
+terraform apply `
+  -var state_bucket=<your-tfstate-bucket> `
+  -var backup_bucket_name=devops-dojo-backups-<yourname>
+```
+
+Read `rds.tf`, `s3.tf`, and `iam.tf`. The RDS root consumes EKS outputs through remote state,
+places RDS in private subnets, allows port 5432 from the node security group rather than a
+broad CIDR, and creates a narrowly scoped IRSA role for one backup bucket.
+The learning root defaults `force_destroy_backup_bucket=true`, so versioned test backups do
+not block the required teardown. Set it false only when retention is deliberate and you have
+a separate empty/delete procedure.
+
+### 2. Move the workload to RDS through desired state
+
+Argo CD owns the chart with self-heal and pruning enabled, so do **not** overwrite its
+`dojo-secrets` or scale the StatefulSet by hand: reconciliation would undo the drift, and
+the later sync could prune that tracked Secret. Use a distinct, independently owned Secret
+for a safe ownership handoff. Create `dojo-rds-secrets`, then change the chart values in
+`deploy/gitops/argocd/application.yaml` to `secrets.create: false`,
+`secrets.name: dojo-rds-secrets`, and `postgres.enabled: false`; commit and push once.
 
 ```powershell
 $dbUrl = terraform output -raw database_url
-
-kubectl -n devops-dojo delete secret dojo-secrets
-kubectl -n devops-dojo create secret generic dojo-secrets `
+kubectl -n devops-dojo create secret generic dojo-rds-secrets `
   --from-literal=POSTGRES_PASSWORD=$env:TF_VAR_db_password `
-  --from-literal=DATABASE_URL=$dbUrl
+  --from-literal=DATABASE_URL=$dbUrl `
+  --dry-run=client -o yaml | kubectl apply -f -
 
-kubectl -n devops-dojo delete job migrate
-kubectl apply -f deploy/k8s/base/migrate-job.yaml       # fresh schema + seed on RDS
-kubectl -n devops-dojo rollout restart deploy/api deploy/worker
-kubectl -n devops-dojo scale statefulset/db --replicas=0  # in-cluster Postgres retires
+# While both databases coexist, make a logical cutover backup and restore it to RDS.
+# Keep the original PVC until the later S3 backup + timed restore has also passed.
+$cutoverDump = "backups/pre-rds-cutover.sql"
+kubectl -n devops-dojo exec db-0 -- pg_dump -U dojo -d dojo `
+  --clean --if-exists --no-owner --no-privileges > $cutoverDump
+Get-Content -Raw $cutoverDump | kubectl -n devops-dojo exec -i db-0 -- psql $dbUrl
+
+# Compare exact curriculum IDs, not a stale fixed row count.
+$expectedIds = (Get-Content -Raw curriculum/manifest.json | ConvertFrom-Json).steps.id |
+  Sort-Object
+$actualIds = kubectl -n devops-dojo exec db-0 -- psql $dbUrl -Atc `
+  "SELECT id FROM steps ORDER BY id;"
+$idDiff = Compare-Object $expectedIds ($actualIds | Sort-Object)
+if ($idDiff) { $idDiff; throw "RDS restore does not match the curriculum manifest" }
+
+# In deploy/gitops/argocd/application.yaml, keep/create these values:
+#   secrets.create: false
+#   secrets.name: dojo-rds-secrets
+#   postgres.enabled: false
+# Retire the old cluster-Postgres ciphertext in the same desired-state change.
+git rm --ignore-unmatch deploy/secrets/capstone/sealed-dojo-secrets.yaml
+# Argo's Helm post-upgrade hook runs migrations against the new DATABASE_URL.
+git add deploy/gitops/argocd/application.yaml
+git commit -m "feat: move capstone database to RDS"
+git push
+kubectl -n argocd get application devops-dojo -w
+kubectl -n devops-dojo rollout status deployment/api --timeout=180s
+kubectl -n devops-dojo rollout status deployment/worker --timeout=180s
+kubectl -n devops-dojo get statefulset db # NotFound is expected after prune
+curl.exe --fail http://<gateway-address>/api/steps
 ```
 
-Verify the dashboard still works — it's now reading from RDS. To carry your progress data
-over instead of reseeding, this is exactly the
-[db-restore runbook](../../docs/runbooks/db-restore.md): dump from `db-0` *before* scaling it
-down, restore into RDS through a pod.
+The cutover preserves learner progress rather than silently reseeding RDS. Keep both the
+cutover dump and retained PVC until the S3 backup and timed restore in step 3 pass.
 
-### 3. Backups to S3 via IRSA
+Because `dojo-rds-secrets` never belonged to the Argo Application, pruning its old
+`dojo-secrets` cannot delete the new credentials. For the learning run it can be bootstrapped
+imperatively. For a durable portfolio deployment, commit an ExternalSecret/SealedSecret
+from lab 26 that produces `dojo-rds-secrets`—never a plaintext database URL or password.
 
-Edit [deploy/k8s/backup/s3-backup-cronjob.yaml](../../deploy/k8s/backup/s3-backup-cronjob.yaml):
-paste `terraform output backup_role_arn` into the ServiceAccount annotation and
-`terraform output backup_bucket` into `BACKUP_BUCKET`. Then:
+### 3. Prove pod identity and timed restore
+
+Set the role ARN and bucket in `deploy/k8s/backup/s3-backup-cronjob.yaml`. Its dump container
+already reads the post-cutover `dojo-rds-secrets`; keep that name aligned if you chose a
+different external Secret. Then:
 
 ```powershell
 kubectl apply -f deploy/k8s/backup/s3-backup-cronjob.yaml
-kubectl -n devops-dojo create job --from=cronjob/db-backup-s3 backup-now   # don't wait for 03:00
+kubectl -n devops-dojo create job --from=cronjob/db-backup-s3 backup-now
 kubectl -n devops-dojo logs job/backup-now -c upload -f
-aws s3 ls s3://devops-dojo-backups-<yourname>/db/
+aws s3 ls "s3://$(terraform output -raw backup_bucket)/db/"
 ```
 
-No access key was configured anywhere — trace how that worked:
-`kubectl -n devops-dojo get sa dojo-backup -o yaml` (the role-arn annotation) and the pod's
-injected `AWS_WEB_IDENTITY_TOKEN_FILE` env.
+No access key is stored in a Secret: a projected ServiceAccount token is exchanged for the
+role. Prove least privilege by attempting access to an unrelated bucket and expecting
+`AccessDenied`.
 
-### 4. Read the VPC you already own
+Declare an RPO and RTO in your notes, start a timer, restore the newest dump into a fresh
+database, and run both row-count/manifest-ID integrity and an API smoke test. Record achieved
+RPO/RTO, assistance, and the slowest recovery step.
 
-For each command, say out loud what you're looking at:
+Only after that proof may you delete the old in-cluster claim. StatefulSet deletion retains
+PVCs by design, so wait for its dynamically provisioned PV/EBS volume to disappear:
 
 ```powershell
-aws ec2 describe-subnets --filters "Name=tag:Project,Values=dojo-eks" `
-  --query "Subnets[].{cidr:CidrBlock,az:AvailabilityZone,public:MapPublicIpOnLaunch}" --output table
-
-aws ec2 describe-route-tables --filters "Name=tag:Project,Values=dojo-eks" `
-  --query "RouteTables[].Routes[].{dest:DestinationCidrBlock,igw:GatewayId,nat:NatGatewayId}" --output table
-
-aws ec2 describe-nat-gateways --filter "Name=tag:Project,Values=dojo-eks" --output table
+kubectl -n devops-dojo delete pvc data-db-0
+kubectl get pv -w # stop when the former data-db-0 PV is gone
 ```
 
-The story to be able to tell: *public subnets route `0.0.0.0/0` to an Internet Gateway (things
-in them can be reached); private subnets route it to a NAT Gateway (things in them can reach
-out but not be reached). Nodes, RDS, and pods live private; only load balancers live public.*
+### 4. Operate EKS, then tear it down
 
-(If your `Project` tag differs, check `deploy/eks/variables.tf` for the cluster name.)
+Use the lifecycle procedure in [`deploy/eks/README.md`](../../deploy/eks/README.md): inspect
+upgrade insights and deprecated APIs/add-ons, review control-plane/node sequencing, and
+observe both pod HPA and node-capacity scaling. Do not perform an unplanned control-plane
+upgrade in the same session as the restore drill.
 
-### 5. Tear down (really)
+Delete Gateway/LB resources before destroying the VPC:
 
 ```powershell
-cd deploy/terraform/rds; terraform destroy   # RDS + bucket + role
-# and when done with the cluster: cd ../../eks; terraform destroy
+kubectl delete -f deploy/gitops/argocd/application.yaml --ignore-not-found
+kubectl -n devops-dojo delete pvc --all --ignore-not-found
+kubectl get pv # no capstone-owned Released/Bound PV may remain
+Set-Location deploy/terraform/rds
+terraform destroy
+Set-Location ../../eks
+terraform destroy
 ```
 
-The backups bucket must be emptied first (`aws s3 rm s3://... --recursive` — versions too if
-you added any). Then confirm nothing is left billing: `python scripts/aws_untagged_report.py`
-plus a look at the console's billing page.
+### Part B checkpoint
 
-## How it works
+- The application runs on private RDS with TLS and in-cluster Postgres removed through Git.
+- A backup reaches S3 through IRSA, unrelated-bucket access is denied, and no AWS keys exist
+  in Kubernetes Secrets.
+- A timed restore meets—or honestly records a miss against—the declared RPO/RTO.
+- You can explain EKS version/add-on lifecycle and pod-versus-node scaling.
+- Tag inventory and the Billing console show no leftover load balancer, NAT gateway, EBS
+  volume/snapshot, RDS instance/snapshot, or other tagged billable resource.
 
-- **Remote state as an interface:** the RDS root never hardcodes VPC/subnet IDs — it reads
-  the EKS root's *outputs* from S3. Roots stay small and independently applyable; facts flow
-  through outputs, not copy-paste.
-- **SG-to-SG rules:** the RDS security group allows 5432 *from the node security group*, not
-  from CIDRs. Nodes can be replaced, autoscaled, re-IP'd — the rule still holds. This is the
-  cloud-native answer to "how do you firewall a moving target?"
-- **IAM's two policies:** the *permission* policy says what the role may do (ListBucket +
-  Put/GetObject on one bucket). The *trust* policy says who may **become** the role — here,
-  OIDC tokens whose `sub` is exactly `system:serviceaccount:devops-dojo:dojo-backup`. Most
-  IAM confusion in interviews is not knowing these are two different documents.
-- **Why `sslmode=require`:** traffic now leaves the cluster for RDS; TLS on the DB connection
-  stops being optional.
-- **Multi-AZ vs read replicas** (follow-up they'll ask): multi-AZ = synchronous standby for
-  *failover* (no extra read capacity); read replicas = async copies for *read scaling*.
-  Different problems, different features.
-
-## Exercise
-
-1. Wire `backup_rotate.sh`'s S3 idea for real: extend the CronJob (or lab 37's script) to
-   also `aws s3 ls` and prune, then compare with what the bucket lifecycle already does —
-   when is policy-on-bucket better than logic-in-job?
-2. Restore drill, cloud edition: take a backup from S3 and restore it into a *fresh* RDS
-   instance (`terraform apply` a second identifier). This is the real DR test — and the
-   moment you appreciate `backup_retention_period` and point-in-time recovery.
-3. IAM least-privilege proof: from the backup pod's ServiceAccount, try
-   `aws s3 ls s3://<some-other-bucket>` and watch `AccessDenied` — then explain exactly which
-   policy line made both the allow and the deny happen.
-
-## Checkpoint
-
-- ✅ The dashboard works with `statefulset/db` at 0 replicas — Postgres is fully on RDS.
-- ✅ A manually-triggered backup job lands a dump under `s3://…/db/` with **no AWS keys**
-  stored in any Secret.
-- ✅ You can narrate the public/private subnet + IGW/NAT story from your own route tables.
-- ✅ `terraform destroy` completed and the untagged-resource report comes back clean.
-
-## Common failures
-
-- `terraform init` fails reading remote state → the EKS root's state isn't in S3 yet
-  (lab 39 exercise 1), or you didn't re-`apply` deploy/eks to publish the new outputs
-  (`vpc_id`, `oidc_provider_arn`, …).
-- API pods `0/1 Ready` after the swap → readiness can't reach RDS: wrong password in the
-  new secret, or you edited the secret but didn't `rollout restart` (env is read at start).
-- Backup job `AccessDenied` → role-arn annotation typo'd, or the trust policy's `sub`
-  doesn't match `devops-dojo/dojo-backup` exactly (namespace and name both matter).
-- `migrate` job connects but fails → RDS enforces SSL; the `database_url` output already has
-  `sslmode=require` — make sure you used it verbatim.
-- Destroy hangs on the bucket → S3 buckets must be empty (including *versions*) before
-  deletion.
-
-➡️ Next: [Lab 41 — Supply-chain security](../41-supply-chain-security/)
+➡️ Next: choose the Platform/CKA or SRE branch in
+[`docs/CURRICULUM.md`](../../docs/CURRICULUM.md).

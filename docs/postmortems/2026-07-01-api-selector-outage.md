@@ -14,7 +14,7 @@
 
 A manual `kubectl patch` intended to adjust the `api` Service changed its selector from
 `app: api` to `app: apy`. The Service immediately matched zero pods, so every `/api/*` request
-through the Ingress returned 502/504 while all pods stayed Running and Ready. Diagnosis was
+through the Gateway returned 502/504 while all pods stayed Running and Ready. Diagnosis was
 delayed ~10 minutes because pod health looked perfect; checking Service endpoints identified
 the mismatch, and re-patching the selector restored traffic instantly.
 

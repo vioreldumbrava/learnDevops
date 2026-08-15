@@ -63,6 +63,8 @@ the certificate. Reading that ACME exchange once demystifies "automatic HTTPS".
 - ✅ `http://<server-ip>` serves the app (HTTP test).
 - ✅ With DNS + domain set, `https://<domain>` loads with a valid certificate.
 - ✅ Only 80/443 are open publicly; 8080/5432 are not reachable from outside.
+- ✅ After saving screenshots/commands needed for the portfolio, `terraform destroy` succeeds
+  and the Project-tag inventory shows no remaining billable resource.
 
 ## Common failures
 
@@ -70,4 +72,8 @@ the certificate. Reading that ACME exchange once demystifies "automatic HTTPS".
   security group. Caddy logs show the ACME error.
 - "context deadline exceeded" on ACME → the domain doesn't resolve to this server yet.
 
-➡️ Next: [Lab 19 — Security hardening](../19-security/)
+Unless you are doing the EC2 option of lab 54 immediately, remove the DNS record and destroy
+the lab-16 root now. A stopped EC2 instance can still leave EBS and Elastic IP charges; the
+teardown result, not instance state, is the checkpoint.
+
+➡️ Next: [Lab 22 — Kubernetes](../22-kubernetes/)

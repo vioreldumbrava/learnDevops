@@ -35,9 +35,21 @@ spec:
         spec:
           serviceAccountName: dojo-backup
           restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
           initContainers:
             - name: dump
               image: postgres:16-alpine
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+                readOnlyRootFilesystem: true
               command: ["sh", "-c"]
               # pg_dump accepts the URI directly, so the same manifest works for
               # in-cluster Postgres AND RDS — the secret decides where it points.
@@ -47,17 +59,28 @@ spec:
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
-                      name: dojo-secrets
+                      # Lab 40's GitOps handoff deliberately uses a distinct
+                      # name so Argo can prune its old chart-owned Secret.
+                      name: dojo-rds-secrets
                       key: DATABASE_URL
+                - name: HOME
+                  value: /tmp
               volumeMounts:
                 - name: backup
                   mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
               resources:
                 requests: { cpu: 50m, memory: 64Mi }
                 limits: { cpu: 500m, memory: 256Mi }
           containers:
             - name: upload
               image: amazon/aws-cli:2.22.35
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+                readOnlyRootFilesystem: true
               command: ["sh", "-c"]
               # keyed under db/ — the bucket lifecycle rule ages that prefix out
               args:
@@ -65,12 +88,18 @@ spec:
               env:
                 - name: BACKUP_BUCKET
                   value: CHANGE_ME # terraform output backup_bucket
+                - name: HOME
+                  value: /tmp
               volumeMounts:
                 - name: backup
                   mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
               resources:
                 requests: { cpu: 50m, memory: 64Mi }
                 limits: { cpu: 500m, memory: 256Mi }
           volumes:
             - name: backup
+              emptyDir: {}
+            - name: tmp
               emptyDir: {}

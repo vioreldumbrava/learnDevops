@@ -23,8 +23,8 @@ of *this* app.
 > 🥋 **Reading a lab is half the work.** The labs train *recognition* — the answer file is
 > always open. Interviews and the CKA test *recall*, from a blank terminal, on a clock. That
 > half lives in **[DRILLS.md](DRILLS.md)** (from-scratch tasks with time targets),
-> **[WEEKLY.md](WEEKLY.md)** (the repeating week and the dated calendar — CKA booking,
-> authoring freeze, the day applications start), and **[TOOLBOX.md](TOOLBOX.md)** (one-time
+> **[WEEKLY.md](WEEKLY.md)** (the relative job-first schedule — application cadence,
+> evidence blocks, and the CKA booking gate), and **[TOOLBOX.md](TOOLBOX.md)** (one-time
 > setup; `kind` and `helm` are not installed yet). The dashboard tracks *completed* and
 > *drilled* separately, and tells you which lab is stalest.
 
@@ -44,7 +44,7 @@ of *this* app.
         │                                              │             worker (Go)   [stateless]
         │   observability (separate overlay):          │
         │     /metrics ─► Prometheus ─► Grafana        │
-        │     logs ─────► Promtail ───► Loki ─► Grafana │
+        │     logs ─────► Alloy ──────► Loki ─► Grafana │
         │     traces ───► Tempo ──────────────► Grafana │
         │     alerts ───► Alertmanager                  │
         └───────────────────────────────────────────────
@@ -58,7 +58,7 @@ of *this* app.
 | `db` | PostgreSQL | migrations, backups, **stateful** services, volumes |
 | `redis` | Redis | caching + a job queue |
 | `caddy` | Caddy | reverse proxy, automatic HTTPS |
-| observability | Prometheus, Grafana, Loki, Promtail, Tempo, Alertmanager | the three pillars + alerting |
+| observability | Prometheus, Grafana, Loki, Grafana Alloy, Tempo, Alertmanager | the three pillars + alerting |
 
 **Stateless vs stateful** is the backbone idea: `api`, `worker`, `frontend` are stateless
 (run many copies freely — Steps 21–22); `db` and `redis` are stateful (need volumes and care
@@ -139,7 +139,7 @@ it.** Your own two states (*completed* and *drilled closed-book*) live in the da
 | 08 | Health checks: liveness vs readiness | [labs/08](../labs/08-health-checks/) | ✅ |
 | 09 | Cache + background worker (Redis queue) | [labs/09](../labs/09-cache-and-worker/) | ✅ |
 | 10 | Monitoring: Prometheus + Grafana | [labs/10](../labs/10-monitoring/) | ✅ |
-| 11 | Logging: Loki + Promtail | [labs/11](../labs/11-logging/) | ✅ |
+| 11 | Logging: Loki + Grafana Alloy | [labs/11](../labs/11-logging/) | ✅ |
 | 12 | Tracing + Alerting | [labs/12](../labs/12-tracing-and-alerting/) | ✅ |
 | 13 | Image registry: ghcr.io, tags, SBOM | [labs/13](../labs/13-image-registry/) | ✅ |
 | 14 | Artifact repository | [labs/14](../labs/14-artifact-repository/) | ✅ |
@@ -157,7 +157,7 @@ it.** Your own two states (*completed* and *drilled closed-book*) live in the da
 | 26 | Production secrets management | [labs/26](../labs/26-secrets-management/) | ✅ |
 | 27–34 | **Kubernetes deep-dive** (RBAC, NetworkPolicy, Kyverno, cert-manager, KEDA, Argo Rollouts, Velero, kube-prometheus-stack) | [labs/27–34](../labs/) | ✅ |
 | 48 | **CKA exam readiness**: etcd backup/restore, drains, kubelet, static pods, mock exam | [labs/48](../labs/48-cka-exam-readiness/) | ✅ |
-| 49 | **Networking data plane**: pause/veth, ClusterIP + kube-proxy DNAT, CoreDNS, Ingress path | [labs/49](../labs/49-k8s-networking-deep-dive/) | ✅ |
+| 49 | **Networking data plane**: pause/veth, ClusterIP + kube-proxy DNAT, CoreDNS, Gateway path | [labs/49](../labs/49-k8s-networking-deep-dive/) | ✅ |
 | 51 | **Cilium/eBPF**: kube-proxy-free Services, Hubble, L7 policy, Gateway API | [labs/51](../labs/51-k8s-cilium-ebpf/) | ✅ |
 | 52 | **Storage**: StorageClass, PV/PVC lifecycle, reclaim policies, access modes | [labs/52](../labs/52-k8s-storage/) | ✅ |
 | 53 | **Scheduling**: requests, taints/tolerations, affinity, spread, preemption | [labs/53](../labs/53-k8s-scheduling/) | ✅ |
@@ -165,22 +165,19 @@ it.** Your own two states (*completed* and *drilled closed-book*) live in the da
 | 55 | **Postgres under load**: `EXPLAIN`, indexes, locks, pooling, vacuum | [labs/55](../labs/55-postgres-operations/) | ✅ |
 | 56 | **SLOs & error budgets**: recording rules, multi-window burn-rate alerts | [labs/56](../labs/56-slo-and-error-budgets/) | ✅ |
 
-## The fast track (interview-ready as soon as possible)
+## The job-first common core
 
-Fifty-plus labs is depth, not a prerequisite for applying. If the goal is a job **soon**, run
-this critical path first — it produces everything an interviewer will actually probe:
+Fifty-plus labs is depth, not a prerequisite for applying. A fresh learner targeting a
+generalist DevOps / Cloud role should use this critical path:
 
-> **00–08 → 10 → 13 → 15 → 16 → 22 → 23 → 25 → 26 → 35 → 48**, then rehearse with
-> [INTERVIEW_PREP.md](INTERVIEW_PREP.md) (§10 is the weekly mock-interview loop).
+> **00 → Git basics from 38 → 01–08 → 37 → 54 (local) → 10 → 13 → 15 → 16 → 39 →**
+> **40 Part A → 17 → 18 → 22 → 23 → 26 → 35 → 25 → 40 Part B**.
 
-That's: foundation + monitoring → registry + CI → Terraform → Kubernetes + Helm → the EKS/GitOps
-capstone + secrets → incident drills → CKA drills. **At this point: book the CKA and start
-applying.** You can, and should, apply before "finishing" — the remaining labs (11–12, 17–21,
-24, 27–34, 36–47, the AI assistant) are what you work through *in parallel with* interviewing;
-each one you complete becomes a fresh interview answer, and the job search itself takes weeks
-you'd otherwise waste waiting. The two interview centerpieces — capstone (25) and incident
-drills (35) — are both on the fast track; nothing an interviewer expects from a junior/associate
-candidate is missing from it.
+That is foundation + operating fundamentals → secure delivery + one cloud → Kubernetes/Helm →
+an incident and EKS/GitOps capstone. Start two targeted applications per week in **week 3**;
+the capstone improves later applications rather than granting permission to start. After the
+core choose Platform/CKA (`27 → 28 → 52 → 53 → 48`) or SRE (`11 → 12 → 55 → 56`). Book CKA
+only after two 8/10 passes of lab 48's 45-minute internal mock.
 
 ---
 
@@ -403,11 +400,12 @@ rate and p95 latency.
 
 ➡️ Full lab: [labs/10-monitoring](../labs/10-monitoring/)
 
-## Step 11 — Logging: Loki + Promtail
+## Step 11 — Logging: Loki + Grafana Alloy
 
-**Concept.** The second pillar: centralize logs. **Promtail** discovers containers and ships
-their stdout to **Loki**; query with LogQL in Grafana. Structured (JSON) logs make filtering
-by service/status trivial.
+**Concept.** The second pillar: centralize logs. **Grafana Alloy** discovers containers and
+ships their stdout to **Loki**; query with LogQL in Grafana. Structured (JSON) logs make
+filtering by service/status trivial. Alloy replaces the retired Promtail agent while keeping
+the same lesson and backend.
 
 **Do.** In Grafana → Explore → Loki:
 ```logql
@@ -655,19 +653,25 @@ upstreams) so it balances across replicas.
 
 **Concept.** Orchestrate across a cluster with self-healing, rolling updates, and autoscaling.
 Compose maps cleanly: service→Deployment+Service, volume→PVC (StatefulSet), env→ConfigMap+
-Secret, migrate→Job, Caddy→Ingress, `--scale`→replicas+HPA.
+Secret, migrate→Job, Caddy→Gateway+HTTPRoute, `--scale`→replicas+HPA.
 
 **Do.** (full walkthrough in [deploy/k8s/README.md](../deploy/k8s/README.md))
 ```powershell
 kind create cluster --config deploy/k8s/kind/kind-cluster.yaml
+helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.8.3 `
+  --namespace envoy-gateway-system --create-namespace
+kubectl wait -n envoy-gateway-system --for=condition=Available `
+  deployment/envoy-gateway --timeout=300s
+kubectl apply -f deploy/k8s/gateway/gatewayclass.yaml
 kind load docker-image devops-dojo/api:dev devops-dojo/frontend:dev
 kubectl apply -f deploy/k8s/base/namespace.yaml
 kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
 kubectl apply -f deploy/k8s/base/
 ```
 
-**Checkpoint.** Pods Running; `http://localhost/api/steps` returns 24; deleting an API pod
-self-heals; `kubectl scale` changes replicas.
+**Checkpoint.** Pods Running; `http://localhost/api/steps` returns the same number of entries
+as the numbered lab directories; deleting an API pod self-heals; `kubectl scale` changes
+replicas.
 
 ➡️ Full lab: [labs/22-kubernetes](../labs/22-kubernetes/) · manifests: [deploy/k8s/base](../deploy/k8s/base/)
 
@@ -678,13 +682,19 @@ self-heals; `kubectl scale` changes replicas.
 
 **Do.**
 ```powershell
+# Lab 22 created these objects with kubectl; Helm deliberately refuses to
+# adopt unmanaged resources with the same names. Recreate a clean namespace.
+kubectl delete namespace devops-dojo --wait=true
+kubectl apply -f deploy/k8s/base/namespace.yaml
+kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
+
 helm template dojo deploy/k8s/helm/devops-dojo        # render/verify
-helm install dojo deploy/k8s/helm/devops-dojo -n devops-dojo --create-namespace
+helm install dojo deploy/k8s/helm/devops-dojo -n devops-dojo
 helm upgrade dojo deploy/k8s/helm/devops-dojo -n devops-dojo --set api.replicas=4
 ```
 
 **Understand.** The chart in [deploy/k8s/helm/devops-dojo](../deploy/k8s/helm/devops-dojo/)
-templates images/replicas/ingress/HPA from values; migrations run as a Helm hook.
+templates images/replicas/Gateway API routing/HPA from values; migrations run as a Helm hook.
 
 **Checkpoint.** `helm template` renders cleanly; `install` serves the app; `upgrade --set
 api.replicas=4` scales and `helm rollback` reverts.
@@ -705,7 +715,7 @@ image → Kubernetes on AWS through a self-healing GitOps pipeline.*
 ```powershell
 cd deploy/eks; terraform init; terraform apply       # EKS cluster
 terraform output -raw configure_kubectl | Invoke-Expression
-# install ingress-nginx + ArgoCD, then:
+# install Gateway API + AWS Load Balancer Controller + ArgoCD, then:
 kubectl apply -f deploy/gitops/argocd/application.yaml
 ```
 
@@ -775,7 +785,7 @@ runs on kind (or EKS). Full walkthroughs in the labs; one-line each:
 - **[49 · Networking deep dive](../labs/49-k8s-networking-deep-dive/)** — the *data plane* the
   other labs stand on: the `pause` sandbox + `veth` pair, the flat pod network, **ClusterIP as
   a virtual IP** with the **kube-proxy DNAT** rules read straight off the node, CoreDNS name
-  resolution, every Service type, and the Ingress path traced end to end — plus the
+  resolution, every Service type, and the Gateway API path traced end to end — plus the
   "Service returns nothing" decision tree.
 - **[51 · Cilium/eBPF](../labs/51-k8s-cilium-ebpf/)** — lab 49's data plane, re-implemented: a
   **kube-proxy-free** kind cluster where Services live in **eBPF maps** (`cilium-dbg bpf lb
@@ -899,19 +909,18 @@ answer. Walk it in [lab 50](../labs/50-go-vs-python-parity/).
 
 ## Getting hired
 
-If speed matters, follow [the fast track](#the-fast-track-interview-ready-as-soon-as-possible)
-above and start applying when it's done — depth continues in parallel with interviewing.
-[WEEKLY.md](WEEKLY.md) puts dates on that: the CKA booking, the lab-authoring freeze, and the
-day applications start whether or not it feels ready.
+If speed matters, follow [the common core](#the-job-first-common-core) and begin applying in
+week 3—depth continues in parallel with interviewing. [WEEKLY.md](WEEKLY.md) defines the exact
+five-hour cadence and evidence-based CKA booking gate.
 
 The capstone (Step 25) is your interview centerpiece; the incident drills (lab 35) are your
 second one — rehearsed answers to "tell me about something you debugged". Prepare with
 [INTERVIEW_PREP.md](INTERVIEW_PREP.md): a portfolio talk track with likely questions and
 strong, project-grounded answers for every concept in this guide, plus a fundamentals
 screener (§8), a system-design round (§9), a weekly mock-interview protocol (§10),
-troubleshooting scenarios and an honest gap-closing study plan (**CKA first** — labs 22–34
-teach the objects, [lab 48](../labs/48-cka-exam-readiness/) drills the cluster ops + mock
-exam — then AWS SAA).
+troubleshooting scenarios and an honest gap-closing study plan. AWS and operating fundamentals
+come before specialization; [lab 48](../labs/48-cka-exam-readiness/) is the evidence-based
+booking gate when the Platform/CKA branch is selected.
 
 ---
 

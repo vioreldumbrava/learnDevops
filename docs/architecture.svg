@@ -70,7 +70,7 @@
     <text x="92"  y="330" text-anchor="middle" class="bt">Users</text>
 
     <rect x="172" y="300" width="132" height="52" rx="8" fill="#ffffff" stroke="#0d9488"/>
-    <text x="238" y="323" text-anchor="middle" class="bt">Caddy / Ingress</text>
+    <text x="238" y="323" text-anchor="middle" class="bt">Caddy / Gateway API</text>
     <text x="238" y="339" text-anchor="middle" class="bs">TLS · routing</text>
 
     <rect x="336" y="262" width="158" height="52" rx="8" fill="#ffffff" stroke="#0d9488"/>
@@ -120,7 +120,7 @@
 
     <rect x="300" y="500" width="150" height="54" rx="8" fill="#ffffff" stroke="#7c3aed"/>
     <text x="375" y="524" text-anchor="middle" class="bt">Loki</text>
-    <text x="375" y="540" text-anchor="middle" class="bs">logs · Promtail</text>
+    <text x="375" y="540" text-anchor="middle" class="bs">logs · Grafana Alloy</text>
 
     <rect x="480" y="500" width="150" height="54" rx="8" fill="#ffffff" stroke="#7c3aed"/>
     <text x="555" y="524" text-anchor="middle" class="bt">Tempo</text>

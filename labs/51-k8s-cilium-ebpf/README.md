@@ -36,7 +36,7 @@ GKE Dataplane V2 *is* Cilium, Azure CNI is "powered by Cilium", and it's a commo
 On a fresh 3-node kind cluster with **no default CNI and no kube-proxy**, install Cilium via
 Helm, deploy the same app, and re-run lab 49's proofs against eBPF maps instead of iptables;
 watch flows with Hubble; push lab 28's zero-trust policy to L7 (deny a POST with a **403**, not
-a timeout); then replace the Ingress with a Gateway + HTTPRoute backed by a real LoadBalancer IP.
+a timeout); then run the app's Gateway + HTTPRoute on Cilium with a real LoadBalancer IP.
 
 ## Setup
 
@@ -92,16 +92,29 @@ survives; the implementer changed.
 
 ### 2. Same Services, new engine: read the eBPF map instead of iptables
 
-Deploy the same stack as labs 22/49 — note `--name cilium` on the image load, and no
-ingress-nginx this time (the Gateway replaces it in step 5; the `base/` Ingress object applies
-but stays inert without a controller):
+Deploy the same stack as labs 22/49—note `--name cilium` on the image load. Do not install an
+extra traffic controller: Gateway API is already the supported base path, and Cilium will
+reconcile it in step 5. The Gateway can exist before its class/controller is ready.
 
 ```powershell
 docker build -t devops-dojo/api:dev ./app/api; docker build -t devops-dojo/frontend:dev ./app/frontend
 kind load docker-image devops-dojo/api:dev devops-dojo/frontend:dev --name cilium
 kubectl apply -f deploy/k8s/base/namespace.yaml
 kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
-kubectl apply -f deploy/k8s/base/
+# Apply the app workloads, but not base/gateway.yaml or base/httproute.yaml.
+# Those belong to Envoy Gateway (`EnvoyProxy` is an Envoy-specific CRD); this
+# cluster deliberately uses Cilium's Gateway implementation in step 5.
+kubectl apply `
+  -f deploy/k8s/base/configmap.yaml `
+  -f deploy/k8s/base/secret.yaml `
+  -f deploy/k8s/base/postgres-statefulset.yaml `
+  -f deploy/k8s/base/redis.yaml `
+  -f deploy/k8s/base/api.yaml `
+  -f deploy/k8s/base/frontend.yaml `
+  -f deploy/k8s/base/worker.yaml `
+  -f deploy/k8s/base/hpa.yaml `
+  -f deploy/k8s/base/pdb.yaml `
+  -f deploy/k8s/base/migrate-job.yaml
 kubectl -n devops-dojo wait --for=condition=available deploy/api deploy/frontend --timeout=180s
 $fe = kubectl -n devops-dojo get pod -l app=frontend -o jsonpath="{.items[0].metadata.name}"
 ```
@@ -300,9 +313,10 @@ One policy file, three different outcomes by *who is asking*.
 
 *Aha:* `<pending>` never meant "kind can't do LoadBalancers" — it meant *nobody here implements
 them*. LB-IPAM + L2 announcements is Cilium volunteering, the same MetalLB-style trick clouds
-do with real load balancers. And the Ingress → Gateway API migration you just did (read
-`base/ingress.yaml` next to `httproute.yaml`) is on the CKA syllabus and on real roadmaps —
-ingress-nginx's retirement is the industry's push toward exactly this API.
+do with real load balancers. Compare the historical
+`deploy/k8s/legacy/ingress-nginx.yaml` with `base/httproute.yaml`: Gateway API is the current
+main path, while the old object remains only for migration analysis after ingress-nginx's
+retirement.
 
 ## How it works (the one-paragraph mental model)
 
@@ -343,7 +357,7 @@ the policy until it breaks, then diagnose it the way you would in prod:
   in the CLI and the UI's service map.
 - ✅ You proved the two flavors of deny: **403 from Envoy** (right identity, wrong method — L7)
   vs **timeout** (wrong identity — L3/4), and explained why lab 28 could only do the second.
-- ✅ You replaced the Ingress with a **Gateway + HTTPRoute**, got a **real LoadBalancer IP** on
+- ✅ You ran the app's **Gateway + HTTPRoute** on Cilium and got a **real LoadBalancer IP** on
   kind via LB-IPAM + L2 announcements, and curl'd all three routes through it.
 
 ## Common failures
@@ -372,8 +386,8 @@ the policy until it breaks, then diagnose it the way you would in prod:
 - `hubble observe --server hubble-relay.kube-system…:80` fails with `name resolver error:
   produced zero addresses` → the agent pod is **host-networked** and doesn't use cluster DNS.
   Pass the relay's **ClusterIP**, as step 3 does.
-- The `base/` Ingress object does nothing here → correct: no ingress-nginx on this cluster.
-  The Gateway is this lab's front door; lab 22's cluster still has the Ingress one.
+- The historical Ingress object is not applied → correct: no retired ingress-nginx controller
+  is present. Both lab 22 and this cluster use Gateway API; their controllers/data planes differ.
 
 ## Where to go next
 

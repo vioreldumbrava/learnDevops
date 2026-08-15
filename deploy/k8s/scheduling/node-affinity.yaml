@@ -8,6 +8,13 @@ kind: Pod
 metadata:
   name: require-fast
 spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    seccompProfile: { type: RuntimeDefault }
+    sysctls:
+      - { name: net.ipv4.ip_unprivileged_port_start, value: "0" }
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -19,6 +26,9 @@ spec:
   containers:
     - name: app
       image: nginx:1.27-alpine
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities: { drop: ["ALL"] }
       resources:
         requests:
           cpu: "50m"
@@ -28,6 +38,13 @@ kind: Pod
 metadata:
   name: prefer-fast
 spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    seccompProfile: { type: RuntimeDefault }
+    sysctls:
+      - { name: net.ipv4.ip_unprivileged_port_start, value: "0" }
   affinity:
     nodeAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
@@ -40,6 +57,9 @@ spec:
   containers:
     - name: app
       image: nginx:1.27-alpine
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities: { drop: ["ALL"] }
       resources:
         requests:
           cpu: "50m"

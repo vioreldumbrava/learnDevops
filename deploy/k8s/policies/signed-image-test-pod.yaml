@@ -1,0 +1,22 @@
+# Admission fixture for lab 41. Replace owner/repo with your lowercase GHCR path.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: signed-test
+  namespace: devops-dojo
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: signed-test
+      image: ghcr.io/owner/repo/api:master
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        readOnlyRootFilesystem: true

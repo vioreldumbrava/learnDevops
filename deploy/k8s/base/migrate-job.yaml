@@ -14,9 +14,20 @@ spec:
         app: migrate   # so NetworkPolicy + Kyverno (require-app-label) apply to it
     spec:
       restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: migrate
           image: migrate/migrate:v4.18.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
           args:
             - "-path=/migrations"
             - "-database=$(DATABASE_URL)"

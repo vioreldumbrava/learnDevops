@@ -119,6 +119,8 @@ kubectl -n devops-dojo set image deploy/api api=devops-dojo/api:v9.9.9
 
 ```powershell
 # Inject: add a broken migration (do NOT commit it), rebuild the ConfigMap, re-run the Job
+$lastGood = (kubectl -n devops-dojo exec db-0 -- psql -U dojo -d dojo -tAc `
+  "SELECT version FROM schema_migrations WHERE dirty = false;").Trim()
 'SELEC 1;' | Out-File -Encoding ascii db/migrations/000099_break.up.sql
 'SELECT 1;' | Out-File -Encoding ascii db/migrations/000099_break.down.sql
 kubectl -n devops-dojo delete configmap dojo-migrations
@@ -133,13 +135,30 @@ kubectl apply -f deploy/k8s/base/migrate-job.yaml
 - **Diagnose:** the trap is what's *left behind*: golang-migrate marked the schema **dirty**:
   `kubectl -n devops-dojo exec db-0 -- psql -U dojo -d dojo -c "SELECT * FROM schema_migrations;"`
   → `version=99, dirty=t`. Re-running now refuses with `Dirty database version 99`.
-- **Fix:** remove the bad files, reset the version, rebuild, re-run:
+- **Fix:** remove the bad files, use the migration tool to force the version captured before
+  the injection (which clears the dirty flag without guessing), rebuild, and re-run. Directly
+  editing `schema_migrations` is deliberately avoided because it bypasses the tool's safety
+  model:
 
   ```powershell
   Remove-Item db/migrations/000099_break.*.sql
-  kubectl -n devops-dojo exec db-0 -- psql -U dojo -d dojo -c "UPDATE schema_migrations SET version = 2, dirty = false;"
-  kubectl -n devops-dojo delete configmap dojo-migrations; kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
-  kubectl -n devops-dojo delete job migrate; kubectl apply -f deploy/k8s/base/migrate-job.yaml
+  kubectl -n devops-dojo delete configmap dojo-migrations
+  kubectl create configmap dojo-migrations -n devops-dojo --from-file=db/migrations/
+
+  # Clone the real Job client-side so it keeps the same Secret and ConfigMap mounts,
+  # but give it a new name and run `migrate force <last-good-version>` once.
+  $repair = kubectl create --dry-run=client -f deploy/k8s/base/migrate-job.yaml -o json |
+    ConvertFrom-Json
+  $repair.metadata.name = 'migrate-repair'
+  $repair.spec.template.spec.containers[0].args = @(
+    '-path=/migrations', '-database=$(DATABASE_URL)', 'force', "$lastGood"
+  )
+  $repair | ConvertTo-Json -Depth 100 | kubectl apply -f -
+  kubectl -n devops-dojo wait --for=condition=complete job/migrate-repair --timeout=60s
+  kubectl -n devops-dojo delete job migrate-repair
+
+  kubectl -n devops-dojo delete job migrate
+  kubectl apply -f deploy/k8s/base/migrate-job.yaml
   kubectl -n devops-dojo logs job/migrate -f    # "no change"
   ```
 
@@ -220,4 +239,4 @@ on-call engineer sees them), not per cause.
 - Drill 7 seems to do nothing → the setting applies to *new* transactions; retry the toggle in
   the UI, and confirm with `SHOW default_transaction_read_only;`.
 
-➡️ Next: [Lab 36 — Multi-environment promotion](../36-multi-env-promotion/)
+➡️ Next: [Lab 25 — EKS GitOps capstone](../25-capstone-eks-gitops/)

@@ -32,14 +32,15 @@ watch the CRITICAL gate work. Needs: lab 15 (CI → GHCR), lab 29 (Kyverno on ki
 
 Open [.github/workflows/ci.yml](../../.github/workflows/ci.yml) and find:
 
-- `id-token: write` on the build job — permission to mint the OIDC token that *is* the
+- `id-token: write` on the trusted publish job — permission to mint the OIDC token that *is* the
   signing identity.
 - The `cosign sign --yes …@<digest>` steps — signing the **digest**, never the tag: tags can
   be re-pointed after signing, digests can't.
 - The two-tier Trivy steps — `report HIGH+` (exit 0) next to `gate on CRITICAL` (exit 1,
   honoring [.trivyignore](../../.trivyignore)).
 
-Push a commit to `main` and let CI publish + sign both images.
+Push a commit to `master` and let CI publish + sign both images. If your fork uses a
+different default branch, substitute that branch tag in the commands and fixture below.
 
 ### 2. Verify a signature by hand
 
@@ -48,7 +49,7 @@ Push a commit to `main` and let CI publish + sign both images.
 cosign verify `
   --certificate-identity-regexp "^https://github.com/OWNER/REPO" `
   --certificate-oidc-issuer https://token.actions.githubusercontent.com `
-  ghcr.io/OWNER/REPO/api:latest
+  ghcr.io/owner/repo/api:master
 ```
 
 Read the output: the certificate's identity is your **workflow**, not a person, and the
@@ -58,28 +59,36 @@ supposed to sign.
 
 ### 3. Enforce it at admission
 
-Edit `OWNER/REPO` in
-[deploy/k8s/policies/verify-image-signatures.yaml](../../deploy/k8s/policies/verify-image-signatures.yaml),
+Edit `OWNER/REPO` in the GitHub workflow identity and replace lowercase `owner/repo` in
+[deploy/k8s/policies/verify-image-signatures.yaml](../../deploy/k8s/policies/verify-image-signatures.yaml)
+and both `*-image-test-pod.yaml` fixtures beside it,
 then on the kind cluster with Kyverno installed:
 
 ```powershell
 kubectl apply -f deploy/k8s/policies/verify-image-signatures.yaml
 
 # a signed image (from CI) admits fine:
-kubectl -n devops-dojo run signed-test --image=ghcr.io/OWNER/REPO/api:latest --restart=Never
+kubectl create -f deploy/k8s/policies/signed-image-test-pod.yaml
 kubectl -n devops-dojo delete pod signed-test
 
 # now push an UNSIGNED image into your registry and try it:
 docker pull busybox:1.36
-docker tag busybox:1.36 ghcr.io/OWNER/REPO/api:unsigned
-docker push ghcr.io/OWNER/REPO/api:unsigned
-kubectl -n devops-dojo run unsigned-test --image=ghcr.io/OWNER/REPO/api:unsigned --restart=Never
+docker tag busybox:1.36 ghcr.io/owner/repo/api:unsigned
+docker push ghcr.io/owner/repo/api:unsigned
+kubectl create -f deploy/k8s/policies/unsigned-image-test-pod.yaml
 ```
 
 In `Audit` mode the pod runs but the violation appears in
 `kubectl get policyreport -n devops-dojo` (same flow as lab 29). Flip
-`validationFailureAction: Enforce`, re-apply, retry — admission now **rejects** the unsigned
+`validationFailureAction: Enforce`, delete the Audit-mode pod, re-apply, and retry —
+admission now **rejects** the unsigned
 image. Clean up the `:unsigned` tag from GHCR afterwards.
+
+```powershell
+kubectl -n devops-dojo delete pod unsigned-test --ignore-not-found
+kubectl apply -f deploy/k8s/policies/verify-image-signatures.yaml
+kubectl create -f deploy/k8s/policies/unsigned-image-test-pod.yaml
+```
 
 ### 4. See the gate refuse a CRITICAL
 
@@ -98,7 +107,7 @@ justification comment and a revisit date — an unexplained entry should die in 
 ### 5. Consume the SBOM you've been producing
 
 ```powershell
-docker buildx imagetools inspect ghcr.io/OWNER/REPO/api:latest --format "{{ json .SBOM }}" > sbom.json
+docker buildx imagetools inspect ghcr.io/owner/repo/api:master --format "{{ json .SBOM }}" > sbom.json
 trivy sbom sbom.json
 ```
 
@@ -144,7 +153,7 @@ the *inventory documents*, not every running system.
 
 ## Common failures
 
-- CI signing step fails with an OIDC/token error → the build job lost
+- CI signing step fails with an OIDC/token error → the trusted publish job lost
   `id-token: write` (job-level `permissions:` replaces workflow-level — keep all three).
 - `cosign verify` fails with certificate identity mismatch → your regexp doesn't match the
   workflow path/branch in the cert; inspect with `--certificate-identity-regexp ".*"` first,
@@ -153,7 +162,7 @@ the *inventory documents*, not every running system.
   to ghcr.io and rekor.sigstore.dev (check lab 28's NetworkPolicies if applied to
   kyverno's namespace, and kind's network).
 - Everything admits even in Enforce → your pod's image doesn't match
-  `imageReferences` (`ghcr.io/OWNER/REPO/*` — lowercase, exact repo), so the rule never
+  `imageReferences` (`ghcr.io/owner/repo/*` — lowercase, exact repo), so the rule never
   fired. `kubectl describe clusterpolicy verify-image-signatures` to confirm.
 - Gate fails on a CVE with no released fix → `ignore-unfixed: true` already skips those; if
   it's fixable, bump the base image — that's the gate doing its job.

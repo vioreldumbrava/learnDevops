@@ -31,7 +31,8 @@ docker compose -f deploy/compose/compose.yaml exec db psql -U dojo -d dojo -c "s
 ```
 
 The files live in [db/migrations/](../../db/migrations/): `000001_init` creates the tables,
-`000002_seed_steps` inserts the 24-lab curriculum.
+`000002_seed_steps` is the historical seed; later checked-in migrations extend it.
+Treat the manifest/API integrity check below—not an old fixed row count—as authoritative.
 
 ## How it works
 
@@ -42,27 +43,40 @@ and a `.down.sql` (roll back).
 
 ## Exercise
 
-Add a third migration that adds a `difficulty` column, then apply it:
+Add the **next available** migration that adds a `difficulty` column, then apply it. Never
+copy a migration number from a tutorial: this repository grows over time, and two files with
+the same version make the migration source invalid.
 
-1. Create `db/migrations/000003_add_difficulty.up.sql`:
+1. Allocate the next sequence number and create the pair:
+   ```powershell
+   $latest = Get-ChildItem db/migrations/*.up.sql |
+     ForEach-Object { [int](($_.BaseName -split '_')[0]) } |
+     Measure-Object -Maximum
+   $migration = '{0:D6}' -f ($latest.Maximum + 1)
+   $up = "db/migrations/${migration}_add_difficulty.up.sql"
+   $down = "db/migrations/${migration}_add_difficulty.down.sql"
+   New-Item $up, $down -ItemType File
+   "$migration -> $up / $down"
+   ```
+2. Put this in the generated `.up.sql` file:
    ```sql
    ALTER TABLE steps ADD COLUMN IF NOT EXISTS difficulty TEXT NOT NULL DEFAULT 'beginner';
    ```
-2. Create `db/migrations/000003_add_difficulty.down.sql`:
+3. Put this in the generated `.down.sql` file:
    ```sql
    ALTER TABLE steps DROP COLUMN IF EXISTS difficulty;
    ```
-3. Apply and verify:
+4. Apply and verify:
    ```powershell
    docker compose -f deploy/compose/compose.yaml run --rm migrate
-   docker compose -f deploy/compose/compose.yaml exec db psql -U dojo -d dojo -c "select version from schema_migrations;"
+   docker compose -f deploy/compose/compose.yaml exec db psql -U dojo -d dojo -c "select version, dirty from schema_migrations;"
    ```
 
 ## Checkpoint
 
 - ✅ `\dt` lists `steps`, `progress`, `notes`, `schema_migrations`.
-- ✅ `select count(*) from steps;` returns 24.
-- ✅ After the exercise, `schema_migrations.version` is `3`.
+- ✅ `select count(*) from steps;` matches the number of numbered directories under `labs/`.
+- ✅ After the exercise, `schema_migrations.version` matches `$migration` and `dirty` is false.
 
 ## Common failures
 

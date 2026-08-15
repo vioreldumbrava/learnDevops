@@ -1,124 +1,167 @@
-# Lab 25 — Capstone: DevOps Dojo on EKS via GitOps
+# Lab 25 — Capstone: EKS 1.35 through secure CI and GitOps
 
-**Maps to:** the whole path · **Milestone:** 3 (capstone) · *the interview centerpiece*
+**Tier:** core · **Milestone:** portfolio-ready capstone
 
-**Run from:** the **repo root** — the Terraform steps `cd deploy/eks` first (and come back with `cd ../..`); all `kubectl`/`helm` commands run from the repo root.
+**Run from:** the repository root. Terraform commands run under `deploy/eks`; Kubernetes and
+GitOps commands run from the root.
 
-This is the lab you talk about in interviews. It takes everything from labs 00–24 and lands
-it the way real teams run software: a managed **Kubernetes cluster on AWS (EKS)**, images
-built and published by **CI** to a registry, and delivery through **GitOps (ArgoCD)** — no
-`kubectl apply` by hand.
+This is the interview centerpiece: a change moves through tested, scanned, attested, signed
+images into Amazon EKS through Argo CD, and the application is exposed with Gateway API.
 
-> 💸 **Real cloud cost.** EKS + nodes + NAT gateway is roughly **$5–10/day**. Do it in one
-> focused session and **`terraform destroy` at the end**.
+> **High cost:** EKS, EC2 nodes, NAT, and ALB are billable (roughly $5–10/day for this
+> learning shape). Use a focused session, set a budget before starting, and perform the
+> teardown/tag inventory before leaving it.
 
-## The end-to-end flow
+## Architecture
 
-```
-git push ─▶ GitHub Actions (lab 15) ─▶ build+scan+push images ─▶ GHCR
-                                                                   │
-Terraform (deploy/eks) ─▶ EKS cluster ◀── ArgoCD watches Git ──────┘
-                                    │        (deploy/gitops)
-                                    └─▶ reconciles the Helm chart ─▶ app live behind an Ingress/LB
+```text
+commit → GitHub Actions → tests/scans → signed images + SBOM/provenance in GHCR
+                                      ↓
+Terraform → EKS 1.35 ← Argo CD watches Git → Helm → Gateway + HTTPRoute → AWS ALB
 ```
 
-You've built every box already; this lab connects them on real infrastructure.
+The supported EKS route is AWS Load Balancer Controller **v2.14.1** (Helm chart 1.14.0)
+with its `ALBGatewayAPI` feature. The retired ingress-nginx controller is not installed.
 
 ## Steps
 
-### 1. Publish images (CI)
+### 1. Publish immutable images
 
-Push to GitHub so Actions builds and pushes `api`/`frontend` to GHCR (lab 15), then make
-those packages **public** (or configure an image pull secret). Set the image repos in
-`deploy/gitops/argocd/application.yaml`.
+Complete lab 15 and merge a green change. Make the GHCR packages readable by the cluster (or
+configure an image-pull Secret), then replace `OWNER/REPO` and the `sha-CHANGE_ME`
+placeholders in [`application.yaml`](../../deploy/gitops/argocd/application.yaml) with your
+image repository and tested commit-derived `sha-...` tag. Commit and push that GitOps change.
 
-### 2. Provision the cluster (Terraform)
+### 2. Provision EKS 1.35
+
+Authenticate with SSO—not access keys—and apply the saved plan:
 
 ```powershell
-cd deploy/eks
-copy terraform.tfvars.example terraform.tfvars
+aws sso login --profile devops-dojo
+$env:AWS_PROFILE = "devops-dojo"
+
+Set-Location deploy/eks
+Copy-Item terraform.tfvars.example terraform.tfvars
 terraform init
-terraform apply                       # ~15 min
-terraform output -raw configure_kubectl | Invoke-Expression
+terraform plan -out tfplan
+terraform apply tfplan
+./bootstrap-gateway.ps1
+Set-Location ../..
+
 kubectl get nodes
-cd ../..
+kubectl wait gatewayclass/aws-alb --for=condition=Accepted --timeout=120s
+kubectl -n kube-system rollout status deployment/aws-load-balancer-controller --timeout=300s
 ```
 
-### 3. Install an ingress controller
+The bootstrap installs pinned standard Gateway API CRDs, the LBC-specific Gateway CRDs,
+the controller through IRSA, and an `aws-alb` GatewayClass whose public learning configuration
+is explicit. Read [`deploy/eks/README.md`](../../deploy/eks/README.md) before running it.
 
-```powershell
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/aws/deploy.yaml
-kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s
-```
+### 3. Install Argo CD and hand ownership to Git
 
-### 4. Install ArgoCD + hand delivery to GitOps
-
-Follow [deploy/gitops/README.md](../../deploy/gitops/README.md): install ArgoCD, create the
-`devops-dojo` namespace + `dojo-migrations` ConfigMap (bootstrap), then:
+Follow [`deploy/gitops/README.md`](../../deploy/gitops/README.md) to install Argo CD and
+bootstrap the namespace/migration ConfigMap. Repeat lab 26's sealing step against this EKS
+controller and commit the generated
+`deploy/secrets/capstone/sealed-dojo-secrets.yaml` before the first sync;
+kind-cluster ciphertext cannot be reused. The Application keeps `secrets.create=false`, so
+the capstone never falls back to a plaintext Helm value. Then:
 
 ```powershell
 kubectl apply -f deploy/gitops/argocd/application.yaml
-kubectl -n argocd get applications          # Synced / Healthy
-kubectl -n devops-dojo get pods,svc,ingress
+kubectl -n argocd get application devops-dojo -w
+
+kubectl -n devops-dojo wait gateway/dojo --for=condition=Programmed --timeout=600s
+kubectl -n devops-dojo get pods,svc,gateway,httproute
 ```
 
-### 5. Open it
+The Argo application overrides the chart's local `eg` class with `aws-alb`. Obtain the
+address from Gateway status rather than guessing a controller Service name:
 
 ```powershell
-kubectl -n ingress-nginx get svc ingress-nginx-controller   # note the EXTERNAL-IP (an AWS ELB hostname)
+$address = kubectl -n devops-dojo get gateway dojo `
+  -o jsonpath="{.status.addresses[0].value}"
+curl.exe --fail "http://$address/api/steps"
 ```
 
-Open `http://<elb-hostname>/` and `/api/steps`. Your app is live on real cloud Kubernetes,
-delivered by GitOps.
+### 4. Prove reconciliation and rollback
 
-### 6. Prove GitOps
+- Self-heal: scale `deployment/api` by hand and watch Argo restore the Git value.
+- Delivery: change the desired replica count or commit-derived image tag in Git, merge it, and observe
+  Argo reconcile without a manual `kubectl apply`.
+- Rollback: revert the Git change and confirm the prior rollout becomes healthy.
 
-- **Self-heal:** `kubectl -n devops-dojo scale deploy/api --replicas=1` → ArgoCD reverts it.
-- **Ship a change:** edit `api.replicas` in the chart's `values.yaml`, commit, push → ArgoCD
-  syncs it, no `kubectl`.
+Save the diff, Argo history, Gateway conditions, and one sanitized CI provenance/signature
+verification as portfolio evidence.
 
-### 7. Tear down (don't skip)
+### 5. Practice lifecycle readiness
+
+Before any upgrade, inspect AWS upgrade insights, deprecated APIs, and add-on compatibility:
 
 ```powershell
-kubectl delete -n devops-dojo ingress --all --ignore-not-found   # release the ELB first
-kubectl delete -f deploy/gitops/argocd/application.yaml
-cd deploy/eks; terraform destroy
+aws eks list-insights --cluster-name devops-dojo --region eu-north-1
+aws eks list-addons --cluster-name devops-dojo --region eu-north-1
+kubectl get --raw /metrics | Select-String apiserver_requested_deprecated_apis
 ```
 
-## How it works (the pieces, connected)
+Document the sequence: remove deprecated APIs; update/test add-ons; back up application data;
+upgrade one supported control-plane minor at a time; upgrade managed nodes; drain/observe
+workloads; validate SLOs; and only then continue. EKS control-plane downgrades are not a
+rollback mechanism, so readiness and application/data rollback must be proven first.
 
-- **Terraform** ([deploy/eks](../../deploy/eks/)) builds a 3-AZ VPC + EKS + managed nodes.
-- **CI** ([ci.yml](../../.github/workflows/ci.yml)) produces versioned, scanned images in GHCR.
-- **ArgoCD** ([deploy/gitops](../../deploy/gitops/)) reconciles the **Helm chart**
-  ([deploy/k8s/helm/devops-dojo](../../deploy/k8s/helm/devops-dojo/)) from Git → the cluster,
-  with prune + self-heal.
-- **ingress-nginx** provisions an AWS load balancer as the public entrypoint.
+Do not mutate the capstone cluster merely to tick an upgrade checkbox. The exercise is to
+produce and defend the runbook, then use it on a deliberately disposable cluster/version
+transition when AWS supports that path.
+
+### 6. Tear down and verify
+
+Delete controller-owned load balancers before destroying the VPC:
+
+```powershell
+kubectl delete -f deploy/gitops/argocd/application.yaml --ignore-not-found
+kubectl delete gateway --all --all-namespaces --ignore-not-found
+kubectl -n devops-dojo delete pvc --all --ignore-not-found
+kubectl get pv # wait until no capstone-owned PV remains
+
+aws elbv2 describe-load-balancers --region eu-north-1 `
+  --query "LoadBalancers[].{Name:LoadBalancerName,State:State.Code}" --output table
+# Wait until the capstone ALB is gone.
+
+Set-Location deploy/eks
+terraform destroy
+Set-Location ../..
+
+aws resourcegroupstaggingapi get-resources --region eu-north-1 `
+  --tag-filters Key=Project,Values=devops-dojo
+```
+
+Also check the Billing/Cost Explorer view the next day. Investigate any load balancer, NAT
+gateway, EBS volume/snapshot, or other tagged resource that remains.
 
 ## Checkpoint
 
-- ✅ `kubectl get nodes` shows EKS worker nodes.
-- ✅ ArgoCD reports the `devops-dojo` app **Synced / Healthy**.
-- ✅ The app is reachable via the ELB hostname; `/api/steps` returns all 57 steps.
-- ✅ Scaling a deployment by hand is auto-reverted by ArgoCD (self-heal).
-- ✅ You destroyed the cluster afterward.
-
-## Why this is the interview centerpiece
-
-You can now tell a complete, senior-sounding story: *"I take a code change from commit →
-tested, scanned, versioned image in a registry → deployed to Kubernetes on AWS through a
-GitOps pipeline that self-heals and rolls back via Git."* That sentence, backed by a repo you
-can screen-share and defend, is what separates "did a tutorial" from "can do the job."
-
-See [docs/INTERVIEW_PREP.md](../../docs/INTERVIEW_PREP.md) for the full talk track.
+- EKS reports Kubernetes 1.35 and the managed nodes are Ready.
+- The LBC uses IRSA, `aws-alb` is Accepted, the application Gateway is Programmed, and its
+  HTTPRoute serves `/api/steps` through an internet-facing ALB.
+- Argo CD is Synced/Healthy, repairs manual drift, and rolls a Git revert back safely.
+- The chart-created Secret is disabled; the committed SealedSecret produces `dojo-secrets`
+  without plaintext credentials in Git.
+- The pod's resolved `status.containerStatuses[].imageID` digest has a verified signature,
+  SBOM, and provenance from the secure CI path.
+- The upgrade-readiness runbook covers insights, deprecated APIs, add-ons, control plane,
+  nodes, validation, and application/data rollback.
+- Terraform destroy completes and tagged/billing verification finds no leftovers.
 
 ## Common failures
 
-- Pods `ImagePullBackOff` → GHCR packages aren't public / no pull secret, or the image repo in
-  the Application is wrong.
-- Ingress has no address → the AWS ingress-nginx manifest wasn't applied, or the ELB is still
-  provisioning (wait a minute).
-- `terraform destroy` hangs on the VPC → leftover ELBs; delete the ingress/services first.
+- GatewayClass unaccepted → LBC feature flag or LBC-specific Gateway CRDs are missing.
+- Gateway remains unprogrammed → inspect its conditions and controller logs; confirm the
+  GitOps values use `gateway.className: aws-alb`.
+- Gateway has only a private address → the public `LoadBalancerConfiguration` is absent or
+  not referenced by the GatewayClass.
+- ALB returns 503 → inspect HTTPRoute `ResolvedRefs`, Service ports, EndpointSlices, and pod
+  readiness.
+- Image pull error → repository visibility, pull Secret, tag, or digest is wrong.
+- Terraform destroy waits on VPC → find/delete controller-created ALB/target-group/security
+  resources, then retry; do not abandon billable infrastructure.
 
-➡️ Next: [Lab 26 — Production secrets management](../26-secrets-management/) — the one thing
-this capstone still fakes (plaintext secrets) — then back to the map:
-[docs/CURRICULUM.md](../../docs/CURRICULUM.md).
+➡️ Next: [Lab 40 Part B — RDS, IRSA, restore, and EKS operations](../40-aws-core-services/)
